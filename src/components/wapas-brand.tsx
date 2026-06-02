@@ -39,7 +39,7 @@ export function ReimburseBrand(props: { size?: "sm" | "lg" }) {
         Reimburse
       </span>
       <p
-        className={`text-zinc-500 ${isLarge ? "text-base" : "text-sm"} tracking-wide`}
+        className={`font-sans font-normal text-zinc-500 ${isLarge ? "text-base" : "text-sm"} tracking-wide`}
       >
         by Yellow Metal
       </p>
