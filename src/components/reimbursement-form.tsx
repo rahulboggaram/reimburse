@@ -229,7 +229,7 @@ export function ReimbursementForm(props: {
               }}
             >
               <option value="" disabled>
-                Select a category
+                Select category
               </option>
               {categories.map((item) => (
                 <option key={item.id} value={item.name}>
@@ -261,7 +261,7 @@ export function ReimbursementForm(props: {
               }}
             >
               <option value="" disabled>
-                Select a branch
+                Select branch
               </option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
