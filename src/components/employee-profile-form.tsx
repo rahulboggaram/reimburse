@@ -58,10 +58,16 @@ function ProfileFieldValue(props: {
 
 function ProfileCardSection(props: {
   children: React.ReactNode;
-  bordered?: boolean;
+  showDividerBefore?: boolean;
+  spacingBelow?: boolean;
 }) {
   return (
-    <div className={props.bordered ? "border-t border-zinc-100 pt-10" : undefined}>
+    <div
+      className={cn(
+        props.showDividerBefore && "border-t border-zinc-100 pt-10",
+        props.spacingBelow && "pb-10",
+      )}
+    >
       {props.children}
     </div>
   );
@@ -214,52 +220,54 @@ export function EmployeeProfileForm(props: {
       ) : null}
 
       <Card className={profileCardClass}>
-        {nameEditing ? (
-          <div className="space-y-4">
-            <Input
-              id="full-name"
-              required
-              value={name}
-              onChange={(e) => setName(toTitleCase(e.target.value))}
-              placeholder="Ananya Patel"
-              autoComplete="name"
-              aria-label="Name"
-            />
-            {!isOnboarding ? (
-              <div className="flex items-center justify-end gap-4">
-                <TextLinkButton onClick={() => cancelEdit("name")}>
-                  Cancel
-                </TextLinkButton>
-                <Button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => saveProfile({ redirect: false })}
-                >
-                  {saving ? "Saving…" : "Save"}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <ProfileFieldRow
-            action={
-              !isOnboarding ? (
-                <CardActionLink onClick={() => setEditingSection("name")}>
-                  Edit
-                </CardActionLink>
-              ) : undefined
-            }
-          >
-            <ProfileFieldValue>
-              {savedName || (
-                <span className="font-normal text-zinc-500">Not added yet</span>
-              )}
-            </ProfileFieldValue>
-          </ProfileFieldRow>
-        )}
+        <ProfileCardSection spacingBelow={Boolean(phone || accessRole)}>
+          {nameEditing ? (
+            <div className="space-y-4">
+              <Input
+                id="full-name"
+                required
+                value={name}
+                onChange={(e) => setName(toTitleCase(e.target.value))}
+                placeholder="Ananya Patel"
+                autoComplete="name"
+                aria-label="Name"
+              />
+              {!isOnboarding ? (
+                <div className="flex items-center justify-end gap-4">
+                  <TextLinkButton onClick={() => cancelEdit("name")}>
+                    Cancel
+                  </TextLinkButton>
+                  <Button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => saveProfile({ redirect: false })}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <ProfileFieldRow
+              action={
+                !isOnboarding ? (
+                  <CardActionLink onClick={() => setEditingSection("name")}>
+                    Edit
+                  </CardActionLink>
+                ) : undefined
+              }
+            >
+              <ProfileFieldValue>
+                {savedName || (
+                  <span className="font-normal text-zinc-500">Not added yet</span>
+                )}
+              </ProfileFieldValue>
+            </ProfileFieldRow>
+          )}
+        </ProfileCardSection>
 
         {phone ? (
-          <ProfileCardSection bordered>
+          <ProfileCardSection showDividerBefore spacingBelow>
             <ChangePhoneSection
               currentPhone={phone}
               onPhoneChanged={(nextPhone) => {
@@ -270,7 +278,7 @@ export function EmployeeProfileForm(props: {
           </ProfileCardSection>
         ) : null}
 
-        <ProfileCardSection bordered>
+        <ProfileCardSection showDividerBefore={Boolean(phone)}>
           <RoleBadge role={accessRole || "Employee"} />
         </ProfileCardSection>
       </Card>
