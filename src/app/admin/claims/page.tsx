@@ -10,6 +10,7 @@ import type { AdminClaim } from "@/lib/claim-types";
 import { formatDisplayDate } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
+import { RazorpayXStatusBanner } from "@/components/razorpayx-status-banner";
 import { readJson } from "@/lib/api";
 import { fetchClientCache, invalidateClientCache } from "@/lib/client-cache";
 
@@ -57,6 +58,7 @@ export default function AdminClaimsPage() {
   return (
     <>
       <PageHeading title="All claims" className="mb-4" />
+      <RazorpayXStatusBanner />
       <div className="mb-4 space-y-1.5">
         <Label htmlFor="filter-employee">Filter by employee</Label>
         <Select

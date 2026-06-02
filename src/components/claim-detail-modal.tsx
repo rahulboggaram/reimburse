@@ -342,7 +342,11 @@ export function ClaimDetailModal(props: {
               disabled={paying}
               onClick={payClaim}
             >
-              {paying ? "Approving…" : "Approve payment"}
+              {paying
+                ? "Sending to RazorpayX…"
+                : props.variant === "admin"
+                  ? "Pay via RazorpayX"
+                  : "Approve payment"}
             </Button>
           </div>
         ) : null}

@@ -81,8 +81,12 @@ export async function PATCH(
   const receiptError = await replaceClaimReceipts(id, receiptFiles);
   if (receiptError) return receiptError;
 
+  let payoutWarning: string | undefined;
   if (session.role === "ADMIN") {
-    await tryAutoPayAdminClaim(id, session.id);
+    const payoutResult = await tryAutoPayAdminClaim(id, session.id);
+    if (!payoutResult.ok && "error" in payoutResult) {
+      payoutWarning = payoutResult.error;
+    }
   }
 
   const claim = await prisma.reimbursement.findUniqueOrThrow({
@@ -90,5 +94,5 @@ export async function PATCH(
     include: claimInclude,
   });
 
-  return Response.json(serializeClaim(claim));
+  return Response.json({ ...serializeClaim(claim), payoutWarning });
 }

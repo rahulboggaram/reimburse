@@ -69,8 +69,12 @@ export async function POST(request: Request) {
       return receiptError;
     }
 
+    let payoutWarning: string | undefined;
     if (session.role === "ADMIN") {
-      await tryAutoPayAdminClaim(claim.id, session.id);
+      const payoutResult = await tryAutoPayAdminClaim(claim.id, session.id);
+      if (!payoutResult.ok && "error" in payoutResult) {
+        payoutWarning = payoutResult.error;
+      }
     }
 
     const fullClaim = await prisma.reimbursement.findUniqueOrThrow({
@@ -78,7 +82,10 @@ export async function POST(request: Request) {
       include: claimInclude,
     });
 
-    return Response.json(serializeClaim(fullClaim), { status: 201 });
+    return Response.json(
+      { ...serializeClaim(fullClaim), payoutWarning },
+      { status: 201 },
+    );
   } catch (err) {
     console.error("create-claim failed", err);
     return Response.json(

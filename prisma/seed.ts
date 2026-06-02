@@ -8,8 +8,8 @@ const users = [
     phone: "+919999000001",
     name: "Rahul",
     role: UserRole.ADMIN,
-    ifscCode: null,
-    bankAccountNumber: null,
+    ifscCode: "HDFC0001234",
+    bankAccountNumber: "50100987654321",
   },
   {
     phone: "+919999000002",

@@ -149,8 +149,15 @@ export function ReimbursementForm(props: {
         method,
         body: formData,
       });
-      await readJson(response);
+      const result = await readJson<{ payoutWarning?: string }>(response);
       invalidateClientCache("claims-mine");
+
+      if (result.payoutWarning) {
+        setError(
+          `Claim saved, but RazorpayX payout did not run: ${result.payoutWarning}`,
+        );
+        return;
+      }
 
       if (props.onSuccess) {
         props.onSuccess();
