@@ -9,6 +9,11 @@ export const verifyOtpSchema = z.object({
   code: z.string().trim().length(6),
 });
 
+export const changePhoneSchema = z.object({
+  phone: z.string().min(10).max(20),
+  code: z.string().trim().length(6),
+});
+
 export const employeeProfileSchema = z.object({
   name: z.string().trim().min(2).max(120),
   ifscCode: z

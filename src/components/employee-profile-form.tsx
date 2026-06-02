@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
 import { RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
@@ -17,6 +18,7 @@ export function EmployeeProfileForm(props: {
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [ifscCode, setIfscCode] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [accessRole, setAccessRole] = useState<string>("");
@@ -28,12 +30,14 @@ export function EmployeeProfileForm(props: {
     fetch("/api/profile")
       .then((res) => readJson<{
         name: string | null;
+        phone: string;
         ifscCode: string | null;
         bankAccountNumber: string | null;
         accessRole: string;
       }>(res))
       .then((data) => {
         setName(data.name ? toTitleCase(data.name) : "");
+        setPhone(data.phone);
         setBankAccountNumber(data.bankAccountNumber ?? "");
         setIfscCode(data.ifscCode ?? "");
         setAccessRole(data.accessRole);
@@ -78,6 +82,11 @@ export function EmployeeProfileForm(props: {
           <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
         </Card>
         <Card className="space-y-3">
+          <div className="h-4 w-28 animate-pulse rounded bg-zinc-200" />
+          <div className="h-5 w-36 animate-pulse rounded bg-zinc-100" />
+          <div className="h-9 w-40 animate-pulse rounded-xl bg-zinc-100" />
+        </Card>
+        <Card className="space-y-3">
           <div className="h-4 w-12 animate-pulse rounded bg-zinc-200" />
           <div className="h-6 w-20 animate-pulse rounded-full bg-zinc-100" />
         </Card>
@@ -119,6 +128,19 @@ export function EmployeeProfileForm(props: {
           />
         </div>
       </Card>
+
+      {phone ? (
+        <Card className="space-y-1">
+          <p className="text-sm font-semibold text-zinc-800">Mobile number</p>
+          <ChangePhoneSection
+            currentPhone={phone}
+            onPhoneChanged={(nextPhone) => {
+              setPhone(nextPhone);
+              router.refresh();
+            }}
+          />
+        </Card>
+      ) : null}
 
       <Card className="space-y-2">
         <p className="text-sm font-semibold text-zinc-800">Role</p>
