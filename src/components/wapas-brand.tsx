@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { readJson } from "@/lib/api";
 import { getAppHomePath } from "@/lib/home-path";
 
-export function WapasBrand(props: { size?: "sm" | "lg" }) {
+export function ReimburseBrand(props: { size?: "sm" | "lg" }) {
   const isLarge = props.size !== "sm";
   const [homeHref, setHomeHref] = useState("/login");
 
@@ -29,14 +29,14 @@ export function WapasBrand(props: { size?: "sm" | "lg" }) {
     <Link
       href={homeHref}
       className="inline-block space-y-0.5 rounded-lg outline-none ring-zinc-900 focus-visible:ring-2"
-      aria-label="Wapas home"
+      aria-label="Reimburse home"
     >
       <span
         className={`font-brand uppercase text-emerald-950 ${
           isLarge ? "text-3xl leading-none" : "text-xl leading-none"
         }`}
       >
-        WAPAS
+        REIMBURSE
       </span>
       <p
         className={`text-zinc-500 ${isLarge ? "text-sm" : "text-xs"} tracking-wide`}

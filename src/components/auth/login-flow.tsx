@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { WapasBrand } from "@/components/wapas-brand";
+import { ReimburseBrand } from "@/components/wapas-brand";
 import { readJson } from "@/lib/api";
 
 const MOCK_OTP = "123456";
@@ -98,7 +98,7 @@ export function LoginFlow() {
   return (
     <div className="mx-auto w-full max-w-md px-4 py-8">
       <header className="mb-6">
-        <WapasBrand size="lg" />
+        <ReimburseBrand size="lg" />
       </header>
 
       <Card className="space-y-4">

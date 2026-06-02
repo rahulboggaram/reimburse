@@ -182,7 +182,7 @@ export async function createReimbursementPayout(input: {
         purpose: "refund",
         queue_if_low_balance: true,
         reference_id: payoutReferenceId(input.claimId),
-        narration: sanitizeNarration(`Wapas ${input.category}`),
+        narration: sanitizeNarration(`Reimburse ${input.category}`),
         notes: {
           claim_id: input.claimId,
           employee_id: input.employeeId,
@@ -196,7 +196,7 @@ export async function createReimbursementPayout(input: {
           },
           contact: {
             name: input.employeeName,
-            email: `${phoneDigits}@wapas.local`,
+            email: `${phoneDigits}@reimburse.local`,
             contact: phoneDigits,
             type: "employee",
             reference_id: input.employeeId,

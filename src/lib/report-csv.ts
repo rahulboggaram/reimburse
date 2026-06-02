@@ -32,7 +32,7 @@ export function buildReimbursementsReportCsv(input: {
   }>;
 }) {
   const lines: string[] = [
-    "Wapas — All reimbursements",
+    "Reimburse — All reimbursements",
     csvRow(["Generated", input.generatedAt]),
     csvRow(["From", input.from ?? "Any"]),
     csvRow(["To", input.to ?? "Any"]),
@@ -92,7 +92,7 @@ export function buildActivityReportCsv(input: {
   }>;
 }) {
   const lines: string[] = [
-    "Wapas — Full activity",
+    "Reimburse — Full activity",
     csvRow(["Generated", input.generatedAt]),
     csvRow(["From", input.from ?? "Any"]),
     csvRow(["To", input.to ?? "Any"]),
@@ -128,7 +128,7 @@ export function buildPermissionsReportCsv(input: {
   }>;
 }) {
   const lines: string[] = [
-    "Wapas — Permission changes",
+    "Reimburse — Permission changes",
     csvRow(["Generated", input.generatedAt]),
     csvRow(["From", input.from ?? "Any"]),
     csvRow(["To", input.to ?? "Any"]),
@@ -166,7 +166,7 @@ export function buildTransactionsReportCsv(input: {
   }>;
 }) {
   const lines: string[] = [
-    "Wapas — Transactions",
+    "Reimburse — Transactions",
     csvRow(["Generated", input.generatedAt]),
     csvRow(["From", input.from ?? "Any"]),
     csvRow(["To", input.to ?? "Any"]),
@@ -223,7 +223,7 @@ export function buildAdminReportCsv(input: {
 }) {
   const lines: string[] = [];
 
-  lines.push("Wapas — Reimbursements report");
+  lines.push("Reimburse — Reimbursements report");
   lines.push(
     csvRow([
       "Employee",
@@ -259,7 +259,7 @@ export function buildAdminReportCsv(input: {
   }
 
   lines.push("");
-  lines.push("Wapas — Activity log");
+  lines.push("Reimburse — Activity log");
   lines.push(csvRow(["When", "Type", "Summary", "By"]));
 
   for (const activity of input.activities) {

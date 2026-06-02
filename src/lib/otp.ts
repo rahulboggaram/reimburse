@@ -25,7 +25,7 @@ export async function createOtpChallenge(phone: string) {
   });
 
   if (isOtpMockMode()) {
-    console.log(`[Wapas OTP] ${phone} → ${code}`);
+    console.log(`[Reimburse OTP] ${phone} → ${code}`);
   }
 
   return { code, expiresAt };
@@ -54,6 +54,6 @@ export async function verifyOtpChallenge(phone: string, code: string) {
 
 /** SMS body format for Web OTP autofill (Chrome on Android). */
 export function otpSmsBody(code: string): string {
-  const domain = process.env.NEXT_PUBLIC_OTP_DOMAIN ?? "wapas.local";
-  return `Your Wapas code is ${code}\n\n@${domain} #${code}`;
+  const domain = process.env.NEXT_PUBLIC_OTP_DOMAIN ?? "reimburse.local";
+  return `Your Reimburse code is ${code}\n\n@${domain} #${code}`;
 }
