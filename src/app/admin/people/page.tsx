@@ -14,6 +14,7 @@ import {
 } from "@/components/employee-list";
 import type { UserRole } from "@prisma/client";
 import { formatPhoneDisplay, normalizePhone } from "@/lib/phone";
+import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
 type RoleFilter =
@@ -168,6 +169,7 @@ export default function AdminPeoplePage() {
 
   return (
     <>
+      <PageHeading title="People" className="mb-5" />
       <Card className="mb-6">
         <form onSubmit={addEmployee} className="space-y-4">
           <div>

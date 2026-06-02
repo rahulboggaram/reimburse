@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import { Card } from "@/components/ui/card";
+import { PageHeading } from "@/components/page-heading";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { readJson } from "@/lib/api";
 
@@ -27,12 +28,15 @@ export default function ManagerClaimDetailPage() {
 
   if (!claim) {
     return (
-      <Card>
-        <p className="text-sm text-zinc-600">Claim not found.</p>
-        <TextLink href="/manager" className="mt-3">
-          Back
-        </TextLink>
-      </Card>
+      <>
+        <PageHeading title="Approvals" className="mb-5" />
+        <Card>
+          <p className="text-sm text-zinc-600">Claim not found.</p>
+          <TextLink href="/manager" className="mt-3">
+            Back
+          </TextLink>
+        </Card>
+      </>
     );
   }
 
