@@ -27,12 +27,6 @@ body {
   letter-spacing: -0.02em;
 }
 
-.font-brand-alt {
-  font-family: var(--font-brand-alt-family), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
