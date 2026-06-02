@@ -59,6 +59,25 @@ export async function saveReceiptFiles(
   reimbursementId: string,
   files: File[],
 ): Promise<SavedReceipt[]> {
+  // Vercel serverless functions have an ephemeral filesystem; writing to `public/`
+  // will fail at runtime. For prototypes, store receipts as data URLs in the DB.
+  // This keeps uploads working without external storage setup.
+  if (process.env.VERCEL) {
+    const saved: SavedReceipt[] = [];
+    for (const file of files) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const base64 = buffer.toString("base64");
+      const mimeType = file.type || "application/octet-stream";
+      saved.push({
+        filePath: `data:${mimeType};base64,${base64}`,
+        fileName: file.name || `receipt-${randomUUID()}`,
+        mimeType,
+        sizeBytes: file.size,
+      });
+    }
+    return saved;
+  }
+
   const dir = path.join(
     process.cwd(),
     "public",
@@ -86,6 +105,7 @@ export async function saveReceiptFiles(
 }
 
 export async function deleteReceiptFilesForClaim(reimbursementId: string) {
+  if (process.env.VERCEL) return;
   const dir = path.join(
     process.cwd(),
     "public",
