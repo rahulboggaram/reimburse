@@ -161,8 +161,12 @@ export function ReimbursementForm(props: {
         router.push("/employee/claims");
         router.refresh();
       }
-    } catch {
-      setError("Could not save claim. Check your details and try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not save claim. Check your details and try again.",
+      );
     } finally {
       setSubmitting(false);
     }
