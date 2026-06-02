@@ -7,6 +7,7 @@ type RazorpayStatus = {
   configured: boolean;
   mock: boolean;
   mode: string;
+  keyEnvironment: "test" | "live" | "unknown";
 };
 
 export function RazorpayXStatusBanner() {
@@ -37,6 +38,19 @@ export function RazorpayXStatusBanner() {
       <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
         <span className="font-medium">RazorpayX not connected.</span> Add your
         test keys in Vercel environment variables, then redeploy.
+      </p>
+    );
+  }
+
+  if (status.keyEnvironment === "test") {
+    return (
+      <p className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+        <span className="font-medium">RazorpayX test mode is working.</span> In
+        the Razorpay dashboard you will see &ldquo;Test — These are test payouts
+        and do not affect the actual balance.&rdquo; That is normal: no real money
+        moves until you switch to live API keys after KYC. Use{" "}
+        <span className="font-medium">Pay via RazorpayX</span> on an approved
+        claim to create a test payout.
       </p>
     );
   }

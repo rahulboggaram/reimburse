@@ -198,9 +198,16 @@ export async function syncPayoutForClaim(claimId: string) {
 
 export function razorpayStatusForAdmin() {
   const config = getRazorpayConfig();
+  const keyEnvironment = config.keyId.startsWith("rzp_live_")
+    ? ("live" as const)
+    : config.keyId.startsWith("rzp_test_")
+      ? ("test" as const)
+      : ("unknown" as const);
+
   return {
     configured: config.enabled,
     mock: config.mock,
     mode: config.payoutMode,
+    keyEnvironment,
   };
 }
