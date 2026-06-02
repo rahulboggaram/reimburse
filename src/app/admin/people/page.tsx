@@ -252,9 +252,6 @@ export default function AdminPeoplePage() {
       </div>
 
       <h2 className="mb-3 text-lg font-semibold">All Employees</h2>
-      <p className="mb-3 text-xs text-zinc-500">
-        ✓ = has access · – = no access · Tap a row for details
-      </p>
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
