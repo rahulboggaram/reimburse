@@ -5,14 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { toTitleCase } from "@/lib/user-profile";
-import { readJson } from "@/lib/api";
+import { useMe, type MeUser } from "@/components/me-provider";
 import { cn } from "@/lib/utils";
-
-type MeUser = {
-  name: string | null;
-  phone: string;
-  role: string;
-};
 
 function displayLabel(user: MeUser) {
   if (user.name?.trim()) return toTitleCase(user.name.trim());
@@ -28,6 +22,7 @@ function MenuLink(props: {
   return (
     <Link
       href={props.href}
+      prefetch
       role="menuitem"
       className={cn(
         "block px-4 py-2.5 text-sm font-medium hover:bg-zinc-50",
@@ -48,15 +43,28 @@ export function UserMenu() {
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
-  const [user, setUser] = useState<MeUser | null>(null);
+  const { user, loading } = useMe();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => readJson<{ user: MeUser | null }>(res))
-      .then((data) => setUser(data.user))
-      .catch(() => setUser(null));
-  }, []);
+    if (!open) return;
+
+    const routes = [
+      "/employee",
+      "/employee/claims",
+      "/employee/profile",
+      "/manager",
+      "/admin/people",
+      "/admin/claims",
+      "/admin/activity",
+      "/admin/reports",
+      "/admin/branches",
+      "/admin/categories",
+    ];
+    for (const route of routes) {
+      router.prefetch(route);
+    }
+  }, [open, router]);
 
   useEffect(() => {
     if (!open) return;
@@ -90,11 +98,12 @@ export function UserMenu() {
     router.refresh();
   }
 
-  if (!user) {
+  if (loading || !user) {
     return (
       <div
-        className="size-10 shrink-0 rounded-full bg-zinc-200"
-        aria-hidden
+        className="size-10 shrink-0 animate-pulse rounded-full bg-zinc-200"
+        aria-hidden={loading}
+        aria-label={loading ? "Loading menu" : undefined}
       />
     );
   }

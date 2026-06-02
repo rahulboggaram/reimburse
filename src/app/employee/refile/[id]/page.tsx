@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AppShell } from "@/components/app-shell";
 import {
   ReimbursementForm,
   type ReimbursementFormValues,
@@ -37,31 +36,24 @@ export default function RefileClaimPage() {
 
   if (loading) {
     return (
-      <main className="min-h-dvh bg-zinc-100">
-        <AppShell>
-          <p className="text-sm text-zinc-500">Loading…</p>
-        </AppShell>
-      </main>
+      <div className="space-y-4">
+        <div className="h-20 animate-pulse rounded-xl bg-zinc-200" />
+        <div className="h-48 animate-pulse rounded-xl bg-zinc-200" />
+      </div>
     );
   }
 
   if (!claim || claim.status !== "REJECTED") {
     return (
-      <main className="min-h-dvh bg-zinc-100">
-        <AppShell>
-          <Card>
-            <p className="text-sm text-zinc-600">
-              This claim cannot be refiled.
-            </p>
-            <Link
-              href="/employee/claims"
-              className="mt-3 inline-block text-sm font-medium underline"
-            >
-              Back to my claims
-            </Link>
-          </Card>
-        </AppShell>
-      </main>
+      <Card>
+        <p className="text-sm text-zinc-600">This claim cannot be refiled.</p>
+        <Link
+          href="/employee/claims"
+          className="mt-3 inline-block text-sm font-medium underline"
+        >
+          Back to my claims
+        </Link>
+      </Card>
     );
   }
 
@@ -73,23 +65,21 @@ export default function RefileClaimPage() {
   };
 
   return (
-    <main className="min-h-dvh bg-zinc-100">
-      <AppShell>
-        {claim.rejectionReason ? (
-          <Card className="mb-4 border-red-200 bg-red-50">
-            <p className="text-sm text-red-800">
-              <span className="font-medium">Rejected because:</span>{" "}
-              {claim.rejectionReason}
-            </p>
-          </Card>
-        ) : null}
-        <ReimbursementForm
-          title="Edit & refile"
-          submitLabel="Resubmit for approval"
-          claimId={claim.id}
-          initial={initial}
-        />
-      </AppShell>
-    </main>
+    <>
+      {claim.rejectionReason ? (
+        <Card className="mb-4 border-red-200 bg-red-50">
+          <p className="text-sm text-red-800">
+            <span className="font-medium">Rejected because:</span>{" "}
+            {claim.rejectionReason}
+          </p>
+        </Card>
+      ) : null}
+      <ReimbursementForm
+        title="Edit & refile"
+        submitLabel="Resubmit for approval"
+        claimId={claim.id}
+        initial={initial}
+      />
+    </>
   );
 }

@@ -1,28 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { readJson } from "@/lib/api";
 import { getAppHomePath } from "@/lib/home-path";
+import { MeContext, type MeUser } from "@/components/me-provider";
 
 export function ReimburseBrand() {
-  const [homeHref, setHomeHref] = useState("/login");
+  const me = useContext(MeContext);
+  const [fallbackHref, setFallbackHref] = useState("/login");
 
   useEffect(() => {
+    if (me) return;
+
     fetch("/api/auth/me")
       .then((res) =>
         res.ok
-          ? readJson<{
-              user: {
-                role: string;
-                profileComplete: boolean;
-              } | null;
-            }>(res)
+          ? readJson<{ user: Pick<MeUser, "role" | "profileComplete"> | null }>(
+              res,
+            )
           : { user: null },
       )
-      .then((data) => setHomeHref(getAppHomePath(data.user)))
-      .catch(() => setHomeHref("/login"));
-  }, []);
+      .then((data) => setFallbackHref(getAppHomePath(data.user)))
+      .catch(() => setFallbackHref("/login"));
+  }, [me]);
+
+  const homeHref = me
+    ? me.user
+      ? getAppHomePath(me.user)
+      : "/login"
+    : fallbackHref;
 
   return (
     <Link
@@ -33,7 +40,7 @@ export function ReimburseBrand() {
       <span className="font-brand text-5xl leading-none text-emerald-950">
         Reimburse
       </span>
-      <p className="font-sans text-xs font-normal text-zinc-400 tracking-wide">
+      <p className="font-sans text-xs font-normal tracking-wide text-zinc-400">
         by Yellow Metal
       </p>
     </Link>

@@ -13,6 +13,7 @@ import {
   ReceiptUploadField,
   type ReceiptFileItem,
 } from "@/components/receipt-upload-field";
+import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
 import { toTitleCase } from "@/lib/user-profile";
 
@@ -64,19 +65,8 @@ export function ReimbursementForm(props: {
   const [receipts, setReceipts] = useState<ReceiptFileItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { user: meUser } = useMe();
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) =>
-        res.ok
-          ? readJson<{ user: { role: string } | null }>(res)
-          : { user: null },
-      )
-      .then((data) => setUserRole(data.user?.role ?? null))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     fetch("/api/branches")
@@ -187,7 +177,7 @@ export function ReimbursementForm(props: {
       return;
     }
 
-    if (userRole === "ADMIN") {
+    if (meUser?.role === "ADMIN") {
       setAdminConfirmOpen(true);
       return;
     }

@@ -67,7 +67,27 @@ export function EmployeeProfileForm(props: {
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading…</p>;
+    return (
+      <div className="space-y-5">
+        <div className="space-y-2">
+          <div className="h-7 w-40 animate-pulse rounded-lg bg-zinc-200" />
+          <div className="h-4 w-56 animate-pulse rounded bg-zinc-100" />
+        </div>
+        <Card className="space-y-3">
+          <div className="h-4 w-16 animate-pulse rounded bg-zinc-200" />
+          <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
+        </Card>
+        <Card className="space-y-3">
+          <div className="h-4 w-12 animate-pulse rounded bg-zinc-200" />
+          <div className="h-6 w-20 animate-pulse rounded-full bg-zinc-100" />
+        </Card>
+        <Card className="space-y-3">
+          <div className="h-4 w-36 animate-pulse rounded bg-zinc-200" />
+          <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
+          <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
+        </Card>
+      </div>
+    );
   }
 
   return (
