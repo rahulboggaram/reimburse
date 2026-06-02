@@ -197,15 +197,15 @@ export function EmployeeProfileForm(props: {
         <p className="text-sm font-semibold text-zinc-800">Personal details</p>
 
         <div className="space-y-3">
-          <ProfileCardHeader
-            title="Name"
-            editing={nameEditing}
-            showEdit={!isOnboarding}
-            onEdit={() => setEditingSection("name")}
-            onCancel={() => cancelEdit("name")}
-          />
           {nameEditing ? (
             <div className="space-y-3">
+              {!isOnboarding ? (
+                <div className="flex justify-end">
+                  <TextLinkButton onClick={() => cancelEdit("name")}>
+                    Cancel
+                  </TextLinkButton>
+                </div>
+              ) : null}
               <Input
                 id="full-name"
                 required
@@ -226,20 +226,24 @@ export function EmployeeProfileForm(props: {
               ) : null}
             </div>
           ) : (
-            <p className="text-base font-medium text-zinc-900">
-              {savedName || (
-                <span className="font-normal text-zinc-500">Not added yet</span>
-              )}
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-medium text-zinc-900">
+                {savedName || (
+                  <span className="font-normal text-zinc-500">Not added yet</span>
+                )}
+              </p>
+              {!isOnboarding ? (
+                <CardActionLink onClick={() => setEditingSection("name")}>
+                  Edit
+                </CardActionLink>
+              ) : null}
+            </div>
           )}
         </div>
 
         {phone ? (
           <>
             <div className="border-t border-zinc-100 pt-4">
-              <p className="mb-3 text-sm font-semibold text-zinc-800">
-                Mobile number
-              </p>
               <ChangePhoneSection
                 currentPhone={phone}
                 onPhoneChanged={(nextPhone) => {
@@ -249,13 +253,11 @@ export function EmployeeProfileForm(props: {
               />
             </div>
             <div className="border-t border-zinc-100 pt-4">
-              <p className="mb-2 text-sm font-semibold text-zinc-800">Role</p>
               <RoleBadge role={accessRole || "Employee"} />
             </div>
           </>
         ) : (
           <div className="border-t border-zinc-100 pt-4">
-            <p className="mb-2 text-sm font-semibold text-zinc-800">Role</p>
             <RoleBadge role={accessRole || "Employee"} />
           </div>
         )}
