@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJson } from "@/lib/api";
+import { TextLinkButton } from "@/components/text-link";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 const MOCK_OTP = "123456";
@@ -96,21 +97,11 @@ export function ChangePhoneSection(props: {
           {formatPhoneDisplay(props.currentPhone)}
         </p>
         {!open ? (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="shrink-0 text-sm font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
-          >
+          <TextLinkButton onClick={() => setOpen(true)}>
             Change mobile number
-          </button>
+          </TextLinkButton>
         ) : (
-          <button
-            type="button"
-            onClick={close}
-            className="shrink-0 text-sm font-medium text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
-          >
-            Cancel
-          </button>
+          <TextLinkButton onClick={close}>Cancel</TextLinkButton>
         )}
       </div>
 

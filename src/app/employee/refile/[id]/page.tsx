@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TextLink } from "@/components/text-link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -47,12 +47,9 @@ export default function RefileClaimPage() {
     return (
       <Card>
         <p className="text-sm text-zinc-600">This claim cannot be refiled.</p>
-        <Link
-          href="/employee/claims"
-          className="mt-3 inline-block text-sm font-medium underline"
-        >
+        <TextLink href="/employee/claims" className="mt-3">
           Back to my claims
-        </Link>
+        </TextLink>
       </Card>
     );
   }

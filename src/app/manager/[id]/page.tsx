@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { TextLink } from "@/components/text-link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
@@ -29,9 +29,9 @@ export default function ManagerClaimDetailPage() {
     return (
       <Card>
         <p className="text-sm text-zinc-600">Claim not found.</p>
-        <Link href="/manager" className="mt-3 inline-block text-sm underline">
+        <TextLink href="/manager" className="mt-3">
           Back
-        </Link>
+        </TextLink>
       </Card>
     );
   }

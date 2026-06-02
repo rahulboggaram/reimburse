@@ -1,3 +1,6 @@
+import { textLinkClassName } from "@/components/text-link";
+import { cn } from "@/lib/utils";
+
 type Receipt = {
   id: string;
   url: string;
@@ -40,7 +43,9 @@ export function ReceiptGallery(props: {
                   <span className="line-clamp-2 text-xs font-medium text-zinc-700">
                     {receipt.fileName ?? "PDF receipt"}
                   </span>
-                  <span className="text-xs text-emerald-800">Open file</span>
+                  <span className={cn("text-xs", textLinkClassName)}>
+                    Open file
+                  </span>
                 </div>
               )}
             </a>

@@ -14,6 +14,7 @@ import {
   invalidateClientCache,
 } from "@/lib/client-cache";
 import { PageHeading } from "@/components/page-heading";
+import { TextLinkButton } from "@/components/text-link";
 import { RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
 
@@ -23,15 +24,7 @@ function CardActionLink(props: {
   children: React.ReactNode;
   onClick: () => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      className="shrink-0 text-sm font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
-    >
-      {props.children}
-    </button>
-  );
+  return <TextLinkButton onClick={props.onClick}>{props.children}</TextLinkButton>;
 }
 
 function ProfileCardHeader(props: {
@@ -45,13 +38,7 @@ function ProfileCardHeader(props: {
     <div className="flex items-center justify-between gap-3">
       <p className="text-sm font-semibold text-zinc-800">{props.title}</p>
       {props.showEdit === false ? null : props.editing ? (
-        <button
-          type="button"
-          onClick={props.onCancel}
-          className="shrink-0 text-sm font-medium text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
-        >
-          Cancel
-        </button>
+        <TextLinkButton onClick={props.onCancel}>Cancel</TextLinkButton>
       ) : (
         <CardActionLink onClick={props.onEdit ?? (() => {})}>Edit</CardActionLink>
       )}

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ReimburseBrand } from "@/components/wapas-brand";
+import { TextLinkButton } from "@/components/text-link";
 import { readJson } from "@/lib/api";
 
 const MOCK_OTP = "123456";
@@ -159,9 +160,8 @@ export function LoginFlow() {
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? "Verifying…" : "Sign in"}
             </Button>
-            <button
-              type="button"
-              className="w-full text-sm text-zinc-600 underline"
+            <TextLinkButton
+              className="w-full shrink"
               onClick={() => {
                 setStep("phone");
                 setOtp("");
@@ -170,7 +170,7 @@ export function LoginFlow() {
               }}
             >
               Change number
-            </button>
+            </TextLinkButton>
           </form>
         )}
       </Card>
