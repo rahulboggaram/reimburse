@@ -17,7 +17,7 @@ export function formatPhoneDisplay(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.length >= 10) {
     const local = digits.slice(-10);
-    return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
+    return `${local.slice(0, 5)} ${local.slice(5)}`;
   }
   return phone;
 }
