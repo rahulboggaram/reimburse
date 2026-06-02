@@ -234,7 +234,6 @@ export function EmployeeProfileForm(props: {
             {!isOnboarding ? (
               <Button
                 type="button"
-                variant="brand"
                 disabled={saving}
                 onClick={() => saveProfile({ redirect: false })}
               >
@@ -308,7 +307,6 @@ export function EmployeeProfileForm(props: {
             {!isOnboarding ? (
               <Button
                 type="button"
-                variant="brand"
                 disabled={saving}
                 onClick={() => saveProfile({ redirect: false })}
               >
@@ -341,7 +339,7 @@ export function EmployeeProfileForm(props: {
       </Card>
 
       {isOnboarding ? (
-        <Button type="submit" variant="brand" size="lg" className="w-full" disabled={saving}>
+        <Button type="submit" size="lg" className="w-full" disabled={saving}>
           {saving ? "Continuing…" : props.submitLabel}
         </Button>
       ) : null}

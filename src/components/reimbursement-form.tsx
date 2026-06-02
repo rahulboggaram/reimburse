@@ -319,7 +319,6 @@ export function ReimbursementForm(props: {
 
       <Button
         type="submit"
-        variant="brand"
         size="lg"
         className="w-full"
         disabled={

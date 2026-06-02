@@ -28,7 +28,7 @@ export function EmployeeEmptyState(props: {
       </p>
       <Link
         href={props.actionHref}
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-emerald-950 px-5 text-sm font-semibold text-white shadow-md shadow-emerald-950/15 transition-colors hover:bg-emerald-900"
+        className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
       >
         {props.actionLabel}
       </Link>
