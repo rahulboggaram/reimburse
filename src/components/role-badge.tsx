@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const roleStyles: Record<string, string> = {
-  Admin: "bg-emerald-950 text-emerald-50 ring-1 ring-emerald-800/20",
+  Admin: "bg-zinc-900 text-white ring-1 ring-zinc-700/30",
   Employee: "bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200/80",
   "Branch Manager": "bg-sky-100 text-sky-900 ring-1 ring-sky-200/80",
   "Payment Approver": "bg-violet-100 text-violet-900 ring-1 ring-violet-200/80",

@@ -22,7 +22,7 @@ function MenuLink(props: {
       role="menuitem"
       className={cn(
         "block px-4 py-2.5 text-sm font-medium hover:bg-zinc-50",
-        props.active ? "bg-zinc-50 text-emerald-800" : "text-zinc-800",
+        props.active ? "bg-zinc-100 text-zinc-900" : "text-zinc-800",
       )}
       onClick={props.onNavigate}
     >
@@ -52,7 +52,7 @@ function MenuChevron(props: { open: boolean }) {
       viewBox="0 0 20 20"
       fill="currentColor"
       className={cn(
-        "size-4 shrink-0 text-emerald-700/80 transition-transform",
+        "size-4 shrink-0 text-zinc-500 transition-transform",
         props.open && "rotate-180",
       )}
     >
@@ -79,11 +79,11 @@ function AccountMenuTrigger(props: {
       aria-busy={props.loading || undefined}
       disabled={props.loading}
       onClick={props.onClick}
-      className="flex max-w-[11rem] items-center gap-1.5 rounded-full bg-white/90 py-1.5 pr-2 pl-3 text-sm font-medium text-emerald-950 shadow-sm ring-1 ring-emerald-100/80 transition-colors hover:bg-white disabled:cursor-wait sm:max-w-[13rem]"
+      className="flex max-w-[11rem] items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50 disabled:cursor-wait sm:max-w-[13rem]"
       aria-label={`Account menu for ${props.label}`}
     >
       {props.loading ? (
-        <span className="h-4 w-20 animate-pulse rounded bg-emerald-100/80" />
+        <span className="h-4 w-20 animate-pulse rounded bg-zinc-200" />
       ) : (
         <span className="truncate">{props.label}</span>
       )}
