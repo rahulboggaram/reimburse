@@ -1,10 +1,5 @@
-import { ReimbursementForm } from "@/components/reimbursement-form";
+import { EmployeeHomePage } from "@/components/employee-home-page";
 
-export default function EmployeeHomePage() {
-  return (
-    <ReimbursementForm
-      title="New reimbursement"
-      submitLabel="Submit for approval"
-    />
-  );
+export default function EmployeeHomePageRoute() {
+  return <EmployeeHomePage />;
 }

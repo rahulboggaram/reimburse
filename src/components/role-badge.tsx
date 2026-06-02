@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 
+const neutralRoleStyle =
+  "bg-gradient-to-r from-zinc-50 to-white text-zinc-800 ring-1 ring-zinc-200 shadow-sm";
+
 const roleStyles: Record<string, string> = {
   Admin: "bg-zinc-900 text-white ring-1 ring-zinc-800",
-  Employee:
-    "bg-gradient-to-r from-zinc-50 to-white text-zinc-800 ring-1 ring-zinc-200 shadow-sm",
-  "Branch Manager": "bg-sky-50 text-sky-900 ring-1 ring-sky-200/90",
+  Employee: neutralRoleStyle,
+  "Branch Manager": neutralRoleStyle,
   "Payment Approver": "bg-violet-50 text-violet-900 ring-1 ring-violet-200/90",
 };
 

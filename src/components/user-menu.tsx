@@ -174,6 +174,48 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     resolvedUser.role === "ADMIN" ||
     resolvedUser.role === "BRANCH_MANAGER" ||
     resolvedUser.role === "APPROVER";
+  const isBranchManager = resolvedUser.role === "BRANCH_MANAGER";
+
+  const approvalsLink = canApprove ? (
+    <MenuLink
+      href="/manager"
+      onNavigate={closeMenu}
+      active={pathname.startsWith("/manager")}
+    >
+      Approvals
+    </MenuLink>
+  ) : null;
+
+  const employeeLinks = (
+    <>
+      {resolvedUser.role !== "EMPLOYEE" ? (
+        <MenuLink
+          href="/employee"
+          onNavigate={closeMenu}
+          active={pathname === "/employee"}
+        >
+          New Claim
+        </MenuLink>
+      ) : null}
+      <MenuLink
+        href="/employee/claims"
+        onNavigate={closeMenu}
+        active={
+          pathname.startsWith("/employee/claims") ||
+          pathname.startsWith("/employee/refile")
+        }
+      >
+        My Claims
+      </MenuLink>
+      <MenuLink
+        href="/employee/profile"
+        onNavigate={closeMenu}
+        active={pathname.startsWith("/employee/profile")}
+      >
+        Profile
+      </MenuLink>
+    </>
+  );
 
   return (
     <div ref={menuRef} className="relative shrink-0">
@@ -188,42 +230,17 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
           role="menu"
           className="absolute top-[calc(100%+6px)] right-0 z-30 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
         >
-          {resolvedUser.role !== "EMPLOYEE" ? (
-            <MenuLink
-              href="/employee"
-              onNavigate={closeMenu}
-              active={pathname === "/employee"}
-            >
-              New Claim
-            </MenuLink>
-          ) : null}
-          <MenuLink
-            href="/employee/claims"
-            onNavigate={closeMenu}
-            active={
-              pathname.startsWith("/employee/claims") ||
-              pathname.startsWith("/employee/refile")
-            }
-          >
-            My Claims
-          </MenuLink>
-          <MenuLink
-            href="/employee/profile"
-            onNavigate={closeMenu}
-            active={pathname.startsWith("/employee/profile")}
-          >
-            Profile
-          </MenuLink>
-
-          {canApprove ? (
-            <MenuLink
-              href="/manager"
-              onNavigate={closeMenu}
-              active={pathname.startsWith("/manager")}
-            >
-              Approvals
-            </MenuLink>
-          ) : null}
+          {isBranchManager ? (
+            <>
+              {approvalsLink}
+              {employeeLinks}
+            </>
+          ) : (
+            <>
+              {employeeLinks}
+              {approvalsLink}
+            </>
+          )}
 
           {canAdmin ? (
             <>

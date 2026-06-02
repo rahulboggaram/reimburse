@@ -1,33 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ApprovalsTableHeader,
   ApprovalsTableRow,
 } from "@/components/approvals-table";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import { Card } from "@/components/ui/card";
+import { SegmentTabs } from "@/components/segment-tabs";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 import { fetchClientCache, invalidateClientCache } from "@/lib/client-cache";
 
+type QueueTab = "waiting" | "approved";
+
+const QUEUE_TABS: { id: QueueTab; label: string }[] = [
+  { id: "waiting", label: "Waiting for approval" },
+  { id: "approved", label: "Approved" },
+];
+
+function cacheKey(tab: QueueTab) {
+  return `claims-pending-${tab}`;
+}
+
+function emptyMessage(tab: QueueTab) {
+  return tab === "waiting"
+    ? "No claims waiting for your approval."
+    : "No approved claims in this list yet.";
+}
+
 export default function ManagerPendingPage() {
+  const [tab, setTab] = useState<QueueTab>("waiting");
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
-  async function loadClaims() {
-    const data = await fetchClientCache("claims-pending", async () => {
-      const response = await fetch("/api/claims/pending");
+  const loadClaims = useCallback(async (activeTab: QueueTab) => {
+    const data = await fetchClientCache(cacheKey(activeTab), async () => {
+      const response = await fetch(
+        `/api/claims/pending?tab=${activeTab}`,
+      );
       return readJson<SerializedClaim[]>(response);
     });
     setClaims(data);
-  }
+  }, []);
 
   useEffect(() => {
-    loadClaims().finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    loadClaims(tab).finally(() => setLoading(false));
+  }, [tab, loadClaims]);
+
+  async function refreshQueue() {
+    invalidateClientCache("claims-pending");
+    await loadClaims(tab);
+  }
 
   return (
     <>
@@ -37,13 +64,19 @@ export default function ManagerPendingPage() {
         className="mb-4"
       />
 
+      <SegmentTabs
+        tabs={QUEUE_TABS}
+        value={tab}
+        onChange={setTab}
+        ariaLabel="Approval queue"
+        className="mb-4"
+      />
+
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
       ) : claims.length === 0 ? (
         <Card>
-          <p className="text-sm text-zinc-600">
-            No claims waiting for your approval.
-          </p>
+          <p className="text-sm text-zinc-600">{emptyMessage(tab)}</p>
         </Card>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
@@ -70,7 +103,10 @@ export default function ManagerPendingPage() {
         onUpdated={async () => {
           invalidateClientCache("claims-pending");
           setSelected(null);
-          await loadClaims();
+          await refreshQueue();
+          if (tab === "waiting") {
+            await loadClaims("approved");
+          }
         }}
       />
     </>
