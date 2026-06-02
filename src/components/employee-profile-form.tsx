@@ -61,7 +61,7 @@ function ProfileFieldValue(props: {
 }
 
 function ProfileCardBlock(props: { children: React.ReactNode }) {
-  return <div className="px-5 py-6">{props.children}</div>;
+  return <div className="px-5 py-4">{props.children}</div>;
 }
 
 export function EmployeeProfileForm(props: {
