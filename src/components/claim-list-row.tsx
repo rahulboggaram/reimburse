@@ -35,7 +35,7 @@ export function ClaimListRow(props: {
     >
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-zinc-900">{props.title}</p>
-        <p className="mt-0.5 truncate text-sm text-zinc-500">{props.subtitle}</p>
+        <p className="mt-2 truncate text-sm text-zinc-500">{props.subtitle}</p>
       </div>
       <div className="shrink-0 text-right">
         <p className="text-base font-semibold font-tabular-nums text-zinc-900">
