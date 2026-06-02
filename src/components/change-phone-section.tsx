@@ -91,22 +91,33 @@ export function ChangePhoneSection(props: {
 
   return (
     <div className="space-y-3">
-      <div>
-        <p className="text-sm text-zinc-600">Logged in as</p>
-        <p className="text-base font-medium text-zinc-900">
-          {formatPhoneDisplay(props.currentPhone)}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm text-zinc-600">Logged in as</p>
+          <p className="text-base font-medium text-zinc-900">
+            {formatPhoneDisplay(props.currentPhone)}
+          </p>
+        </div>
+        {!open ? (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="shrink-0 text-sm font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
+          >
+            Change mobile number
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={close}
+            className="shrink-0 text-sm font-medium text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
-      {!open ? (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setOpen(true)}
-        >
-          Change mobile number
-        </Button>
-      ) : (
+      {open ? (
         <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
           {error ? (
             <p className="text-sm text-red-700" role="alert">
@@ -191,7 +202,7 @@ export function ChangePhoneSection(props: {
             </form>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
