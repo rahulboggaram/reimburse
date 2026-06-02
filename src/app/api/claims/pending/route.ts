@@ -14,8 +14,11 @@ export async function GET() {
             status: "APPROVED" as const,
             paymentApproverId: session.id,
             paidAt: null,
+            employeeId: { not: session.id },
           }
-        : { status: "PENDING" as const };
+        : session.role === "ADMIN"
+          ? { status: "PENDING" as const, approverId: session.id }
+          : { status: "PENDING" as const };
 
   const claims = await prisma.reimbursement.findMany({
     where,

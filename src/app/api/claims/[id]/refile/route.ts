@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
+import { resolveClaimRouting } from "@/lib/claim-routing";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { replaceClaimReceipts } from "@/lib/attach-receipts";
 import { receiptFilesFromFormData } from "@/lib/receipt-files";
@@ -39,27 +40,14 @@ export async function PATCH(
     return Response.json({ error: "Invalid branch" }, { status: 400 });
   }
 
-  const branchManager = await prisma.user.findFirst({
-    where: { role: "BRANCH_MANAGER", active: true, branchId: branch.id },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!branchManager) {
-    return Response.json(
-      { error: "No branch manager assigned for this branch yet." },
-      { status: 400 },
-    );
+  const routingResult = await resolveClaimRouting(
+    { id: session.id, role: session.role },
+    branch.id,
+  );
+  if ("error" in routingResult) {
+    return Response.json({ error: routingResult.error }, { status: 400 });
   }
-
-  const paymentApprover = await prisma.user.findFirst({
-    where: { role: "APPROVER", active: true },
-    orderBy: { createdAt: "asc" },
-  });
-  if (!paymentApprover) {
-    return Response.json(
-      { error: "No payment approver assigned yet." },
-      { status: 400 },
-    );
-  }
+  const { routing } = routingResult;
 
   const category = await prisma.expenseCategory.findFirst({
     where: { name: body.category, active: true },
@@ -80,11 +68,11 @@ export async function PATCH(
       branchId: branch.id,
       category: body.category,
       description: body.description,
-      approverId: branchManager.id,
-      paymentApproverId: paymentApprover.id,
-      status: "PENDING",
+      approverId: routing.approverId,
+      paymentApproverId: routing.paymentApproverId,
+      status: routing.status,
       rejectionReason: null,
-      decidedAt: null,
+      decidedAt: routing.decidedAt,
       refiledFromId: existing.refiledFromId ?? existing.id,
     },
   });

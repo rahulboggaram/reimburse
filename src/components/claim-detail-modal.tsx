@@ -194,7 +194,14 @@ export function ClaimDetailModal(props: {
         <div className="grid gap-3 sm:grid-cols-2">
           <DetailRow label="Expense date" value={expenseDate} />
           <DetailRow label="Submitted" value={formatDisplayDateTime(claim.createdAt)} />
-          <DetailRow label="Branch approver" value={claim.approver.name ?? "—"} />
+          <DetailRow
+            label={
+              claim.status === "PENDING" && props.variant === "admin"
+                ? "Awaiting approval from"
+                : "Branch approver"
+            }
+            value={claim.approver.name ?? "—"}
+          />
           <DetailRow
             label="Receipts"
             value={`${claim.receipts.length} attached`}
@@ -225,7 +232,8 @@ export function ClaimDetailModal(props: {
           </Link>
         ) : null}
 
-        {props.variant === "approver" && claim.status === "PENDING" ? (
+        {(props.variant === "approver" || props.variant === "admin") &&
+        claim.status === "PENDING" ? (
           <div className="space-y-3 border-t border-zinc-100 pt-4">
             <div className="space-y-1.5">
               <Label htmlFor="rejection-reason">Rejection reason (if rejecting)</Label>
@@ -261,7 +269,7 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {props.variant === "approver" &&
+        {(props.variant === "approver" || props.variant === "admin") &&
         claim.status === "APPROVED" &&
         !claim.paidAt &&
         !payoutInProgress(claim.payoutStatus) ? (
