@@ -17,6 +17,7 @@ import { PageHeading } from "@/components/page-heading";
 import { TextLinkButton } from "@/components/text-link";
 import { RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
+import { cn } from "@/lib/utils";
 
 type EditingSection = "name" | "bank" | null;
 
@@ -39,12 +40,20 @@ function ProfileFieldRow(props: {
   );
 }
 
-function ProfileFieldLabel(props: { children: React.ReactNode }) {
-  return <p className="text-sm text-zinc-500">{props.children}</p>;
-}
-
-function ProfileFieldValue(props: { children: React.ReactNode }) {
-  return <p className="mt-0.5 text-base font-medium text-zinc-900">{props.children}</p>;
+function ProfileFieldValue(props: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={cn(
+        "mt-0.5 text-base font-medium text-zinc-900",
+        props.className,
+      )}
+    >
+      {props.children}
+    </p>
+  );
 }
 
 function ProfileCardSection(props: {
@@ -311,35 +320,32 @@ export function EmployeeProfileForm(props: {
             ) : null}
           </div>
         ) : (
-          <div className="space-y-6">
-            <ProfileFieldRow
-              action={
-                !isOnboarding ? (
-                  <CardActionLink onClick={() => setEditingSection("bank")}>
-                    Edit
-                  </CardActionLink>
-                ) : undefined
-              }
-            >
-              <div>
-                <ProfileFieldLabel>Account number</ProfileFieldLabel>
-                <ProfileFieldValue>
-                  {savedBankAccountNumber ? (
-                    savedBankAccountNumber
-                  ) : (
-                    <span className="font-normal text-zinc-500">Not added yet</span>
-                  )}
-                </ProfileFieldValue>
-              </div>
-            </ProfileFieldRow>
-            <div>
-              <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
-              <ProfileFieldValue>
-                {savedIfscCode || (
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1 space-y-4">
+              <p
+                className="break-all text-base font-medium font-tabular-nums text-zinc-900"
+                aria-label="Bank account number"
+              >
+                {savedBankAccountNumber || (
                   <span className="font-normal text-zinc-500">Not added yet</span>
                 )}
-              </ProfileFieldValue>
+              </p>
+              <p
+                className="text-sm font-medium tracking-wide text-zinc-600 uppercase"
+                aria-label="IFSC code"
+              >
+                {savedIfscCode || (
+                  <span className="font-normal text-zinc-500 normal-case tracking-normal">
+                    Not added yet
+                  </span>
+                )}
+              </p>
             </div>
+            {!isOnboarding ? (
+              <CardActionLink onClick={() => setEditingSection("bank")}>
+                Edit
+              </CardActionLink>
+            ) : null}
           </div>
         )}
       </Card>
