@@ -11,11 +11,12 @@ const brandSubtitleClass =
 function BrandMark(props: {
   wordmarkClassName: string;
   label: string;
+  wordmarkSizeClass?: string;
 }) {
   return (
     <div className="space-y-0.5">
       <span
-        className={`text-5xl leading-none text-emerald-950 ${props.wordmarkClassName}`}
+        className={`${props.wordmarkSizeClass ?? "text-5xl"} leading-none text-emerald-950 ${props.wordmarkClassName}`}
       >
         Reimburse
       </span>
@@ -54,7 +55,11 @@ export function ReimburseBrand() {
         <BrandMark wordmarkClassName="font-brand" label="Bricolage Grotesque" />
       </Link>
       <div aria-label="Reimburse logo preview in Unbounded">
-        <BrandMark wordmarkClassName="font-brand-alt" label="Unbounded" />
+        <BrandMark
+          wordmarkClassName="font-brand-alt"
+          wordmarkSizeClass="text-[2.4rem]"
+          label="Unbounded"
+        />
       </div>
     </div>
   );
