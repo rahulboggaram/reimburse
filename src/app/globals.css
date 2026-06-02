@@ -3,7 +3,7 @@
 
 @theme {
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-brand: "Google Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
@@ -24,7 +24,7 @@ body {
 .font-brand {
   font-family: var(--font-brand);
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: -0.02em;
 }
 
 .scrollbar-hide {

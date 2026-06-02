@@ -32,14 +32,14 @@ export function ReimburseBrand(props: { size?: "sm" | "lg" }) {
       aria-label="Reimburse home"
     >
       <span
-        className={`font-brand uppercase text-emerald-950 ${
-          isLarge ? "text-3xl leading-none" : "text-xl leading-none"
+        className={`font-brand text-emerald-950 ${
+          isLarge ? "text-6xl leading-none" : "text-4xl leading-none"
         }`}
       >
-        REIMBURSE
+        Reimburse
       </span>
       <p
-        className={`text-zinc-500 ${isLarge ? "text-sm" : "text-xs"} tracking-wide`}
+        className={`text-zinc-500 ${isLarge ? "text-base" : "text-sm"} tracking-wide`}
       >
         by Yellow Metal
       </p>
