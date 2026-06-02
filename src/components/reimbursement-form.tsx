@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { AutoResizeTextarea } from "@/components/ui/textarea";
 import {
@@ -63,6 +64,19 @@ export function ReimbursementForm(props: {
   const [receipts, setReceipts] = useState<ReceiptFileItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) =>
+        res.ok
+          ? readJson<{ user: { role: string } | null }>(res)
+          : { user: null },
+      )
+      .then((data) => setUserRole(data.user?.role ?? null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/branches")
@@ -120,17 +134,7 @@ export function ReimbursementForm(props: {
     return errors;
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-
-    const errors = validate();
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-
+  async function submitClaim() {
     const parsedAmount = Number.parseFloat(amount);
 
     setSubmitting(true);
@@ -172,7 +176,27 @@ export function ReimbursementForm(props: {
     }
   }
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    const errors = validate();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (userRole === "ADMIN") {
+      setAdminConfirmOpen(true);
+      return;
+    }
+
+    await submitClaim();
+  }
+
   return (
+    <>
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
       <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
         {toTitleCase(props.title)}
@@ -317,5 +341,47 @@ export function ReimbursementForm(props: {
         {submitting ? "Saving…" : props.submitLabel}
       </Button>
     </form>
+
+    <Modal
+      open={adminConfirmOpen}
+      onClose={() => setAdminConfirmOpen(false)}
+      title="Confirm submission"
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-zinc-700">
+          Admin reimbursements do not go through an approval process. After you
+          submit, payment is sent to your bank account right away.
+        </p>
+        <p className="text-sm font-medium text-zinc-900">
+          Please check the amount, category, branch, and receipts carefully
+          before continuing.
+        </p>
+        <div className="flex flex-col gap-2 pt-2">
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            disabled={submitting}
+            onClick={async () => {
+              setAdminConfirmOpen(false);
+              await submitClaim();
+            }}
+          >
+            {submitting ? "Submitting…" : "Yes, submit and pay now"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            disabled={submitting}
+            onClick={() => setAdminConfirmOpen(false)}
+          >
+            Go back and review
+          </Button>
+        </div>
+      </div>
+    </Modal>
+    </>
   );
 }
