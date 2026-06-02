@@ -91,17 +91,19 @@ export function ChangePhoneSection(props: {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
         <p className="min-w-0 text-base font-medium text-zinc-900">
           {formatPhoneDisplay(props.currentPhone)}
         </p>
         {!open ? (
-          <TextLinkButton onClick={() => setOpen(true)}>
+          <TextLinkButton onClick={() => setOpen(true)} className="shrink-0">
             Change mobile number
           </TextLinkButton>
         ) : (
-          <TextLinkButton onClick={close}>Cancel</TextLinkButton>
+          <TextLinkButton onClick={close} className="shrink-0">
+            Cancel
+          </TextLinkButton>
         )}
       </div>
 

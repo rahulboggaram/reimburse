@@ -27,6 +27,37 @@ function CardActionLink(props: {
   return <TextLinkButton onClick={props.onClick}>{props.children}</TextLinkButton>;
 }
 
+function ProfileFieldRow(props: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0 flex-1">{props.children}</div>
+      {props.action ? <div className="shrink-0">{props.action}</div> : null}
+    </div>
+  );
+}
+
+function ProfileFieldLabel(props: { children: React.ReactNode }) {
+  return <p className="text-sm text-zinc-500">{props.children}</p>;
+}
+
+function ProfileFieldValue(props: { children: React.ReactNode }) {
+  return <p className="mt-0.5 text-base font-medium text-zinc-900">{props.children}</p>;
+}
+
+function ProfileCardSection(props: {
+  children: React.ReactNode;
+  bordered?: boolean;
+}) {
+  return (
+    <div className={props.bordered ? "border-t border-zinc-100 pt-6" : undefined}>
+      {props.children}
+    </div>
+  );
+}
+
 export function EmployeeProfileForm(props: {
   title: string;
   description?: string;
@@ -161,11 +192,10 @@ export function EmployeeProfileForm(props: {
   const nameEditing = isOnboarding || editingSection === "name";
   const bankEditing = isOnboarding || editingSection === "bank";
 
-  const profileCardClass =
-    "ring-1 ring-zinc-200/80 transition-shadow hover:shadow-lg hover:shadow-zinc-200/50";
+  const profileCardClass = "ring-1 ring-zinc-200/80";
 
   const content = (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeading title={props.title} description={props.description} />
 
       {error ? (
@@ -174,27 +204,23 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className={`space-y-4 ${profileCardClass}`}>
-        <div className="space-y-3">
-          {nameEditing ? (
-            <div className="space-y-3">
-              {!isOnboarding ? (
-                <div className="flex justify-end">
-                  <TextLinkButton onClick={() => cancelEdit("name")}>
-                    Cancel
-                  </TextLinkButton>
-                </div>
-              ) : null}
-              <Input
-                id="full-name"
-                required
-                value={name}
-                onChange={(e) => setName(toTitleCase(e.target.value))}
-                placeholder="Ananya Patel"
-                autoComplete="name"
-                aria-label="Name"
-              />
-              {!isOnboarding ? (
+      <Card className={profileCardClass}>
+        {nameEditing ? (
+          <div className="space-y-4">
+            <Input
+              id="full-name"
+              required
+              value={name}
+              onChange={(e) => setName(toTitleCase(e.target.value))}
+              placeholder="Ananya Patel"
+              autoComplete="name"
+              aria-label="Name"
+            />
+            {!isOnboarding ? (
+              <div className="flex items-center justify-end gap-4">
+                <TextLinkButton onClick={() => cancelEdit("name")}>
+                  Cancel
+                </TextLinkButton>
                 <Button
                   type="button"
                   disabled={saving}
@@ -202,56 +228,47 @@ export function EmployeeProfileForm(props: {
                 >
                   {saving ? "Saving…" : "Save"}
                 </Button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-base font-medium text-zinc-900">
-                {savedName || (
-                  <span className="font-normal text-zinc-500">Not added yet</span>
-                )}
-              </p>
-              {!isOnboarding ? (
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <ProfileFieldRow
+            action={
+              !isOnboarding ? (
                 <CardActionLink onClick={() => setEditingSection("name")}>
                   Edit
                 </CardActionLink>
-              ) : null}
-            </div>
-          )}
-        </div>
+              ) : undefined
+            }
+          >
+            <ProfileFieldValue>
+              {savedName || (
+                <span className="font-normal text-zinc-500">Not added yet</span>
+              )}
+            </ProfileFieldValue>
+          </ProfileFieldRow>
+        )}
 
         {phone ? (
-          <>
-            <div className="border-t border-zinc-100 pt-4">
-              <ChangePhoneSection
-                currentPhone={phone}
-                onPhoneChanged={(nextPhone) => {
-                  setPhone(nextPhone);
-                  invalidateClientCache("profile");
-                }}
-              />
-            </div>
-            <div className="border-t border-zinc-100 pt-4">
-              <RoleBadge role={accessRole || "Employee"} />
-            </div>
-          </>
-        ) : (
-          <div className="border-t border-zinc-100 pt-4">
-            <RoleBadge role={accessRole || "Employee"} />
-          </div>
-        )}
+          <ProfileCardSection bordered>
+            <ChangePhoneSection
+              currentPhone={phone}
+              onPhoneChanged={(nextPhone) => {
+                setPhone(nextPhone);
+                invalidateClientCache("profile");
+              }}
+            />
+          </ProfileCardSection>
+        ) : null}
+
+        <ProfileCardSection bordered>
+          <RoleBadge role={accessRole || "Employee"} />
+        </ProfileCardSection>
       </Card>
 
-      <Card className={`space-y-3 ${profileCardClass}`}>
+      <Card className={profileCardClass}>
         {bankEditing ? (
           <div className="space-y-4">
-            {!isOnboarding ? (
-              <div className="flex justify-end">
-                <TextLinkButton onClick={() => cancelEdit("bank")}>
-                  Cancel
-                </TextLinkButton>
-              </div>
-            ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="account">Bank account number</Label>
               <Input
@@ -279,45 +296,51 @@ export function EmployeeProfileForm(props: {
               />
             </div>
             {!isOnboarding ? (
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => saveProfile({ redirect: false })}
-              >
-                {saving ? "Saving…" : "Save"}
-              </Button>
+              <div className="flex items-center justify-end gap-4">
+                <TextLinkButton onClick={() => cancelEdit("bank")}>
+                  Cancel
+                </TextLinkButton>
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => saveProfile({ redirect: false })}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </Button>
+              </div>
             ) : null}
           </div>
         ) : (
-          <>
-            {!isOnboarding ? (
-              <div className="flex justify-end">
-                <CardActionLink onClick={() => setEditingSection("bank")}>
-                  Edit
-                </CardActionLink>
-              </div>
-            ) : null}
-            <dl className="space-y-3 text-sm">
+          <div className="space-y-6">
+            <ProfileFieldRow
+              action={
+                !isOnboarding ? (
+                  <CardActionLink onClick={() => setEditingSection("bank")}>
+                    Edit
+                  </CardActionLink>
+                ) : undefined
+              }
+            >
               <div>
-                <dt className="text-zinc-500">Account number</dt>
-                <dd className="font-medium text-zinc-900">
+                <ProfileFieldLabel>Account number</ProfileFieldLabel>
+                <ProfileFieldValue>
                   {savedBankAccountNumber ? (
                     savedBankAccountNumber
                   ) : (
                     <span className="font-normal text-zinc-500">Not added yet</span>
                   )}
-                </dd>
+                </ProfileFieldValue>
               </div>
-              <div>
-                <dt className="text-zinc-500">IFSC code</dt>
-                <dd className="font-medium text-zinc-900">
-                  {savedIfscCode || (
-                    <span className="font-normal text-zinc-500">Not added yet</span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-          </>
+            </ProfileFieldRow>
+            <div>
+              <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
+              <ProfileFieldValue>
+                {savedIfscCode || (
+                  <span className="font-normal text-zinc-500">Not added yet</span>
+                )}
+              </ProfileFieldValue>
+            </div>
+          </div>
         )}
       </Card>
 
