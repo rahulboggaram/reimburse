@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { readJson } from "@/lib/api";
 import { getAppHomePath } from "@/lib/home-path";
 
+const brandSubtitleClass =
+  "font-sans text-base font-normal tracking-wide text-zinc-500";
+
 function BrandMark(props: {
   wordmarkClassName: string;
   label: string;
@@ -16,12 +19,8 @@ function BrandMark(props: {
       >
         Reimburse
       </span>
-      <p className="font-sans text-base font-normal tracking-wide text-zinc-500">
-        by Yellow Metal
-      </p>
-      <p className="pt-1 font-sans text-xs font-normal text-zinc-400">
-        {props.label}
-      </p>
+      <p className={brandSubtitleClass}>by Yellow Metal</p>
+      <p className={brandSubtitleClass}>{props.label}</p>
     </div>
   );
 }
