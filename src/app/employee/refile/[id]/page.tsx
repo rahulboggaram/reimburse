@@ -70,7 +70,6 @@ export default function RefileClaimPage() {
     category: claim.category,
     description: claim.description,
     branchId: claim.branchId,
-    approverId: claim.approverId,
   };
 
   return (

@@ -2,9 +2,9 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { User, UserRole } from "@prisma/client";
 import {
-  canAccessAdminPortal,
-  canAccessEmployeePortal,
-  canAccessManagerPortal,
+  canAccessAdminPortal as roleCanAccessAdminPortal,
+  canAccessEmployeePortal as roleCanAccessEmployeePortal,
+  canAccessManagerPortal as roleCanAccessManagerPortal,
 } from "@/lib/access-roles";
 import { isEmployeeProfileComplete } from "@/lib/user-profile";
 
@@ -109,15 +109,15 @@ export async function clearSessionCookie() {
 }
 
 export function sessionCanAccessAdminPortal(session: SessionUser): boolean {
-  return canAccessAdminPortal(session.role);
+  return roleCanAccessAdminPortal(session.role);
 }
 
 export function sessionCanAccessManagerPortal(session: SessionUser): boolean {
-  return canAccessManagerPortal(session.role);
+  return roleCanAccessManagerPortal(session.role);
 }
 
 export function sessionCanAccessEmployeePortal(session: SessionUser): boolean {
-  return canAccessEmployeePortal(session.role);
+  return roleCanAccessEmployeePortal(session.role);
 }
 
 export function redirectPathAfterLogin(user: User): string {
@@ -127,7 +127,7 @@ export function redirectPathAfterLogin(user: User): string {
 
 export function canSubmitReimbursement(session: SessionUser): boolean {
   if (session.role === "EMPLOYEE") return session.profileComplete;
-  return session.profileComplete || session.role !== "EMPLOYEE";
+  return true;
 }
 
 // Re-export for auth-api compatibility
