@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJson } from "@/lib/api";
+import { RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
 
 export function EmployeeProfileForm(props: {
@@ -99,9 +100,9 @@ export function EmployeeProfileForm(props: {
         </div>
       </Card>
 
-      <Card className="space-y-1.5">
+      <Card className="space-y-2">
         <p className="text-sm font-semibold text-zinc-800">Role</p>
-        <p className="text-sm text-zinc-700">{accessRole || "Employee"}</p>
+        <RoleBadge role={accessRole || "Employee"} />
       </Card>
 
       <Card className="space-y-4">
