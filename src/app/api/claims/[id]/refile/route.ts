@@ -3,6 +3,7 @@ import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
 import { resolveClaimRouting } from "@/lib/claim-routing";
 import { claimInclude, serializeClaim } from "@/lib/claims";
+import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { replaceClaimReceipts } from "@/lib/attach-receipts";
 import { receiptFilesFromFormData } from "@/lib/receipt-files";
 
@@ -79,6 +80,10 @@ export async function PATCH(
 
   const receiptError = await replaceClaimReceipts(id, receiptFiles);
   if (receiptError) return receiptError;
+
+  if (session.role === "ADMIN") {
+    await tryAutoPayAdminClaim(id, session.id);
+  }
 
   const claim = await prisma.reimbursement.findUniqueOrThrow({
     where: { id },

@@ -15,15 +15,11 @@ export async function resolveClaimRouting(
   branchId: string,
 ): Promise<{ routing: ClaimRouting } | { error: string }> {
   if (submitter.role === "ADMIN") {
-    const paymentApprover = await prisma.user.findFirst({
-      where: { role: "APPROVER", active: true },
-      orderBy: { createdAt: "asc" },
-    });
-
+    // Admin claims are self-approved and paid out directly — never routed to payment approver.
     return {
       routing: {
         approverId: submitter.id,
-        paymentApproverId: paymentApprover?.id ?? submitter.id,
+        paymentApproverId: submitter.id,
         status: "APPROVED",
         decidedAt: new Date(),
       },

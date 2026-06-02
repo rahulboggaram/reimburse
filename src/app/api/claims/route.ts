@@ -3,6 +3,7 @@ import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
 import { resolveClaimRouting } from "@/lib/claim-routing";
 import { claimInclude, serializeClaim } from "@/lib/claims";
+import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { replaceClaimReceipts } from "@/lib/attach-receipts";
 import { receiptFilesFromFormData } from "@/lib/receipt-files";
 
@@ -66,6 +67,10 @@ export async function POST(request: Request) {
     if (receiptError) {
       await prisma.reimbursement.delete({ where: { id: claim.id } });
       return receiptError;
+    }
+
+    if (session.role === "ADMIN") {
+      await tryAutoPayAdminClaim(claim.id, session.id);
     }
 
     const fullClaim = await prisma.reimbursement.findUniqueOrThrow({
