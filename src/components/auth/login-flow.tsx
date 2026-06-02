@@ -131,9 +131,6 @@ export function LoginFlow() {
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
               />
-              <p className="text-xs text-zinc-500">
-                10-digit number (admin demo: 9999000001)
-              </p>
             </div>
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? "Sending…" : "Send OTP"}
