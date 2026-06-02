@@ -11,7 +11,7 @@ export const brandFont = Bricolage_Grotesque({
 /** Alternate logo preview (Unbounded) */
 export const brandAltFont = Unbounded({
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["500"],
   variable: "--font-brand-alt-family",
   display: "swap",
 });
