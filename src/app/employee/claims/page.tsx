@@ -52,19 +52,9 @@ export default function MyClaimsPage() {
     );
   }
 
-  const total = claims.reduce((sum, claim) => sum + claim.amount, 0);
-
   return (
     <>
       <PageHeading title="My claims" className="mb-4" />
-      <p className="mb-4 rounded-2xl border border-emerald-100/80 bg-emerald-50/60 px-4 py-3 text-sm text-emerald-900">
-        <span className="font-medium">{claims.length}</span> claim
-        {claims.length === 1 ? "" : "s"} ·{" "}
-        <span className="font-semibold font-tabular-nums">
-          ₹{total.toLocaleString("en-IN")}
-        </span>{" "}
-        total
-      </p>
       <ul className="space-y-3">
         {claims.map((claim) => (
           <li key={claim.id}>
