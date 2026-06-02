@@ -116,16 +116,16 @@ export function UserMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+        className="flex max-w-[11rem] items-center gap-1 rounded-full bg-white/90 py-1.5 pr-2 pl-3 text-sm font-medium text-emerald-950 shadow-sm ring-1 ring-emerald-100/80 transition-colors hover:bg-white sm:max-w-[13rem]"
         aria-label={`Account menu for ${label}`}
       >
-        <span>Menu</span>
+        <span className="truncate">{label}</span>
         <svg
           aria-hidden
           viewBox="0 0 20 20"
           fill="currentColor"
           className={cn(
-            "size-4 shrink-0 text-zinc-500 transition-transform",
+            "size-4 shrink-0 text-emerald-700/70 transition-transform",
             open && "rotate-180",
           )}
         >
