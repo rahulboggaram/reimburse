@@ -50,4 +50,5 @@ export const decideReimbursementSchema = z.object({
 
 export const adminUpdateEmployeeSchema = z.object({
   role: z.enum(ASSIGNABLE_ROLES),
+  branchId: z.string().min(1).nullable().optional(),
 });

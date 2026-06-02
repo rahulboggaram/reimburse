@@ -16,6 +16,9 @@ export type EmployeeRecord = {
   ifscCode: string | null;
   bankAccountNumber: string | null;
   role: UserRole;
+  branchId: string | null;
+  branchName: string | null;
+  branchActive: boolean | null;
   active: boolean;
   signedUp: boolean;
   claimCount: number;
@@ -68,7 +71,8 @@ export function EmployeeDetailModal(props: {
   employee: EmployeeRecord | null;
   open: boolean;
   onClose: () => void;
-  onUpdateRole: (id: string, role: UserRole) => Promise<void>;
+  branches: { id: string; name: string; active: boolean }[];
+  onUpdate: (update: { id: string; role: UserRole; branchId: string | null }) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }) {
   if (!props.employee) return null;
@@ -98,21 +102,59 @@ export function EmployeeDetailModal(props: {
           </p>
         </div>
 
-        <div className="space-y-1.5 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <Label htmlFor={`${employee.id}-role`}>Role</Label>
-          <Select
-            id={`${employee.id}-role`}
-            value={employee.role}
-            onChange={(e) =>
-              props.onUpdateRole(employee.id, e.target.value as UserRole)
-            }
-          >
-            {ASSIGNABLE_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {formatRole(role)}
-              </option>
-            ))}
-          </Select>
+        <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor={`${employee.id}-role`}>Role</Label>
+            <Select
+              id={`${employee.id}-role`}
+              value={employee.role}
+              onChange={(e) =>
+                props.onUpdate({
+                  id: employee.id,
+                  role: e.target.value as UserRole,
+                  branchId: employee.branchId,
+                })
+              }
+            >
+              {ASSIGNABLE_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {formatRole(role)}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor={`${employee.id}-branch`}>Branch</Label>
+            <Select
+              id={`${employee.id}-branch`}
+              value={employee.branchId ?? ""}
+              onChange={(e) =>
+                props.onUpdate({
+                  id: employee.id,
+                  role: employee.role,
+                  branchId: e.target.value ? e.target.value : null,
+                })
+              }
+            >
+              <option value="">No branch</option>
+              {props.branches.map((branch) => (
+                <option key={branch.id} value={branch.id} disabled={!branch.active}>
+                  {branch.name}
+                  {!branch.active ? " (inactive)" : ""}
+                </option>
+              ))}
+            </Select>
+            {employee.role === "EMPLOYEE" || employee.role === "BRANCH_MANAGER" ? (
+              <p className="text-xs text-zinc-600">
+                Required for employees and branch managers.
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-600">
+                Optional for admins and payment approvers.
+              </p>
+            )}
+          </div>
         </div>
 
         <Button

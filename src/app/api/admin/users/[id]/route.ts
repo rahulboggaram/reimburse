@@ -29,19 +29,37 @@ export async function PATCH(
     );
   }
 
+  const nextBranchId = body.data.branchId ?? null;
+  if (
+    (body.data.role === "EMPLOYEE" || body.data.role === "BRANCH_MANAGER") &&
+    !nextBranchId
+  ) {
+    return Response.json(
+      { error: "Branch is required for employees and branch managers." },
+      { status: 400 },
+    );
+  }
+
   const user = await prisma.user.update({
     where: { id },
-    data: { role: body.data.role },
+    data: { role: body.data.role, branchId: nextBranchId },
   });
 
-  if (target.role !== body.data.role) {
-    const actorLabel = displayName(session.name, session.phone);
-    const targetLabel = displayName(target.name, target.phone);
+  const actorLabel = displayName(session.name, session.phone);
+  const targetLabel = displayName(target.name, target.phone);
+  const roleChanged = target.role !== body.data.role;
+  const branchChanged = target.branchId !== nextBranchId;
+
+  if (roleChanged || branchChanged) {
+    const parts: string[] = [];
+    if (roleChanged) parts.push(`role to ${formatRole(body.data.role)}`);
+    if (branchChanged) parts.push(`branch assignment`);
+
     await logPlatformActivity({
       type: "PROFILE_UPDATED",
       actorId: session.id,
       targetUserId: user.id,
-      summary: `${actorLabel} set ${targetLabel}'s role to ${formatRole(body.data.role)}`,
+      summary: `${actorLabel} updated ${targetLabel}'s ${parts.join(" and ")}`,
     });
   }
 

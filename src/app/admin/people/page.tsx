@@ -61,6 +61,9 @@ function matchesRoleFilter(employee: EmployeeRecord, filter: RoleFilter) {
 export default function AdminPeoplePage() {
   const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [branches, setBranches] = useState<
+    { id: string; name: string; active: boolean }[]
+  >([]);
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +94,13 @@ export default function AdminPeoplePage() {
 
   useEffect(() => {
     loadEmployees().finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/admin/branches")
+      .then((res) => readJson<{ id: string; name: string; active: boolean }[]>(res))
+      .then((data) => setBranches(data))
+      .catch(() => {});
   }, []);
 
   const activeEmployees = useMemo(
@@ -137,11 +147,15 @@ export default function AdminPeoplePage() {
     }
   }
 
-  async function updateEmployeeRole(id: string, role: UserRole) {
-    await fetch(`/api/admin/users/${id}`, {
+  async function updateEmployee(update: {
+    id: string;
+    role: UserRole;
+    branchId: string | null;
+  }) {
+    await fetch(`/api/admin/users/${update.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ role: update.role, branchId: update.branchId }),
     });
     await loadEmployees();
   }
@@ -277,7 +291,8 @@ export default function AdminPeoplePage() {
         employee={selected}
         open={selected !== null}
         onClose={() => setSelected(null)}
-        onUpdateRole={updateEmployeeRole}
+        branches={branches}
+        onUpdate={updateEmployee}
         onRemove={removeEmployee}
       />
     </>
