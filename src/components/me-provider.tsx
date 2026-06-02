@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -21,6 +22,7 @@ export type MeUser = {
 type MeContextValue = {
   user: MeUser | null;
   loading: boolean;
+  refreshMe: () => Promise<void>;
 };
 
 export const MeContext = createContext<MeContextValue | null>(null);
@@ -44,31 +46,38 @@ export function MeProvider(props: {
   );
   const [loading, setLoading] = useState(!props.initialUser);
 
+  const refreshMe = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = res.ok
+        ? await readJson<{ user: MeUser | null }>(res)
+        : { user: null };
+      setUser(data.user);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (props.initialUser) return;
 
     let cancelled = false;
 
-    fetch("/api/auth/me")
-      .then((res) =>
-        res.ok ? readJson<{ user: MeUser | null }>(res) : { user: null },
-      )
-      .then((data) => {
-        if (!cancelled) setUser(data.user);
-      })
-      .catch(() => {
-        if (!cancelled) setUser(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    refreshMe().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [props.initialUser]);
+  }, [props.initialUser, refreshMe]);
 
-  const value = useMemo(() => ({ user, loading }), [user, loading]);
+  const value = useMemo(
+    () => ({ user, loading, refreshMe }),
+    [user, loading, refreshMe],
+  );
 
   return (
     <MeContext.Provider value={value}>{props.children}</MeContext.Provider>

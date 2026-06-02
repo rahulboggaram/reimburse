@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useMe } from "@/components/me-provider";
+import type { MeUser } from "@/components/me-provider";
 import { userDisplayLabel } from "@/lib/user-profile";
+import type { SessionUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 function MenuLink(props: {
@@ -33,12 +35,74 @@ function MenuDivider() {
   return <div className="my-1 border-t border-zinc-100" role="separator" />;
 }
 
-export function UserMenu() {
+function sessionToMeUser(user: SessionUser): MeUser {
+  return {
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    role: user.role,
+    profileComplete: user.profileComplete,
+  };
+}
+
+function MenuChevron(props: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={cn(
+        "size-4 shrink-0 text-emerald-700/80 transition-transform",
+        props.open && "rotate-180",
+      )}
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function AccountMenuTrigger(props: {
+  label: string;
+  open: boolean;
+  loading?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-expanded={props.open}
+      aria-haspopup="menu"
+      aria-busy={props.loading || undefined}
+      disabled={props.loading}
+      onClick={props.onClick}
+      className="flex max-w-[11rem] items-center gap-1.5 rounded-full bg-white/90 py-1.5 pr-2 pl-3 text-sm font-medium text-emerald-950 shadow-sm ring-1 ring-emerald-100/80 transition-colors hover:bg-white disabled:cursor-wait sm:max-w-[13rem]"
+      aria-label={`Account menu for ${props.label}`}
+    >
+      {props.loading ? (
+        <span className="h-4 w-20 animate-pulse rounded bg-emerald-100/80" />
+      ) : (
+        <span className="truncate">{props.label}</span>
+      )}
+      <MenuChevron open={props.open} />
+    </button>
+  );
+}
+
+export function UserMenu(props: { initialUser?: SessionUser | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
   const { user, loading } = useMe();
   const [open, setOpen] = useState(false);
+
+  const resolvedUser =
+    user ?? (props.initialUser ? sessionToMeUser(props.initialUser) : null);
+  const label = resolvedUser ? userDisplayLabel(resolvedUser) : "";
+  const showLoading = loading && !resolvedUser;
 
   useEffect(() => {
     if (!open) return;
@@ -92,57 +156,39 @@ export function UserMenu() {
     router.refresh();
   }
 
-  if (loading || !user) {
+  if (!resolvedUser) {
     return (
-      <div
-        className="size-10 shrink-0 animate-pulse rounded-full bg-zinc-200"
-        aria-hidden={loading}
-        aria-label={loading ? "Loading menu" : undefined}
-      />
+      <div ref={menuRef} className="relative shrink-0">
+        <AccountMenuTrigger
+          label=""
+          open={false}
+          loading={showLoading}
+          onClick={() => {}}
+        />
+      </div>
     );
   }
 
-  const label = userDisplayLabel(user);
-  const canAdmin = user.role === "ADMIN";
+  const canAdmin = resolvedUser.role === "ADMIN";
   const canApprove =
-    user.role === "ADMIN" ||
-    user.role === "BRANCH_MANAGER" ||
-    user.role === "APPROVER";
+    resolvedUser.role === "ADMIN" ||
+    resolvedUser.role === "BRANCH_MANAGER" ||
+    resolvedUser.role === "APPROVER";
 
   return (
     <div ref={menuRef} className="relative shrink-0">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
+      <AccountMenuTrigger
+        label={label}
+        open={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex max-w-[11rem] items-center gap-1 rounded-full bg-white/90 py-1.5 pr-2 pl-3 text-sm font-medium text-emerald-950 shadow-sm ring-1 ring-emerald-100/80 transition-colors hover:bg-white sm:max-w-[13rem]"
-        aria-label={`Account menu for ${label}`}
-      >
-        <span className="truncate">{label}</span>
-        <svg
-          aria-hidden
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          className={cn(
-            "size-4 shrink-0 text-emerald-700/70 transition-transform",
-            open && "rotate-180",
-          )}
-        >
-          <path
-            fillRule="evenodd"
-            d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
+      />
 
       {open ? (
         <div
           role="menu"
           className="absolute top-[calc(100%+6px)] right-0 z-30 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
         >
-          {user.role !== "EMPLOYEE" ? (
+          {resolvedUser.role !== "EMPLOYEE" ? (
             <MenuLink
               href="/employee"
               onNavigate={closeMenu}

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
+import { useMe } from "@/components/me-provider";
 import {
   fetchClientCache,
   invalidateClientCache,
@@ -65,6 +66,7 @@ export function EmployeeProfileForm(props: {
   variant?: "profile" | "onboarding";
 }) {
   const router = useRouter();
+  const { refreshMe } = useMe();
   const isOnboarding = props.variant === "onboarding";
 
   const [name, setName] = useState("");
@@ -140,6 +142,7 @@ export function EmployeeProfileForm(props: {
       setEditingSection(null);
 
       invalidateClientCache("profile");
+      await refreshMe();
       if (options?.redirect !== false && isOnboarding) {
         router.push(data.redirectTo);
         router.refresh();
