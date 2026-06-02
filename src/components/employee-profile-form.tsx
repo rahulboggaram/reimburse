@@ -61,7 +61,7 @@ function ProfileCardSection(props: {
   bordered?: boolean;
 }) {
   return (
-    <div className={props.bordered ? "border-t border-zinc-100 pt-6" : undefined}>
+    <div className={props.bordered ? "border-t border-zinc-100 pt-10" : undefined}>
       {props.children}
     </div>
   );
