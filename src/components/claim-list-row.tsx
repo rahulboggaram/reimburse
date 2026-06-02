@@ -24,23 +24,15 @@ export function ClaimListRow(props: {
     return props.approvalStatus;
   })();
 
-  const initial = props.title.trim().charAt(0).toUpperCase() || "₹";
-
   return (
     <button
       type="button"
       onClick={props.onOpen}
       className={cn(
-        "flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200/70 bg-white/95 p-4 text-left shadow-md shadow-zinc-200/35 backdrop-blur-sm transition-all",
+        "flex w-full items-center gap-3 rounded-2xl border border-zinc-200/70 bg-white/95 p-4 text-left shadow-md shadow-zinc-200/35 backdrop-blur-sm transition-all",
         "hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-200/60 active:scale-[0.99]",
       )}
     >
-      <div
-        className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-sm font-semibold text-zinc-800 ring-1 ring-zinc-200/80"
-        aria-hidden
-      >
-        {initial}
-      </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-zinc-900">{props.title}</p>
         <p className="mt-0.5 truncate text-sm text-zinc-500">{props.subtitle}</p>
