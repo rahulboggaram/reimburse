@@ -1,6 +1,7 @@
 "use client";
 
 import type { UserRole } from "@prisma/client";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -78,6 +79,15 @@ export function EmployeeDetailModal(props: {
   if (!props.employee) return null;
 
   const employee = props.employee;
+  const [role, setRole] = useState<UserRole>(employee.role);
+  const [branchId, setBranchId] = useState<string>(employee.branchId ?? "");
+
+  useEffect(() => {
+    setRole(employee.role);
+    setBranchId(employee.branchId ?? "");
+  }, [employee.id, employee.role, employee.branchId]);
+
+  const needsBranch = role === "EMPLOYEE" || role === "BRANCH_MANAGER";
 
   return (
     <Modal
@@ -107,14 +117,23 @@ export function EmployeeDetailModal(props: {
             <Label htmlFor={`${employee.id}-role`}>Role</Label>
             <Select
               id={`${employee.id}-role`}
-              value={employee.role}
-              onChange={(e) =>
+              value={role}
+              onChange={(e) => {
+                const nextRole = e.target.value as UserRole;
+                setRole(nextRole);
+
+                // Admins and payment approvers don't need a branch assignment.
+                const nextBranchId =
+                  nextRole === "ADMIN" || nextRole === "APPROVER" ? null : branchId || null;
+
+                if (nextBranchId === null) setBranchId("");
+
                 props.onUpdate({
                   id: employee.id,
-                  role: e.target.value as UserRole,
-                  branchId: employee.branchId,
-                })
-              }
+                  role: nextRole,
+                  branchId: nextBranchId,
+                });
+              }}
             >
               {ASSIGNABLE_ROLES.map((role) => (
                 <option key={role} value={role}>
@@ -124,37 +143,35 @@ export function EmployeeDetailModal(props: {
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor={`${employee.id}-branch`}>Branch</Label>
-            <Select
-              id={`${employee.id}-branch`}
-              value={employee.branchId ?? ""}
-              onChange={(e) =>
-                props.onUpdate({
-                  id: employee.id,
-                  role: employee.role,
-                  branchId: e.target.value ? e.target.value : null,
-                })
-              }
-            >
-              <option value="">No branch</option>
-              {props.branches.map((branch) => (
-                <option key={branch.id} value={branch.id} disabled={!branch.active}>
-                  {branch.name}
-                  {!branch.active ? " (inactive)" : ""}
-                </option>
-              ))}
-            </Select>
-            {employee.role === "EMPLOYEE" || employee.role === "BRANCH_MANAGER" ? (
+          {needsBranch ? (
+            <div className="space-y-1.5">
+              <Label htmlFor={`${employee.id}-branch`}>Branch</Label>
+              <Select
+                id={`${employee.id}-branch`}
+                value={branchId}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setBranchId(next);
+                  props.onUpdate({
+                    id: employee.id,
+                    role,
+                    branchId: next ? next : null,
+                  });
+                }}
+              >
+                <option value="">Select branch</option>
+                {props.branches.map((branch) => (
+                  <option key={branch.id} value={branch.id} disabled={!branch.active}>
+                    {branch.name}
+                    {!branch.active ? " (inactive)" : ""}
+                  </option>
+                ))}
+              </Select>
               <p className="text-xs text-zinc-600">
                 Required for employees and branch managers.
               </p>
-            ) : (
-              <p className="text-xs text-zinc-600">
-                Optional for admins and payment approvers.
-              </p>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
 
         <Button
