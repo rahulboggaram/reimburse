@@ -92,12 +92,9 @@ export function ChangePhoneSection(props: {
   return (
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm text-zinc-600">Logged in as</p>
-          <p className="text-base font-medium text-zinc-900">
-            {formatPhoneDisplay(props.currentPhone)}
-          </p>
-        </div>
+        <p className="min-w-0 text-base font-medium text-zinc-900">
+          {formatPhoneDisplay(props.currentPhone)}
+        </p>
         {!open ? (
           <button
             type="button"
