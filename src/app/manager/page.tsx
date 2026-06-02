@@ -8,6 +8,7 @@ import {
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
+import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
 export default function ManagerPendingPage() {
@@ -26,10 +27,11 @@ export default function ManagerPendingPage() {
 
   return (
     <>
-      <h1 className="mb-1 text-xl font-semibold">Your queue</h1>
-      <p className="mb-4 text-sm text-zinc-500">
-        Tap a row to review and take action
-      </p>
+      <PageHeading
+        title="Your queue"
+        description="Tap a row to review and take action"
+        className="mb-4"
+      />
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>

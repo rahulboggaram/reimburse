@@ -13,6 +13,7 @@ import {
   ReceiptUploadField,
   type ReceiptFileItem,
 } from "@/components/receipt-upload-field";
+import { PageHeading } from "@/components/page-heading";
 import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
 import { toTitleCase } from "@/lib/user-profile";
@@ -188,9 +189,7 @@ export function ReimbursementForm(props: {
   return (
     <>
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
-        {toTitleCase(props.title)}
-      </h1>
+      <PageHeading title={props.title} />
 
       <Card className="space-y-4">
         {error ? (

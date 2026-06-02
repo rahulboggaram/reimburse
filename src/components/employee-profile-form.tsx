@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
+import { PageHeading } from "@/components/page-heading";
 import { RoleBadge } from "@/components/role-badge";
 import { maskAccountNumber, toTitleCase } from "@/lib/user-profile";
 
@@ -194,12 +195,7 @@ export function EmployeeProfileForm(props: {
 
   const content = (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold">{toTitleCase(props.title)}</h1>
-        {props.description ? (
-          <p className="mt-1 text-sm text-zinc-600">{props.description}</p>
-        ) : null}
-      </div>
+      <PageHeading title={props.title} description={props.description} />
 
       {error ? (
         <p className="text-sm text-red-700" role="alert">

@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJson } from "@/lib/api";
+import { PageHeading } from "@/components/page-heading";
 import { toTitleCase } from "@/lib/user-profile";
 
 type Branch = {
@@ -103,9 +104,7 @@ export default function AdminBranchesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
-        {toTitleCase("branches")}
-      </h1>
+      <PageHeading title="Branches" />
 
       {error ? (
         <p

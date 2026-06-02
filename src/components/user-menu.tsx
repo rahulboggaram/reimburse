@@ -3,15 +3,9 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { formatPhoneDisplay } from "@/lib/phone";
-import { toTitleCase } from "@/lib/user-profile";
-import { useMe, type MeUser } from "@/components/me-provider";
+import { useMe } from "@/components/me-provider";
+import { userDisplayLabel } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
-
-function displayLabel(user: MeUser) {
-  if (user.name?.trim()) return toTitleCase(user.name.trim());
-  return formatPhoneDisplay(user.phone);
-}
 
 function MenuLink(props: {
   href: string;
@@ -108,7 +102,7 @@ export function UserMenu() {
     );
   }
 
-  const label = displayLabel(user);
+  const label = userDisplayLabel(user);
   const canAdmin = user.role === "ADMIN";
   const canApprove =
     user.role === "ADMIN" ||
@@ -122,11 +116,10 @@ export function UserMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
-        className="flex max-w-[160px] items-center gap-1 rounded-lg px-1 py-1 transition-colors hover:bg-zinc-100 sm:max-w-[200px]"
+        className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+        aria-label={`Account menu for ${label}`}
       >
-        <span className="truncate text-sm font-medium text-zinc-900">
-          {label}
-        </span>
+        <span>Menu</span>
         <svg
           aria-hidden
           viewBox="0 0 20 20"

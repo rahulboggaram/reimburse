@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
 type Activity = {
@@ -27,12 +28,11 @@ export default function AdminActivityPage() {
 
   return (
     <>
-      <div className="mb-4 space-y-1">
-        <h1 className="text-lg font-semibold">Activity Log</h1>
-        <p className="text-sm text-zinc-600">
-          Logins, profile changes, and admin actions — not reimbursements.
-        </p>
-      </div>
+      <PageHeading
+        title="Activity log"
+        description="Logins, profile changes, and admin actions — not reimbursements."
+        className="mb-4"
+      />
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading activity…</p>

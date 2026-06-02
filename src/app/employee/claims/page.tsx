@@ -7,6 +7,7 @@ import { ClaimListRow } from "@/components/claim-list-row";
 import { formatDisplayDate } from "@/lib/dates";
 import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
+import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
 export default function MyClaimsPage() {
@@ -23,7 +24,8 @@ export default function MyClaimsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
+        <PageHeading title="My claims" />
         <div className="h-16 animate-pulse rounded-xl bg-zinc-200" />
         <div className="h-16 animate-pulse rounded-xl bg-zinc-200" />
         <div className="h-16 animate-pulse rounded-xl bg-zinc-200" />
@@ -33,6 +35,8 @@ export default function MyClaimsPage() {
 
   if (claims.length === 0) {
     return (
+      <>
+      <PageHeading title="My claims" className="mb-4" />
       <Card>
         <p className="text-sm text-zinc-600">No claims yet.</p>
         <Link
@@ -42,11 +46,13 @@ export default function MyClaimsPage() {
           Submit your first claim
         </Link>
       </Card>
+      </>
     );
   }
 
   return (
     <>
+      <PageHeading title="My claims" className="mb-4" />
       <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white">
         {claims.map((claim) => (
           <li key={claim.id}>

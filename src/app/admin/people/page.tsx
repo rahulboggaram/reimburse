@@ -14,6 +14,7 @@ import {
 } from "@/components/employee-list";
 import type { UserRole } from "@prisma/client";
 import { formatPhoneDisplay, normalizePhone } from "@/lib/phone";
+import { UserNameAside } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
 type RoleFilter =
@@ -170,11 +171,14 @@ export default function AdminPeoplePage() {
     <>
       <Card className="mb-6">
         <form onSubmit={addEmployee} className="space-y-4">
-          <div>
-            <h2 className="font-semibold">Allow A New Mobile Number</h2>
-            <p className="text-sm text-zinc-600">
-              They complete name & bank details on first login.
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">Allow A New Mobile Number</h2>
+              <p className="text-sm text-zinc-600">
+                They complete name & bank details on first login.
+              </p>
+            </div>
+            <UserNameAside />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="phone">Mobile number</Label>

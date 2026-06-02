@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import type { AdminClaim } from "@/lib/claim-types";
 import { formatDisplayDate } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
 type EmployeeOption = {
@@ -48,6 +49,7 @@ export default function AdminClaimsPage() {
 
   return (
     <>
+      <PageHeading title="All claims" className="mb-4" />
       <div className="mb-4 space-y-1.5">
         <Label htmlFor="filter-employee">Filter by employee</Label>
         <Select

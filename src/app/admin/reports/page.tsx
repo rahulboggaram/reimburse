@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeading } from "@/components/page-heading";
 import {
   defaultReportDates,
   REPORT_CATALOG,
@@ -56,12 +57,11 @@ export default function AdminReportsPage() {
 
   return (
     <>
-      <div className="mb-5 space-y-1">
-        <h1 className="text-lg font-semibold">Reports</h1>
-        <p className="text-sm text-zinc-600">
-          Download CSV reports for a date range.
-        </p>
-      </div>
+      <PageHeading
+        title="Reports"
+        description="Download CSV reports for a date range."
+        className="mb-5"
+      />
 
       <Card className="mb-5 space-y-4">
         <p className="text-sm font-semibold text-zinc-800">Filter By Date</p>
