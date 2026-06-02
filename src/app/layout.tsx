@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { brandFont } from "@/lib/fonts";
+import { brandAltFont, brandFont } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${brandFont.variable}`}
+      className={`h-full antialiased ${brandFont.variable} ${brandAltFont.variable}`}
     >
       <body className="min-h-dvh bg-zinc-100 font-sans text-zinc-900">
         {props.children}

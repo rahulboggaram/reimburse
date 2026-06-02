@@ -5,6 +5,27 @@ import { useEffect, useState } from "react";
 import { readJson } from "@/lib/api";
 import { getAppHomePath } from "@/lib/home-path";
 
+function BrandMark(props: {
+  wordmarkClassName: string;
+  label: string;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <span
+        className={`text-5xl leading-none text-emerald-950 ${props.wordmarkClassName}`}
+      >
+        Reimburse
+      </span>
+      <p className="font-sans text-base font-normal tracking-wide text-zinc-500">
+        by Yellow Metal
+      </p>
+      <p className="pt-1 font-sans text-xs font-normal text-zinc-400">
+        {props.label}
+      </p>
+    </div>
+  );
+}
+
 export function ReimburseBrand() {
   const [homeHref, setHomeHref] = useState("/login");
 
@@ -25,17 +46,17 @@ export function ReimburseBrand() {
   }, []);
 
   return (
-    <Link
-      href={homeHref}
-      className="inline-block space-y-0.5 rounded-lg outline-none ring-zinc-900 focus-visible:ring-2"
-      aria-label="Reimburse home"
-    >
-      <span className="font-brand text-5xl leading-none text-emerald-950">
-        Reimburse
-      </span>
-      <p className="font-sans text-base font-normal tracking-wide text-zinc-500">
-        by Yellow Metal
-      </p>
-    </Link>
+    <div className="flex flex-wrap items-start gap-6 sm:gap-8">
+      <Link
+        href={homeHref}
+        className="rounded-lg outline-none ring-zinc-900 focus-visible:ring-2"
+        aria-label="Reimburse home"
+      >
+        <BrandMark wordmarkClassName="font-brand" label="Bricolage Grotesque" />
+      </Link>
+      <div aria-label="Reimburse logo preview in Unbounded">
+        <BrandMark wordmarkClassName="font-brand-alt" label="Unbounded" />
+      </div>
+    </div>
   );
 }
