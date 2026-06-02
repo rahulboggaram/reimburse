@@ -27,25 +27,6 @@ function CardActionLink(props: {
   return <TextLinkButton onClick={props.onClick}>{props.children}</TextLinkButton>;
 }
 
-function ProfileCardHeader(props: {
-  title: string;
-  editing: boolean;
-  onEdit?: () => void;
-  onCancel?: () => void;
-  showEdit?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <p className="text-sm font-semibold text-zinc-800">{props.title}</p>
-      {props.showEdit === false ? null : props.editing ? (
-        <TextLinkButton onClick={props.onCancel}>Cancel</TextLinkButton>
-      ) : (
-        <CardActionLink onClick={props.onEdit ?? (() => {})}>Edit</CardActionLink>
-      )}
-    </div>
-  );
-}
-
 export function EmployeeProfileForm(props: {
   title: string;
   description?: string;
@@ -194,8 +175,6 @@ export function EmployeeProfileForm(props: {
       ) : null}
 
       <Card className={`space-y-4 ${profileCardClass}`}>
-        <p className="text-sm font-semibold text-zinc-800">Personal details</p>
-
         <div className="space-y-3">
           {nameEditing ? (
             <div className="space-y-3">
@@ -264,15 +243,15 @@ export function EmployeeProfileForm(props: {
       </Card>
 
       <Card className={`space-y-3 ${profileCardClass}`}>
-        <ProfileCardHeader
-          title="Bank account details"
-          editing={bankEditing}
-          showEdit={!isOnboarding}
-          onEdit={() => setEditingSection("bank")}
-          onCancel={() => cancelEdit("bank")}
-        />
         {bankEditing ? (
           <div className="space-y-4">
+            {!isOnboarding ? (
+              <div className="flex justify-end">
+                <TextLinkButton onClick={() => cancelEdit("bank")}>
+                  Cancel
+                </TextLinkButton>
+              </div>
+            ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="account">Bank account number</Label>
               <Input
@@ -310,26 +289,35 @@ export function EmployeeProfileForm(props: {
             ) : null}
           </div>
         ) : (
-          <dl className="space-y-3 text-sm">
-            <div>
-              <dt className="text-zinc-500">Account number</dt>
-              <dd className="font-medium text-zinc-900">
-                {savedBankAccountNumber ? (
-                  savedBankAccountNumber
-                ) : (
-                  <span className="font-normal text-zinc-500">Not added yet</span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-zinc-500">IFSC code</dt>
-              <dd className="font-medium text-zinc-900">
-                {savedIfscCode || (
-                  <span className="font-normal text-zinc-500">Not added yet</span>
-                )}
-              </dd>
-            </div>
-          </dl>
+          <>
+            {!isOnboarding ? (
+              <div className="flex justify-end">
+                <CardActionLink onClick={() => setEditingSection("bank")}>
+                  Edit
+                </CardActionLink>
+              </div>
+            ) : null}
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-zinc-500">Account number</dt>
+                <dd className="font-medium text-zinc-900">
+                  {savedBankAccountNumber ? (
+                    savedBankAccountNumber
+                  ) : (
+                    <span className="font-normal text-zinc-500">Not added yet</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-zinc-500">IFSC code</dt>
+                <dd className="font-medium text-zinc-900">
+                  {savedIfscCode || (
+                    <span className="font-normal text-zinc-500">Not added yet</span>
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </>
         )}
       </Card>
 
