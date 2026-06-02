@@ -60,21 +60,8 @@ function ProfileFieldValue(props: {
   );
 }
 
-function ProfileCardSection(props: {
-  children: React.ReactNode;
-  showDividerBefore?: boolean;
-  spacingBelow?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        props.showDividerBefore && "border-t border-zinc-100 pt-10",
-        props.spacingBelow && "pb-10",
-      )}
-    >
-      {props.children}
-    </div>
-  );
+function ProfileCardBlock(props: { children: React.ReactNode }) {
+  return <div className="px-5 py-6">{props.children}</div>;
 }
 
 export function EmployeeProfileForm(props: {
@@ -194,11 +181,16 @@ export function EmployeeProfileForm(props: {
           <div className="h-8 w-36 animate-pulse rounded-lg bg-zinc-200" />
           <div className="h-9 w-28 shrink-0 animate-pulse rounded-full bg-zinc-200" />
         </div>
-        <Card className="space-y-4">
-          <div className="h-4 w-28 animate-pulse rounded bg-zinc-200" />
-          <div className="h-5 w-32 animate-pulse rounded bg-zinc-100" />
-          <div className="h-5 w-36 animate-pulse rounded bg-zinc-100" />
-          <div className="h-6 w-20 animate-pulse rounded-full bg-zinc-100" />
+        <Card className="divide-y divide-zinc-100 p-0">
+          <ProfileCardBlock>
+            <div className="h-5 w-32 animate-pulse rounded bg-zinc-200" />
+          </ProfileCardBlock>
+          <ProfileCardBlock>
+            <div className="h-5 w-36 animate-pulse rounded bg-zinc-100" />
+          </ProfileCardBlock>
+          <ProfileCardBlock>
+            <div className="h-6 w-20 animate-pulse rounded-full bg-zinc-100" />
+          </ProfileCardBlock>
         </Card>
         <Card className="space-y-3">
           <div className="h-4 w-36 animate-pulse rounded bg-zinc-200" />
@@ -223,8 +215,8 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className={profileCardClass}>
-        <ProfileCardSection spacingBelow={Boolean(phone || accessRole)}>
+      <Card className={cn(profileCardClass, "divide-y divide-zinc-100 p-0")}>
+        <ProfileCardBlock>
           {nameEditing ? (
             <div className="space-y-4">
               <Input
@@ -261,17 +253,17 @@ export function EmployeeProfileForm(props: {
                 ) : undefined
               }
             >
-              <ProfileFieldValue>
+              <ProfileFieldValue className="mt-0">
                 {savedName || (
                   <span className="font-normal text-zinc-500">Not added yet</span>
                 )}
               </ProfileFieldValue>
             </ProfileFieldRow>
           )}
-        </ProfileCardSection>
+        </ProfileCardBlock>
 
         {phone ? (
-          <ProfileCardSection showDividerBefore spacingBelow>
+          <ProfileCardBlock>
             <ChangePhoneSection
               currentPhone={phone}
               onPhoneChanged={(nextPhone) => {
@@ -279,15 +271,15 @@ export function EmployeeProfileForm(props: {
                 invalidateClientCache("profile");
               }}
             />
-          </ProfileCardSection>
+          </ProfileCardBlock>
         ) : null}
 
-        <ProfileCardSection showDividerBefore={Boolean(phone)}>
+        <ProfileCardBlock>
           <RoleBadge role={accessRole || "Employee"} />
-        </ProfileCardSection>
+        </ProfileCardBlock>
       </Card>
 
-      <Card className={profileCardClass}>
+      <Card className={cn(profileCardClass, "p-5")}>
         {bankEditing ? (
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -333,7 +325,7 @@ export function EmployeeProfileForm(props: {
           </div>
         ) : (
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1 space-y-5">
+            <div className="min-w-0 flex-1 space-y-6">
               <div>
                 <ProfileFieldLabel>Account number</ProfileFieldLabel>
                 <ProfileFieldValue className="break-all font-tabular-nums">
