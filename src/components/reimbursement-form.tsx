@@ -188,10 +188,10 @@ export function ReimbursementForm(props: {
 
   return (
     <>
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
       <PageHeading title={props.title} />
 
-      <Card className="space-y-4">
+      <Card className="space-y-5 ring-1 ring-emerald-100/50">
         {error ? (
           <p
             role="alert"
@@ -216,6 +216,7 @@ export function ReimbursementForm(props: {
               setFieldErrors((prev) => ({ ...prev, amount: undefined }));
             }}
             placeholder="0"
+            className="h-14 text-2xl font-semibold font-tabular-nums"
           />
           <FieldError message={fieldErrors.amount} />
         </div>
@@ -317,6 +318,7 @@ export function ReimbursementForm(props: {
 
       <Button
         type="submit"
+        variant="brand"
         size="lg"
         className="w-full"
         disabled={

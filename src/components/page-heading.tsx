@@ -19,7 +19,7 @@ export function UserNameAside() {
   if (!user) return null;
 
   return (
-    <span className="shrink-0 text-sm font-medium text-zinc-600">
+    <span className="shrink-0 rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-emerald-900 ring-1 ring-emerald-100/80 shadow-sm">
       {userDisplayLabel(user)}
     </span>
   );
@@ -35,7 +35,7 @@ export function PageHeading(props: {
   const headingClass =
     props.as === "h2"
       ? "font-semibold text-zinc-900"
-      : "text-xl font-semibold tracking-tight text-zinc-900";
+      : "text-2xl font-semibold tracking-tight text-zinc-900";
 
   return (
     <div className={cn("space-y-1", props.className)}>

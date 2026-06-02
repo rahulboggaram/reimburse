@@ -15,43 +15,44 @@ export function ClaimListRow(props: {
     if (props.approvalStatus === "REJECTED") return "REJECTED";
     if (props.approvalStatus === "PENDING") return "PENDING";
 
-    // Once approved, payment status becomes the most relevant signal.
     if (props.approvalStatus === "APPROVED") {
       return props.paymentStatus ?? "APPROVED";
     }
 
-    // For paid claims, show the final state.
     if (props.approvalStatus === "PAID") return "PAID";
 
     return props.approvalStatus;
   })();
+
+  const initial = props.title.trim().charAt(0).toUpperCase() || "₹";
 
   return (
     <button
       type="button"
       onClick={props.onOpen}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50",
+        "flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200/70 bg-white/95 p-4 text-left shadow-md shadow-zinc-200/35 backdrop-blur-sm transition-all",
+        "hover:border-emerald-200/80 hover:shadow-lg hover:shadow-emerald-100/50 active:scale-[0.99]",
       )}
     >
+      <div
+        className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-100/80"
+        aria-hidden
+      >
+        {initial}
+      </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-zinc-900">{props.title}</p>
+        <p className="truncate font-semibold text-zinc-900">{props.title}</p>
         <p className="mt-0.5 truncate text-sm text-zinc-500">{props.subtitle}</p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-sm font-semibold font-tabular-nums text-zinc-900">
+        <p className="text-base font-semibold font-tabular-nums text-zinc-900">
           ₹{props.amount.toLocaleString("en-IN")}
         </p>
-        <div className="mt-1 flex justify-end">
+        <div className="mt-1.5 flex justify-end">
           <StatusBadge status={relevantStatus} />
         </div>
       </div>
-      <span
-        className="shrink-0 text-lg text-zinc-400"
-        aria-hidden
-      >
-        ›
-      </span>
     </button>
   );
 }

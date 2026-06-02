@@ -27,7 +27,7 @@ export function StatusBadge(props: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset ring-black/5",
         styles[key] ?? styles[label] ?? "bg-zinc-100 text-zinc-700",
       )}
     >

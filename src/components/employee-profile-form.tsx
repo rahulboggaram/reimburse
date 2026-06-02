@@ -193,6 +193,9 @@ export function EmployeeProfileForm(props: {
   const nameEditing = isOnboarding || editingSection === "name";
   const bankEditing = isOnboarding || editingSection === "bank";
 
+  const profileCardClass =
+    "ring-1 ring-emerald-100/50 transition-shadow hover:shadow-lg hover:shadow-emerald-100/30";
+
   const content = (
     <div className="space-y-5">
       <PageHeading title={props.title} description={props.description} />
@@ -203,7 +206,7 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className="space-y-3">
+      <Card className={`space-y-3 ${profileCardClass}`}>
         <ProfileCardHeader
           title="Name"
           editing={nameEditing}
@@ -225,6 +228,7 @@ export function EmployeeProfileForm(props: {
             {!isOnboarding ? (
               <Button
                 type="button"
+                variant="brand"
                 disabled={saving}
                 onClick={() => saveProfile({ redirect: false })}
               >
@@ -233,16 +237,16 @@ export function EmployeeProfileForm(props: {
             ) : null}
           </div>
         ) : (
-          <p className="text-base text-zinc-900">
+          <p className="text-lg font-medium text-zinc-900">
             {savedName || (
-              <span className="text-zinc-500">Not added yet</span>
+              <span className="font-normal text-zinc-500">Not added yet</span>
             )}
           </p>
         )}
       </Card>
 
       {phone ? (
-        <Card className="space-y-3">
+        <Card className={`space-y-3 ${profileCardClass}`}>
           <p className="text-sm font-semibold text-zinc-800">Mobile number</p>
           <ChangePhoneSection
             currentPhone={phone}
@@ -254,12 +258,12 @@ export function EmployeeProfileForm(props: {
         </Card>
       ) : null}
 
-      <Card className="space-y-2">
+      <Card className={`space-y-2 ${profileCardClass}`}>
         <ProfileCardHeader title="Role" showEdit={false} editing={false} />
         <RoleBadge role={accessRole || "Employee"} />
       </Card>
 
-      <Card className="space-y-3">
+      <Card className={`space-y-3 ${profileCardClass}`}>
         <ProfileCardHeader
           title="Bank account details"
           editing={bankEditing}
@@ -298,6 +302,7 @@ export function EmployeeProfileForm(props: {
             {!isOnboarding ? (
               <Button
                 type="button"
+                variant="brand"
                 disabled={saving}
                 onClick={() => saveProfile({ redirect: false })}
               >
@@ -306,7 +311,7 @@ export function EmployeeProfileForm(props: {
             ) : null}
           </div>
         ) : (
-          <dl className="space-y-2 text-sm">
+          <dl className="space-y-3 text-sm">
             <div>
               <dt className="text-zinc-500">Account number</dt>
               <dd className="font-medium text-zinc-900">
@@ -330,7 +335,7 @@ export function EmployeeProfileForm(props: {
       </Card>
 
       {isOnboarding ? (
-        <Button type="submit" size="lg" className="w-full" disabled={saving}>
+        <Button type="submit" variant="brand" size="lg" className="w-full" disabled={saving}>
           {saving ? "Continuing…" : props.submitLabel}
         </Button>
       ) : null}
