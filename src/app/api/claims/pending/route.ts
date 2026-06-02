@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
-import { claimInclude, serializeClaim } from "@/lib/claims";
+import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
 export async function GET() {
   const session = await requireManagerAccess();
@@ -23,8 +23,8 @@ export async function GET() {
   const claims = await prisma.reimbursement.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: claimInclude,
+    include: claimListInclude,
   });
 
-  return Response.json(claims.map(serializeClaim));
+  return Response.json(claims.map(serializeClaimListItem));
 }

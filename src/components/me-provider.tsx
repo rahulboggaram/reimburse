@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { readJson } from "@/lib/api";
+import type { SessionUser } from "@/lib/session";
 
 export type MeUser = {
   id: string;
@@ -24,11 +25,28 @@ type MeContextValue = {
 
 export const MeContext = createContext<MeContextValue | null>(null);
 
-export function MeProvider(props: { children: React.ReactNode }) {
-  const [user, setUser] = useState<MeUser | null>(null);
-  const [loading, setLoading] = useState(true);
+function toMeUser(user: SessionUser): MeUser {
+  return {
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    role: user.role,
+    profileComplete: user.profileComplete,
+  };
+}
+
+export function MeProvider(props: {
+  children: React.ReactNode;
+  initialUser?: SessionUser | null;
+}) {
+  const [user, setUser] = useState<MeUser | null>(
+    props.initialUser ? toMeUser(props.initialUser) : null,
+  );
+  const [loading, setLoading] = useState(!props.initialUser);
 
   useEffect(() => {
+    if (props.initialUser) return;
+
     let cancelled = false;
 
     fetch("/api/auth/me")
@@ -48,7 +66,7 @@ export function MeProvider(props: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [props.initialUser]);
 
   const value = useMemo(() => ({ user, loading }), [user, loading]);
 

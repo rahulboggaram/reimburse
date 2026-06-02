@@ -16,6 +16,10 @@ import {
 import { PageHeading } from "@/components/page-heading";
 import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
+import {
+  fetchClientCache,
+  invalidateClientCache,
+} from "@/lib/client-cache";
 import { toTitleCase } from "@/lib/user-profile";
 
 type Branch = { id: string; name: string };
@@ -70,24 +74,21 @@ export function ReimbursementForm(props: {
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
 
   useEffect(() => {
-    fetch("/api/branches")
-      .then((res) => readJson<Branch[]>(res))
+    fetchClientCache("form-bootstrap", async () => {
+      const res = await fetch("/api/app/bootstrap");
+      return readJson<{ branches: Branch[]; categories: ExpenseCategory[] }>(
+        res,
+      );
+    })
       .then((data) => {
-        setBranches(data);
+        setBranches(data.branches);
+        setCategories(data.categories);
       })
-      .catch(() => setError("Could not load branches."))
-      .finally(() => setLoadingBranches(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => readJson<ExpenseCategory[]>(res))
-      .then((data) => {
-        setCategories(data);
-      })
-      .catch(() => setError("Could not load categories."))
-      .finally(() => setLoadingCategories(false));
+      .catch(() => setError("Could not load form options."))
+      .finally(() => {
+        setLoadingBranches(false);
+        setLoadingCategories(false);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
   }, []);
 
@@ -149,12 +150,12 @@ export function ReimbursementForm(props: {
         body: formData,
       });
       await readJson(response);
+      invalidateClientCache("claims-mine");
 
       if (props.onSuccess) {
         props.onSuccess();
       } else {
         router.push("/employee/claims");
-        router.refresh();
       }
     } catch (err) {
       setError(

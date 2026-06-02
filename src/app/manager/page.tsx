@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
+import { fetchClientCache, invalidateClientCache } from "@/lib/client-cache";
 
 export default function ManagerPendingPage() {
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
@@ -17,8 +18,11 @@ export default function ManagerPendingPage() {
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   async function loadClaims() {
-    const response = await fetch("/api/claims/pending");
-    setClaims(await readJson<SerializedClaim[]>(response));
+    const data = await fetchClientCache("claims-pending", async () => {
+      const response = await fetch("/api/claims/pending");
+      return readJson<SerializedClaim[]>(response);
+    });
+    setClaims(data);
   }
 
   useEffect(() => {
@@ -63,9 +67,10 @@ export default function ManagerPendingPage() {
         open={selected !== null}
         onClose={() => setSelected(null)}
         variant="approver"
-        onUpdated={() => {
+        onUpdated={async () => {
+          invalidateClientCache("claims-pending");
           setSelected(null);
-          loadClaims();
+          await loadClaims();
         }}
       />
     </>

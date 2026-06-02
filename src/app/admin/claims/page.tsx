@@ -11,6 +11,7 @@ import { formatDisplayDate } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
+import { fetchClientCache, invalidateClientCache } from "@/lib/client-cache";
 
 type EmployeeOption = {
   id: string;
@@ -27,8 +28,14 @@ export default function AdminClaimsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/admin/users").then((r) => readJson<EmployeeOption[]>(r)),
-      fetch("/api/admin/reimbursements").then((r) => readJson<AdminClaim[]>(r)),
+      fetchClientCache("admin-users", () =>
+        fetch("/api/admin/users").then((r) => readJson<EmployeeOption[]>(r)),
+      ),
+      fetchClientCache("admin-claims", () =>
+        fetch("/api/admin/reimbursements").then((r) =>
+          readJson<AdminClaim[]>(r),
+        ),
+      ),
     ])
       .then(([employeeList, claimList]) => {
         setEmployees(employeeList);
@@ -95,15 +102,17 @@ export default function AdminClaimsPage() {
         onClose={() => setSelected(null)}
         variant="admin"
         employeePhone={selected?.employee.phone}
-        onUpdated={() => {
-          fetch("/api/admin/reimbursements")
-            .then((r) => readJson<AdminClaim[]>(r))
-            .then((list) => {
-              setClaims(list);
-              setSelected((current) =>
-                current ? list.find((c) => c.id === current.id) ?? null : null,
-              );
-            });
+        onUpdated={async () => {
+          invalidateClientCache("admin-claims");
+          const list = await fetchClientCache("admin-claims", () =>
+            fetch("/api/admin/reimbursements").then((r) =>
+              readJson<AdminClaim[]>(r),
+            ),
+          );
+          setClaims(list);
+          setSelected((current) =>
+            current ? list.find((c) => c.id === current.id) ?? null : null,
+          );
         }}
       />
     </>

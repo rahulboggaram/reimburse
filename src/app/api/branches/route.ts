@@ -11,6 +11,8 @@ export async function GET() {
     select: { id: true, name: true },
   });
 
-  return Response.json(branches);
+  return Response.json(branches, {
+    headers: { "Cache-Control": "private, max-age=120" },
+  });
 }
 

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
-import { claimInclude, serializeClaim } from "@/lib/claims";
+import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
 export async function GET(request: Request) {
   const session = await requireAdminAccess();
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     where: employeeId ? { employeeId } : undefined,
     orderBy: { createdAt: "desc" },
     include: {
-      ...claimInclude,
+      ...claimListInclude,
       employee: {
         select: { id: true, name: true, phone: true },
       },
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   return Response.json(
     claims.map((claim) => ({
-      ...serializeClaim(claim),
+      ...serializeClaimListItem(claim),
       employee: claim.employee,
     })),
   );

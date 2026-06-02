@@ -8,6 +8,8 @@ import { formatDisplayDate } from "@/lib/dates";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
+import { claimReceiptCount } from "@/lib/claim-receipt-count";
+import { fetchClientCache } from "@/lib/client-cache";
 
 export default function MyClaimsPage() {
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
@@ -15,8 +17,10 @@ export default function MyClaimsPage() {
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   useEffect(() => {
-    fetch("/api/claims/mine")
-      .then((res) => readJson<SerializedClaim[]>(res))
+    fetchClientCache("claims-mine", async () => {
+      const res = await fetch("/api/claims/mine");
+      return readJson<SerializedClaim[]>(res);
+    })
       .then(setClaims)
       .finally(() => setLoading(false));
   }, []);
@@ -66,7 +70,7 @@ export default function MyClaimsPage() {
           <li key={claim.id}>
             <ClaimListRow
               title={claim.category}
-              subtitle={`${formatDisplayDate(claim.expenseDate)} · ${claim.receipts.length} receipt${claim.receipts.length === 1 ? "" : "s"}`}
+              subtitle={`${formatDisplayDate(claim.expenseDate)} · ${claimReceiptCount(claim)} receipt${claimReceiptCount(claim) === 1 ? "" : "s"}`}
               amount={claim.amount}
               approvalStatus={claim.status}
               paymentStatus={claim.payoutStatus}

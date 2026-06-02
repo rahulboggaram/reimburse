@@ -6,11 +6,25 @@ export const claimInclude = {
   receipts: { orderBy: { createdAt: "asc" as const } },
 } satisfies Prisma.ReimbursementInclude;
 
+export const claimListInclude = {
+  approver: { select: { id: true, name: true, phone: true } },
+  branch: { select: { id: true, name: true, active: true } },
+  _count: { select: { receipts: true } },
+} satisfies Prisma.ReimbursementInclude;
+
 export type ClaimWithRelations = Prisma.ReimbursementGetPayload<{
   include: typeof claimInclude;
 }>;
 
-export function serializeClaim(claim: ClaimWithRelations) {
+export type ClaimListItem = Prisma.ReimbursementGetPayload<{
+  include: typeof claimListInclude;
+}>;
+
+function serializeClaimCore(
+  claim: ClaimWithRelations | ClaimListItem,
+  receipts: { id: string; url: string; fileName: string | null; mimeType: string }[],
+  receiptCount: number,
+) {
   return {
     id: claim.id,
     employeeId: claim.employeeId,
@@ -33,13 +47,25 @@ export function serializeClaim(claim: ClaimWithRelations) {
     approverId: claim.approverId,
     approver: claim.approver,
     refiledFromId: claim.refiledFromId,
-    receipts: claim.receipts.map((receipt) => ({
-      id: receipt.id,
-      url: receipt.filePath,
-      fileName: receipt.fileName,
-      mimeType: receipt.mimeType,
-    })),
+    receipts,
+    receiptCount,
     createdAt: claim.createdAt.toISOString(),
     updatedAt: claim.updatedAt.toISOString(),
   };
+}
+
+export function serializeClaim(claim: ClaimWithRelations) {
+  const receipts = claim.receipts.map((receipt) => ({
+    id: receipt.id,
+    url: receipt.filePath,
+    fileName: receipt.fileName,
+    mimeType: receipt.mimeType,
+  }));
+  return serializeClaimCore(claim, receipts, receipts.length);
+}
+
+/** List views — skips receipt file payloads (can be large data URLs). */
+export function serializeClaimListItem(claim: ClaimListItem) {
+  const receiptCount = claim._count.receipts;
+  return serializeClaimCore(claim, [], receiptCount);
 }

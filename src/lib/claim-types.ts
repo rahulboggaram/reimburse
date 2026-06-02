@@ -28,6 +28,8 @@ export type SerializedClaim = {
   approver: { id: string; name: string | null; phone: string };
   refiledFromId: string | null;
   receipts: ClaimReceipt[];
+  /** Set on list API responses when receipt files are omitted. */
+  receiptCount?: number;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
-import { claimInclude, serializeClaim } from "@/lib/claims";
+import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
 export async function GET() {
   const session = await requireCanSubmitReimbursement();
@@ -9,8 +9,10 @@ export async function GET() {
   const claims = await prisma.reimbursement.findMany({
     where: { employeeId: session.id },
     orderBy: { createdAt: "desc" },
-    include: claimInclude,
+    include: claimListInclude,
   });
 
-  return Response.json(claims.map(serializeClaim));
+  return Response.json(claims.map(serializeClaimListItem), {
+    headers: { "Cache-Control": "private, no-cache" },
+  });
 }

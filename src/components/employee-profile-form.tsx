@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
+import {
+  fetchClientCache,
+  invalidateClientCache,
+} from "@/lib/client-cache";
 import { PageHeading } from "@/components/page-heading";
 import { RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
@@ -79,16 +83,16 @@ export function EmployeeProfileForm(props: {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/profile")
-      .then((res) =>
-        readJson<{
-          name: string | null;
-          phone: string;
-          ifscCode: string | null;
-          bankAccountNumber: string | null;
-          accessRole: string;
-        }>(res),
-      )
+    fetchClientCache("profile", async () => {
+      const res = await fetch("/api/profile");
+      return readJson<{
+        name: string | null;
+        phone: string;
+        ifscCode: string | null;
+        bankAccountNumber: string | null;
+        accessRole: string;
+      }>(res);
+    })
       .then((data) => {
         const loadedName = data.name ? toTitleCase(data.name) : "";
         const loadedIfsc = data.ifscCode ?? "";
@@ -135,10 +139,9 @@ export function EmployeeProfileForm(props: {
       setSavedBankAccountNumber(bankAccountNumber.replace(/\D/g, ""));
       setEditingSection(null);
 
+      invalidateClientCache("profile");
       if (options?.redirect !== false && isOnboarding) {
         router.push(data.redirectTo);
-        router.refresh();
-      } else {
         router.refresh();
       }
     } catch (err) {
@@ -252,7 +255,7 @@ export function EmployeeProfileForm(props: {
             currentPhone={phone}
             onPhoneChanged={(nextPhone) => {
               setPhone(nextPhone);
-              router.refresh();
+              invalidateClientCache("profile");
             }}
           />
         </Card>

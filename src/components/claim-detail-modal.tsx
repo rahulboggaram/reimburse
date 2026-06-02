@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import type { SerializedClaim } from "@/lib/claim-types";
+import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { readJson } from "@/lib/api";
@@ -42,6 +43,13 @@ function DetailRow(props: { label: string; value: string }) {
   );
 }
 
+function claimNeedsFullLoad(claim: SerializedClaim) {
+  if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
+    return false;
+  }
+  return claim.receipts.length === 0 || !claim.receipts[0]?.url;
+}
+
 export function ClaimDetailModal(props: {
   claim: SerializedClaim | null;
   open: boolean;
@@ -50,14 +58,52 @@ export function ClaimDetailModal(props: {
   employeePhone?: string | null;
   onUpdated?: () => void | Promise<void>;
 }) {
+  const [detailClaim, setDetailClaim] = useState<SerializedClaim | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [paying, setPaying] = useState(false);
   const [syncingPayout, setSyncingPayout] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const claim = props.claim;
-  if (!claim) return null;
+  useEffect(() => {
+    if (!props.open || !props.claim) {
+      setDetailClaim(null);
+      setLoadingDetail(false);
+      return;
+    }
+
+    const stub = props.claim;
+    if (!claimNeedsFullLoad(stub)) {
+      setDetailClaim(stub);
+      setLoadingDetail(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingDetail(true);
+    setDetailClaim(stub);
+
+    fetch(`/api/claims/${stub.id}`)
+      .then((res) => readJson<SerializedClaim>(res))
+      .then((data) => {
+        if (!cancelled) setDetailClaim(data);
+      })
+      .catch(() => {
+        if (!cancelled) setDetailClaim(stub);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDetail(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.open, props.claim]);
+
+  if (!props.claim) return null;
+
+  const claim = detailClaim ?? props.claim;
 
   async function payClaim() {
     setError(null);
@@ -65,10 +111,11 @@ export function ClaimDetailModal(props: {
     try {
       const url =
         props.variant === "admin"
-          ? `/api/admin/claims/${claim!.id}/pay`
-          : `/api/claims/${claim!.id}/pay`;
+          ? `/api/admin/claims/${claim.id}/pay`
+          : `/api/claims/${claim.id}/pay`;
       const response = await fetch(url, { method: "POST" });
-      await readJson(response);
+      const updated = await readJson<SerializedClaim>(response);
+      setDetailClaim(updated);
       await props.onUpdated?.();
       if (props.variant !== "admin") {
         props.onClose();
@@ -84,11 +131,12 @@ export function ClaimDetailModal(props: {
     setError(null);
     setSyncingPayout(true);
     try {
-      const response = await fetch(`/api/admin/claims/${claim!.id}/payout/sync`, {
+      const response = await fetch(`/api/admin/claims/${claim.id}/payout/sync`, {
         method: "POST",
       });
-      await readJson(response);
-      props.onUpdated?.();
+      const updated = await readJson<SerializedClaim>(response);
+      setDetailClaim(updated);
+      await props.onUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not refresh payout status.");
     } finally {
@@ -111,12 +159,13 @@ export function ClaimDetailModal(props: {
     claim.payoutError;
 
   const expenseDate = formatDisplayDate(claim.expenseDate);
+  const receiptsTotal = claimReceiptCount(claim);
 
   async function decide(status: "APPROVED" | "REJECTED") {
     setError(null);
     setDeciding(true);
     try {
-      const response = await fetch(`/api/claims/${claim!.id}/decide`, {
+      const response = await fetch(`/api/claims/${claim.id}/decide`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,12 +175,12 @@ export function ClaimDetailModal(props: {
       });
       await readJson(response);
       props.onClose();
-      props.onUpdated?.();
+      await props.onUpdated?.();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not update this claim.",
       );
-      props.onUpdated?.();
+      await props.onUpdated?.();
     } finally {
       setDeciding(false);
     }
@@ -144,6 +193,10 @@ export function ClaimDetailModal(props: {
       title={claim.category}
     >
       <div className="space-y-4">
+        {loadingDetail ? (
+          <p className="text-sm text-zinc-500">Loading details…</p>
+        ) : null}
+
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-2xl font-semibold font-tabular-nums text-zinc-900">
@@ -165,7 +218,7 @@ export function ClaimDetailModal(props: {
         </div>
 
         {showPayoutInfo ? (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3 space-y-2">
+          <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Payment
             </p>
@@ -206,7 +259,7 @@ export function ClaimDetailModal(props: {
           />
           <DetailRow
             label="Receipts"
-            value={`${claim.receipts.length} attached`}
+            value={`${receiptsTotal} attached`}
           />
         </div>
 
@@ -222,7 +275,9 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        <ReceiptGallery receipts={claim.receipts} title="Receipt Photos" />
+        {!loadingDetail ? (
+          <ReceiptGallery receipts={claim.receipts} title="Receipt Photos" />
+        ) : null}
 
         {props.variant === "employee" && claim.status === "REJECTED" ? (
           <Link
@@ -307,7 +362,7 @@ export function ClaimDetailModal(props: {
             >
               {paying ? "Retrying payment…" : "Retry payment"}
             </Button>
-            <p className="text-xs text-zinc-500 text-center">
+            <p className="text-center text-xs text-zinc-500">
               Payment failed after approval. Retry sends money to the employee’s
               bank account.
             </p>
@@ -331,7 +386,7 @@ export function ClaimDetailModal(props: {
             >
               {syncingPayout ? "Refreshing Payment Status…" : "Refresh Payment Status"}
             </Button>
-            <p className="text-xs text-zinc-500 text-center">
+            <p className="text-center text-xs text-zinc-500">
               Use this if Razorpay shows “processed” but the app hasn’t updated yet.
             </p>
           </div>
@@ -340,7 +395,7 @@ export function ClaimDetailModal(props: {
         {props.variant === "admin" &&
         claim.status === "APPROVED" &&
         payoutInProgress(claim.payoutStatus) ? (
-          <p className="text-sm text-blue-700 border-t border-zinc-100 pt-4">
+          <p className="border-t border-zinc-100 pt-4 text-sm text-blue-700">
             Payout is in progress. This usually completes within a few minutes.
           </p>
         ) : null}
