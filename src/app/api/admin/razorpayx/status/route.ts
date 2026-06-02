@@ -5,5 +5,5 @@ export async function GET() {
   const session = await requireAdminAccess();
   if (session instanceof Response) return session;
 
-  return Response.json(razorpayStatusForAdmin());
+  return Response.json(await razorpayStatusForAdmin());
 }

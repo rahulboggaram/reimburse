@@ -31,11 +31,16 @@ export type RazorpayConfig = {
   webhookSecret: string | null;
 };
 
+function envFlag(name: string): boolean {
+  const value = (process.env[name] ?? "").trim().toLowerCase();
+  return value === "true" || value === "1" || value === "yes";
+}
+
 export function getRazorpayConfig(): RazorpayConfig {
-  const mock = process.env.RAZORPAYX_MOCK === "true";
-  const keyId = process.env.RAZORPAYX_KEY_ID ?? "";
-  const keySecret = process.env.RAZORPAYX_KEY_SECRET ?? "";
-  const accountNumber = process.env.RAZORPAYX_ACCOUNT_NUMBER ?? "";
+  const mock = envFlag("RAZORPAYX_MOCK");
+  const keyId = (process.env.RAZORPAYX_KEY_ID ?? "").trim();
+  const keySecret = (process.env.RAZORPAYX_KEY_SECRET ?? "").trim();
+  const accountNumber = (process.env.RAZORPAYX_ACCOUNT_NUMBER ?? "").trim();
   const payoutMode =
     process.env.RAZORPAYX_PAYOUT_MODE === "NEFT" ||
     process.env.RAZORPAYX_PAYOUT_MODE === "RTGS"

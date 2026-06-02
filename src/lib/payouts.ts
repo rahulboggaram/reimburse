@@ -196,7 +196,7 @@ export async function syncPayoutForClaim(claimId: string) {
   });
 }
 
-export function razorpayStatusForAdmin() {
+export async function razorpayStatusForAdmin() {
   const config = getRazorpayConfig();
   const keyEnvironment = config.keyId.startsWith("rzp_live_")
     ? ("live" as const)
@@ -204,10 +204,51 @@ export function razorpayStatusForAdmin() {
       ? ("test" as const)
       : ("unknown" as const);
 
+  const missingEnv: string[] = [];
+  if (!config.mock) {
+    if (!config.keyId) missingEnv.push("RAZORPAYX_KEY_ID");
+    if (!config.keySecret) missingEnv.push("RAZORPAYX_KEY_SECRET");
+    if (!config.accountNumber) missingEnv.push("RAZORPAYX_ACCOUNT_NUMBER");
+  }
+
+  const recentPayouts = await prisma.reimbursement.findMany({
+    where: { razorpayPayoutId: { not: null } },
+    orderBy: { payoutInitiatedAt: "desc" },
+    take: 5,
+    select: {
+      id: true,
+      employeeName: true,
+      amount: true,
+      razorpayPayoutId: true,
+      payoutStatus: true,
+      payoutError: true,
+      payoutInitiatedAt: true,
+    },
+  });
+
+  const approvedAwaitingPay = await prisma.reimbursement.count({
+    where: {
+      status: "APPROVED",
+      OR: [{ razorpayPayoutId: null }, { payoutStatus: { in: ["failed", "rejected", "cancelled", "reversed"] } }],
+    },
+  });
+
   return {
     configured: config.enabled,
     mock: config.mock,
     mode: config.payoutMode,
     keyEnvironment,
+    missingEnv,
+    approvedAwaitingPay,
+    recentPayouts: recentPayouts.map((row) => ({
+      claimId: row.id,
+      employeeName: row.employeeName,
+      amount: Number(row.amount),
+      payoutId: row.razorpayPayoutId,
+      payoutStatus: row.payoutStatus,
+      payoutError: row.payoutError,
+      initiatedAt: row.payoutInitiatedAt?.toISOString() ?? null,
+      isSimulated: row.razorpayPayoutId?.startsWith("pout_mock_") ?? false,
+    })),
   };
 }

@@ -238,7 +238,21 @@ export function ClaimDetailModal(props: {
               <DetailRow label="UTR" value={claim.payoutUtr} />
             ) : null}
             {claim.razorpayPayoutId ? (
-              <DetailRow label="Payout ID" value={claim.razorpayPayoutId} />
+              <>
+                <DetailRow label="Payout ID" value={claim.razorpayPayoutId} />
+                {claim.razorpayPayoutId.startsWith("pout_mock_") ? (
+                  <p className="text-sm text-amber-800">
+                    This was a demo payout only. It will not appear in RazorpayX.
+                    Set <span className="font-medium">RAZORPAYX_MOCK=false</span>{" "}
+                    on Vercel and use real test keys.
+                  </p>
+                ) : (
+                  <p className="text-sm text-zinc-600">
+                    Search this payout ID in RazorpayX under{" "}
+                    <span className="font-medium">Payouts</span>.
+                  </p>
+                )}
+              </>
             ) : null}
             {claim.payoutError ? (
               <p className="text-sm text-red-700">{claim.payoutError}</p>
