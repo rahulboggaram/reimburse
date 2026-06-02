@@ -117,7 +117,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
       <div>
         <Label>Receipt Photos</Label>
         <p className="mt-1 text-xs text-zinc-500">
-          Add one or more photos, Max up to 5 MB each.
+          Add one or more photos
         </p>
       </div>
 
