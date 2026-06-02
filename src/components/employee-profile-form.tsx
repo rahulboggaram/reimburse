@@ -9,45 +9,110 @@ import { Label } from "@/components/ui/label";
 import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
 import { RoleBadge } from "@/components/role-badge";
-import { toTitleCase } from "@/lib/user-profile";
+import { maskAccountNumber, toTitleCase } from "@/lib/user-profile";
+
+type EditingSection = "name" | "bank" | null;
+
+function CardActionLink(props: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className="shrink-0 text-sm font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
+    >
+      {props.children}
+    </button>
+  );
+}
+
+function ProfileCardHeader(props: {
+  title: string;
+  editing: boolean;
+  onEdit?: () => void;
+  onCancel?: () => void;
+  showEdit?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <p className="text-sm font-semibold text-zinc-800">{props.title}</p>
+      {props.showEdit === false ? null : props.editing ? (
+        <button
+          type="button"
+          onClick={props.onCancel}
+          className="shrink-0 text-sm font-medium text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
+        >
+          Cancel
+        </button>
+      ) : (
+        <CardActionLink onClick={props.onEdit ?? (() => {})}>Edit</CardActionLink>
+      )}
+    </div>
+  );
+}
 
 export function EmployeeProfileForm(props: {
   title: string;
   description?: string;
   submitLabel: string;
+  variant?: "profile" | "onboarding";
 }) {
   const router = useRouter();
+  const isOnboarding = props.variant === "onboarding";
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [ifscCode, setIfscCode] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [accessRole, setAccessRole] = useState<string>("");
+
+  const [savedName, setSavedName] = useState("");
+  const [savedIfscCode, setSavedIfscCode] = useState("");
+  const [savedBankAccountNumber, setSavedBankAccountNumber] = useState("");
+
+  const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
-      .then((res) => readJson<{
-        name: string | null;
-        phone: string;
-        ifscCode: string | null;
-        bankAccountNumber: string | null;
-        accessRole: string;
-      }>(res))
+      .then((res) =>
+        readJson<{
+          name: string | null;
+          phone: string;
+          ifscCode: string | null;
+          bankAccountNumber: string | null;
+          accessRole: string;
+        }>(res),
+      )
       .then((data) => {
-        setName(data.name ? toTitleCase(data.name) : "");
+        const loadedName = data.name ? toTitleCase(data.name) : "";
+        const loadedIfsc = data.ifscCode ?? "";
+        const loadedAccount = data.bankAccountNumber ?? "";
+
+        setName(loadedName);
         setPhone(data.phone);
-        setBankAccountNumber(data.bankAccountNumber ?? "");
-        setIfscCode(data.ifscCode ?? "");
+        setIfscCode(loadedIfsc);
+        setBankAccountNumber(loadedAccount);
         setAccessRole(data.accessRole);
+
+        setSavedName(loadedName);
+        setSavedIfscCode(loadedIfsc);
+        setSavedBankAccountNumber(loadedAccount);
+
+        if (isOnboarding) {
+          if (!loadedName) setEditingSection("name");
+          else if (!loadedAccount || !loadedIfsc) setEditingSection("bank");
+        }
       })
       .catch(() => setError("Could not load your profile."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isOnboarding]);
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function saveProfile(options?: { redirect?: boolean }) {
     setError(null);
     setSaving(true);
     try {
@@ -61,13 +126,40 @@ export function EmployeeProfileForm(props: {
         }),
       });
       const data = await readJson<{ redirectTo: string }>(response);
-      router.push(data.redirectTo);
-      router.refresh();
+
+      const nextName = toTitleCase(name.trim());
+      setSavedName(nextName);
+      setName(nextName);
+      setSavedIfscCode(ifscCode.toUpperCase());
+      setSavedBankAccountNumber(bankAccountNumber.replace(/\D/g, ""));
+      setEditingSection(null);
+
+      if (options?.redirect !== false && isOnboarding) {
+        router.push(data.redirectTo);
+        router.refresh();
+      } else {
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save profile.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleOnboardingSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    await saveProfile();
+  }
+
+  function cancelEdit(section: EditingSection) {
+    if (section === "name") setName(savedName);
+    if (section === "bank") {
+      setIfscCode(savedIfscCode);
+      setBankAccountNumber(savedBankAccountNumber);
+    }
+    setEditingSection(null);
+    setError(null);
   }
 
   if (loading) {
@@ -79,12 +171,11 @@ export function EmployeeProfileForm(props: {
         </div>
         <Card className="space-y-3">
           <div className="h-4 w-16 animate-pulse rounded bg-zinc-200" />
-          <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
+          <div className="h-5 w-32 animate-pulse rounded bg-zinc-100" />
         </Card>
         <Card className="space-y-3">
           <div className="h-4 w-28 animate-pulse rounded bg-zinc-200" />
           <div className="h-5 w-36 animate-pulse rounded bg-zinc-100" />
-          <div className="h-9 w-40 animate-pulse rounded-xl bg-zinc-100" />
         </Card>
         <Card className="space-y-3">
           <div className="h-4 w-12 animate-pulse rounded bg-zinc-200" />
@@ -92,15 +183,17 @@ export function EmployeeProfileForm(props: {
         </Card>
         <Card className="space-y-3">
           <div className="h-4 w-36 animate-pulse rounded bg-zinc-200" />
-          <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
-          <div className="h-11 animate-pulse rounded-xl bg-zinc-100" />
+          <div className="h-4 w-48 animate-pulse rounded bg-zinc-100" />
         </Card>
       </div>
     );
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+  const nameEditing = isOnboarding || editingSection === "name";
+  const bankEditing = isOnboarding || editingSection === "bank";
+
+  const content = (
+    <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold">{toTitleCase(props.title)}</h1>
         {props.description ? (
@@ -114,21 +207,46 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className="space-y-1.5">
-        <p className="text-sm font-semibold text-zinc-800">Name</p>
-        <Input
-          id="full-name"
-          required
-          value={name}
-          onChange={(e) => setName(toTitleCase(e.target.value))}
-          placeholder="Ananya Patel"
-          autoComplete="name"
-          aria-label="Name"
+      <Card className="space-y-3">
+        <ProfileCardHeader
+          title="Name"
+          editing={nameEditing}
+          showEdit={!isOnboarding}
+          onEdit={() => setEditingSection("name")}
+          onCancel={() => cancelEdit("name")}
         />
+        {nameEditing ? (
+          <div className="space-y-3">
+            <Input
+              id="full-name"
+              required
+              value={name}
+              onChange={(e) => setName(toTitleCase(e.target.value))}
+              placeholder="Ananya Patel"
+              autoComplete="name"
+              aria-label="Name"
+            />
+            {!isOnboarding ? (
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => saveProfile({ redirect: false })}
+              >
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-base text-zinc-900">
+            {savedName || (
+              <span className="text-zinc-500">Not added yet</span>
+            )}
+          </p>
+        )}
       </Card>
 
       {phone ? (
-        <Card className="space-y-1">
+        <Card className="space-y-3">
           <p className="text-sm font-semibold text-zinc-800">Mobile number</p>
           <ChangePhoneSection
             currentPhone={phone}
@@ -141,49 +259,91 @@ export function EmployeeProfileForm(props: {
       ) : null}
 
       <Card className="space-y-2">
-        <p className="text-sm font-semibold text-zinc-800">Role</p>
+        <ProfileCardHeader title="Role" showEdit={false} editing={false} />
         <RoleBadge role={accessRole || "Employee"} />
       </Card>
 
-      <Card className="space-y-4">
-        <p className="text-sm font-semibold text-zinc-800">Bank Account Details</p>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="account">Bank account number</Label>
-          <Input
-            id="account"
-            required
-            inputMode="numeric"
-            value={bankAccountNumber}
-            onChange={(e) =>
-              setBankAccountNumber(e.target.value.replace(/\D/g, ""))
-            }
-            placeholder="50100123456789"
-            autoComplete="off"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="ifsc">IFSC code</Label>
-          <Input
-            id="ifsc"
-            required
-            value={ifscCode}
-            onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-            placeholder="HDFC0001234"
-            maxLength={11}
-            autoComplete="off"
-          />
-        </div>
+      <Card className="space-y-3">
+        <ProfileCardHeader
+          title="Bank account details"
+          editing={bankEditing}
+          showEdit={!isOnboarding}
+          onEdit={() => setEditingSection("bank")}
+          onCancel={() => cancelEdit("bank")}
+        />
+        {bankEditing ? (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="account">Bank account number</Label>
+              <Input
+                id="account"
+                required
+                inputMode="numeric"
+                value={bankAccountNumber}
+                onChange={(e) =>
+                  setBankAccountNumber(e.target.value.replace(/\D/g, ""))
+                }
+                placeholder="50100123456789"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ifsc">IFSC code</Label>
+              <Input
+                id="ifsc"
+                required
+                value={ifscCode}
+                onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                placeholder="HDFC0001234"
+                maxLength={11}
+                autoComplete="off"
+              />
+            </div>
+            {!isOnboarding ? (
+              <Button
+                type="button"
+                disabled={saving}
+                onClick={() => saveProfile({ redirect: false })}
+              >
+                {saving ? "Saving…" : "Save"}
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <dl className="space-y-2 text-sm">
+            <div>
+              <dt className="text-zinc-500">Account number</dt>
+              <dd className="font-medium text-zinc-900">
+                {savedBankAccountNumber ? (
+                  maskAccountNumber(savedBankAccountNumber)
+                ) : (
+                  <span className="font-normal text-zinc-500">Not added yet</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">IFSC code</dt>
+              <dd className="font-medium text-zinc-900">
+                {savedIfscCode || (
+                  <span className="font-normal text-zinc-500">Not added yet</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        )}
       </Card>
 
-      <Button type="submit" size="lg" className="w-full" disabled={saving}>
-        {saving
-          ? props.submitLabel === "Continue"
-            ? "Continuing…"
-            : "Saving…"
-          : props.submitLabel}
-      </Button>
-    </form>
+      {isOnboarding ? (
+        <Button type="submit" size="lg" className="w-full" disabled={saving}>
+          {saving ? "Continuing…" : props.submitLabel}
+        </Button>
+      ) : null}
+    </div>
   );
+
+  if (isOnboarding) {
+    return <form onSubmit={handleOnboardingSubmit}>{content}</form>;
+  }
+
+  return content;
 }
