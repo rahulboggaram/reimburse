@@ -96,7 +96,12 @@ export default function AdminClaimsPage() {
         onUpdated={() => {
           fetch("/api/admin/reimbursements")
             .then((r) => readJson<AdminClaim[]>(r))
-            .then(setClaims);
+            .then((list) => {
+              setClaims(list);
+              setSelected((current) =>
+                current ? list.find((c) => c.id === current.id) ?? null : null,
+              );
+            });
         }}
       />
     </>

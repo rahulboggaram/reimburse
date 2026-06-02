@@ -48,7 +48,7 @@ export function ClaimDetailModal(props: {
   onClose: () => void;
   variant: "employee" | "admin" | "approver";
   employeePhone?: string | null;
-  onUpdated?: () => void;
+  onUpdated?: () => void | Promise<void>;
 }) {
   const [deciding, setDeciding] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -69,8 +69,10 @@ export function ClaimDetailModal(props: {
           : `/api/claims/${claim!.id}/pay`;
       const response = await fetch(url, { method: "POST" });
       await readJson(response);
-      props.onClose();
-      props.onUpdated?.();
+      await props.onUpdated?.();
+      if (props.variant !== "admin") {
+        props.onClose();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not initiate payout.");
     } finally {
