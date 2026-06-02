@@ -7,7 +7,7 @@ import {
 } from "@/components/approvals-table";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import { Card } from "@/components/ui/card";
-import { SegmentTabs } from "@/components/segment-tabs";
+import { SegmentControl } from "@/components/segment-control";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
@@ -15,8 +15,8 @@ import { fetchClientCache, invalidateClientCache } from "@/lib/client-cache";
 
 type QueueTab = "waiting" | "approved";
 
-const QUEUE_TABS: { id: QueueTab; label: string }[] = [
-  { id: "waiting", label: "Waiting for approval" },
+const QUEUE_SEGMENTS: { id: QueueTab; label: string }[] = [
+  { id: "waiting", label: "Waiting" },
   { id: "approved", label: "Approved" },
 ];
 
@@ -64,12 +64,12 @@ export default function ManagerPendingPage() {
         className="mb-4"
       />
 
-      <SegmentTabs
-        tabs={QUEUE_TABS}
+      <SegmentControl
+        options={QUEUE_SEGMENTS}
         value={tab}
         onChange={setTab}
         ariaLabel="Approval queue"
-        className="mb-4"
+        className="mb-5"
       />
 
       {loading ? (
