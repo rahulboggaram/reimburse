@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // managed via Supabase Postgres
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  EMPLOYEE
+  BRANCH_MANAGER
+  APPROVER
+  ADMIN
+}
+
+enum ReimbursementStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model User {
+  id                String   @id @default(cuid())
+  phone             String   @unique
+  name              String?
+  ifscCode              String?
+  bankAccountNumber     String?
+  razorpayContactId     String?
+  razorpayFundAccountId String?
+  role              UserRole
+  branchId          String?
+  branch            Branch?  @relation(fields: [branchId], references: [id])
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  claimsSubmitted Reimbursement[] @relation("EmployeeClaims")
+  claimsToApprove Reimbursement[] @relation("ApproverClaims")
+  claimsToPay     Reimbursement[] @relation("PaymentApproverClaims")
+  activitiesPerformed PlatformActivity[] @relation("ActivityActor")
+  activitiesAbout PlatformActivity[] @relation("ActivityTarget")
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reimbursements Reimbursement[]
+  users          User[]
+
+  @@index([active, name])
+}
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, name])
+}
+
+enum PlatformActivityType {
+  USER_ADDED
+  USER_REMOVED
+  APPROVER_ENABLED
+  APPROVER_DISABLED
+  ADMIN_ENABLED
+  ADMIN_DISABLED
+  PROFILE_UPDATED
+  PROFILE_COMPLETED
+  USER_LOGIN
+  PAYOUT_INITIATED
+  PAYOUT_COMPLETED
+  PAYOUT_FAILED
+}
+
+model PlatformActivity {
+  id           String               @id @default(cuid())
+  type         PlatformActivityType
+  actorId      String?
+  actor        User?                @relation("ActivityActor", fields: [actorId], references: [id])
+  targetUserId String?
+  targetUser   User?                @relation("ActivityTarget", fields: [targetUserId], references: [id])
+  summary      String
+  metadata     String?
+  createdAt    DateTime             @default(now())
+
+  @@index([createdAt])
+}
+
+model ReimbursementReceipt {
+  id              String        @id @default(cuid())
+  reimbursementId String
+  reimbursement   Reimbursement @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  filePath        String
+  fileName        String?
+  mimeType        String
+  sizeBytes       Int
+  createdAt       DateTime      @default(now())
+
+  @@index([reimbursementId])
+}
+
+model OtpChallenge {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone, expiresAt])
+}
+
+model Reimbursement {
+  id              String              @id @default(cuid())
+  employeeId      String
+  employee        User                @relation("EmployeeClaims", fields: [employeeId], references: [id])
+  employeeName    String
+  amount          Decimal
+  category        String
+  description     String
+  expenseDate     DateTime
+  branchId        String
+  branch          Branch              @relation(fields: [branchId], references: [id])
+  status            ReimbursementStatus @default(PENDING)
+  rejectionReason   String?
+  decidedAt         DateTime?
+  razorpayPayoutId  String?
+  payoutStatus      String?
+  payoutUtr         String?
+  payoutError       String?
+  payoutInitiatedAt DateTime?
+  paidAt            DateTime?
+  approverId      String
+  approver        User                @relation("ApproverClaims", fields: [approverId], references: [id])
+  paymentApproverId String
+  paymentApprover   User                @relation("PaymentApproverClaims", fields: [paymentApproverId], references: [id])
+  refiledFromId   String?
+  receipts        ReimbursementReceipt[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([employeeId, createdAt])
+  @@index([status, createdAt])
+  @@index([approverId])
+  @@index([branchId])
+  @@index([paymentApproverId])
+}

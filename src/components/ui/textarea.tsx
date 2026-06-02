@@ -1,0 +1,43 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
+
+const textareaClassName =
+  "flex min-h-24 w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-base outline-none ring-zinc-900 focus-visible:ring-2";
+
+function resizeToContent(textarea: HTMLTextAreaElement) {
+  textarea.style.height = "0px";
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
+export function Textarea(props: React.ComponentProps<"textarea">) {
+  return <textarea {...props} className={cn(textareaClassName, props.className)} />;
+}
+
+export function AutoResizeTextarea(props: React.ComponentProps<"textarea">) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const { onChange, value, className, rows = 3, ...rest } = props;
+
+  useLayoutEffect(() => {
+    if (ref.current) resizeToContent(ref.current);
+  }, [value]);
+
+  return (
+    <textarea
+      {...rest}
+      ref={ref}
+      value={value}
+      rows={rows}
+      onChange={(event) => {
+        resizeToContent(event.currentTarget);
+        onChange?.(event);
+      }}
+      className={cn(
+        textareaClassName,
+        "resize-none overflow-hidden",
+        className,
+      )}
+    />
+  );
+}

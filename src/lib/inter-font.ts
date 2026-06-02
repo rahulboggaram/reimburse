@@ -1,0 +1,9 @@
+/**
+ * Inter OpenType settings from Spot app (web).
+ * @see GoldApp/utils/font-features.ts
+ */
+export const interFontFeatureSettings =
+  '"liga" 1, "calt" 1, "ss01" 1, "ss02" 0, "ss03" 1, "ss04" 1, "ss05" 1, "ss06" 1, "ss07" 1, "ss08" 1, "cv01" 1, "cv02" 1, "cv03" 1, "cv04" 1, "cv05" 1, "cv06" 1, "cv07" 1, "cv08" 1, "cv09" 1, "cv10" 1, "cv11" 1, "cv12" 1, "cv13" 1, "zero" 0';
+
+export const interNumericFontFeatureSettings =
+  '"liga" 1, "calt" 1, "ss01" 1, "ss02" 0, "ss03" 1, "ss04" 1, "ss05" 1, "ss06" 1, "ss07" 1, "ss08" 1, "cv01" 1, "cv02" 1, "cv03" 1, "cv04" 1, "cv05" 1, "cv06" 1, "cv07" 1, "cv08" 1, "cv09" 1, "cv10" 1, "cv11" 1, "cv12" 1, "cv13" 1, "tnum" 1, "lnum" 1, "zero" 0';

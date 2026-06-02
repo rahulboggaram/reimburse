@@ -1,0 +1,71 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  ApprovalsTableHeader,
+  ApprovalsTableRow,
+} from "@/components/approvals-table";
+import { ClaimDetailModal } from "@/components/claim-detail-modal";
+import { Card } from "@/components/ui/card";
+import type { SerializedClaim } from "@/lib/claim-types";
+import { readJson } from "@/lib/api";
+
+export default function ManagerPendingPage() {
+  const [claims, setClaims] = useState<SerializedClaim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<SerializedClaim | null>(null);
+
+  async function loadClaims() {
+    const response = await fetch("/api/claims/pending");
+    setClaims(await readJson<SerializedClaim[]>(response));
+  }
+
+  useEffect(() => {
+    loadClaims().finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <>
+      <h1 className="mb-1 text-xl font-semibold">Your queue</h1>
+      <p className="mb-4 text-sm text-zinc-500">
+        Tap a row to review and take action
+      </p>
+
+      {loading ? (
+        <p className="text-sm text-zinc-500">Loading…</p>
+      ) : claims.length === 0 ? (
+        <Card>
+          <p className="text-sm text-zinc-600">
+            No claims waiting for your approval.
+          </p>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+          <div className="min-w-[520px]">
+            <ApprovalsTableHeader />
+            <div>
+              {claims.map((claim) => (
+                <ApprovalsTableRow
+                  key={claim.id}
+                  claim={claim}
+                  onOpen={() => setSelected(claim)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ClaimDetailModal
+        claim={selected}
+        open={selected !== null}
+        onClose={() => setSelected(null)}
+        variant="approver"
+        onUpdated={() => {
+          setSelected(null);
+          loadClaims();
+        }}
+      />
+    </>
+  );
+}
