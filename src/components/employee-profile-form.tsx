@@ -163,16 +163,10 @@ export function EmployeeProfileForm(props: {
           <div className="h-8 w-36 animate-pulse rounded-lg bg-zinc-200" />
           <div className="h-9 w-28 shrink-0 animate-pulse rounded-full bg-zinc-200" />
         </div>
-        <Card className="space-y-3">
-          <div className="h-4 w-16 animate-pulse rounded bg-zinc-200" />
-          <div className="h-5 w-32 animate-pulse rounded bg-zinc-100" />
-        </Card>
-        <Card className="space-y-3">
+        <Card className="space-y-4">
           <div className="h-4 w-28 animate-pulse rounded bg-zinc-200" />
+          <div className="h-5 w-32 animate-pulse rounded bg-zinc-100" />
           <div className="h-5 w-36 animate-pulse rounded bg-zinc-100" />
-        </Card>
-        <Card className="space-y-3">
-          <div className="h-4 w-12 animate-pulse rounded bg-zinc-200" />
           <div className="h-6 w-20 animate-pulse rounded-full bg-zinc-100" />
         </Card>
         <Card className="space-y-3">
@@ -199,60 +193,72 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className={`space-y-3 ${profileCardClass}`}>
-        <ProfileCardHeader
-          title="Name"
-          editing={nameEditing}
-          showEdit={!isOnboarding}
-          onEdit={() => setEditingSection("name")}
-          onCancel={() => cancelEdit("name")}
-        />
-        {nameEditing ? (
-          <div className="space-y-3">
-            <Input
-              id="full-name"
-              required
-              value={name}
-              onChange={(e) => setName(toTitleCase(e.target.value))}
-              placeholder="Ananya Patel"
-              autoComplete="name"
-              aria-label="Name"
-            />
-            {!isOnboarding ? (
-              <Button
-                type="button"
-                disabled={saving}
-                onClick={() => saveProfile({ redirect: false })}
-              >
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <p className="text-lg font-medium text-zinc-900">
-            {savedName || (
-              <span className="font-normal text-zinc-500">Not added yet</span>
-            )}
-          </p>
-        )}
-      </Card>
+      <Card className={`space-y-4 ${profileCardClass}`}>
+        <p className="text-sm font-semibold text-zinc-800">Personal details</p>
 
-      {phone ? (
-        <Card className={`space-y-3 ${profileCardClass}`}>
-          <p className="text-sm font-semibold text-zinc-800">Mobile number</p>
-          <ChangePhoneSection
-            currentPhone={phone}
-            onPhoneChanged={(nextPhone) => {
-              setPhone(nextPhone);
-              invalidateClientCache("profile");
-            }}
+        <div className="space-y-3">
+          <ProfileCardHeader
+            title="Name"
+            editing={nameEditing}
+            showEdit={!isOnboarding}
+            onEdit={() => setEditingSection("name")}
+            onCancel={() => cancelEdit("name")}
           />
-        </Card>
-      ) : null}
+          {nameEditing ? (
+            <div className="space-y-3">
+              <Input
+                id="full-name"
+                required
+                value={name}
+                onChange={(e) => setName(toTitleCase(e.target.value))}
+                placeholder="Ananya Patel"
+                autoComplete="name"
+                aria-label="Name"
+              />
+              {!isOnboarding ? (
+                <Button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => saveProfile({ redirect: false })}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-base font-medium text-zinc-900">
+              {savedName || (
+                <span className="font-normal text-zinc-500">Not added yet</span>
+              )}
+            </p>
+          )}
+        </div>
 
-      <Card className={`space-y-2 ${profileCardClass}`}>
-        <ProfileCardHeader title="Role" showEdit={false} editing={false} />
-        <RoleBadge role={accessRole || "Employee"} />
+        {phone ? (
+          <>
+            <div className="border-t border-zinc-100 pt-4">
+              <p className="mb-3 text-sm font-semibold text-zinc-800">
+                Mobile number
+              </p>
+              <ChangePhoneSection
+                currentPhone={phone}
+                onPhoneChanged={(nextPhone) => {
+                  setPhone(nextPhone);
+                  invalidateClientCache("profile");
+                }}
+              />
+            </div>
+            <div className="border-t border-zinc-100 pt-4">
+              <p className="mb-2 text-sm font-semibold text-zinc-800">Role</p>
+              <RoleBadge role={accessRole || "Employee"} />
+            </div>
+          </>
+        ) : (
+          <div className="border-t border-zinc-100 pt-4">
+            <p className="mb-2 text-sm font-semibold text-zinc-800">Role</p>
+            <RoleBadge role={accessRole || "Employee"} />
+          </div>
+        )}
       </Card>
 
       <Card className={`space-y-3 ${profileCardClass}`}>
