@@ -33,7 +33,7 @@ export function ReimburseBrand(props: { size?: "sm" | "lg" }) {
     >
       <span
         className={`font-brand text-emerald-950 ${
-          isLarge ? "text-6xl leading-none" : "text-4xl leading-none"
+          isLarge ? "text-5xl leading-none" : "text-[1.8rem] leading-none"
         }`}
       >
         Reimburse
