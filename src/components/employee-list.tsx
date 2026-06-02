@@ -8,7 +8,6 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { maskAccountNumber } from "@/lib/user-profile";
 
 export type EmployeeRecord = {
   id: string;
@@ -100,8 +99,7 @@ export function EmployeeDetailModal(props: {
           <p className="text-zinc-600">{formatPhoneDisplay(employee.phone)}</p>
           {employee.signedUp ? (
             <p className="text-zinc-500">
-              {employee.ifscCode} ·{" "}
-              {maskAccountNumber(employee.bankAccountNumber ?? "")}
+              {employee.ifscCode} · {employee.bankAccountNumber ?? ""}
             </p>
           ) : (
             <p className="text-amber-700">Waiting for first login & profile</p>

@@ -10,7 +10,7 @@ import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
 import { PageHeading } from "@/components/page-heading";
 import { RoleBadge } from "@/components/role-badge";
-import { maskAccountNumber, toTitleCase } from "@/lib/user-profile";
+import { toTitleCase } from "@/lib/user-profile";
 
 type EditingSection = "name" | "bank" | null;
 
@@ -311,7 +311,7 @@ export function EmployeeProfileForm(props: {
               <dt className="text-zinc-500">Account number</dt>
               <dd className="font-medium text-zinc-900">
                 {savedBankAccountNumber ? (
-                  maskAccountNumber(savedBankAccountNumber)
+                  savedBankAccountNumber
                 ) : (
                   <span className="font-normal text-zinc-500">Not added yet</span>
                 )}
