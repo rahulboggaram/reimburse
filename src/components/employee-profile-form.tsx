@@ -116,17 +116,15 @@ export function EmployeeProfileForm(props: {
 
       <Card className="space-y-1.5">
         <p className="text-sm font-semibold text-zinc-800">Name</p>
-        <div className="space-y-1.5">
-          <Label htmlFor="full-name">Full name</Label>
-          <Input
-            id="full-name"
-            required
-            value={name}
-            onChange={(e) => setName(toTitleCase(e.target.value))}
-            placeholder="Ananya Patel"
-            autoComplete="name"
-          />
-        </div>
+        <Input
+          id="full-name"
+          required
+          value={name}
+          onChange={(e) => setName(toTitleCase(e.target.value))}
+          placeholder="Ananya Patel"
+          autoComplete="name"
+          aria-label="Name"
+        />
       </Card>
 
       {phone ? (
