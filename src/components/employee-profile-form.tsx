@@ -40,6 +40,10 @@ function ProfileFieldRow(props: {
   );
 }
 
+function ProfileFieldLabel(props: { children: React.ReactNode }) {
+  return <p className="text-sm text-zinc-500">{props.children}</p>;
+}
+
 function ProfileFieldValue(props: {
   children: React.ReactNode;
   className?: string;
@@ -329,25 +333,25 @@ export function EmployeeProfileForm(props: {
           </div>
         ) : (
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1 space-y-4">
-              <p
-                className="break-all text-base font-medium font-tabular-nums text-zinc-900"
-                aria-label="Bank account number"
-              >
-                {savedBankAccountNumber || (
-                  <span className="font-normal text-zinc-500">Not added yet</span>
-                )}
-              </p>
-              <p
-                className="text-sm font-medium tracking-wide text-zinc-600 uppercase"
-                aria-label="IFSC code"
-              >
-                {savedIfscCode || (
-                  <span className="font-normal text-zinc-500 normal-case tracking-normal">
-                    Not added yet
-                  </span>
-                )}
-              </p>
+            <div className="min-w-0 flex-1 space-y-5">
+              <div>
+                <ProfileFieldLabel>Account number</ProfileFieldLabel>
+                <ProfileFieldValue className="break-all font-tabular-nums">
+                  {savedBankAccountNumber || (
+                    <span className="font-normal text-zinc-500">Not added yet</span>
+                  )}
+                </ProfileFieldValue>
+              </div>
+              <div>
+                <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
+                <ProfileFieldValue className="font-mono text-sm uppercase tracking-wide text-zinc-800">
+                  {savedIfscCode || (
+                    <span className="font-normal text-zinc-500 normal-case tracking-normal">
+                      Not added yet
+                    </span>
+                  )}
+                </ProfileFieldValue>
+              </div>
             </div>
             {!isOnboarding ? (
               <CardActionLink onClick={() => setEditingSection("bank")}>
