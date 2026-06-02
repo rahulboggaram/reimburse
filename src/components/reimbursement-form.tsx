@@ -217,7 +217,7 @@ export function ReimbursementForm(props: {
               setFieldErrors((prev) => ({ ...prev, amount: undefined }));
             }}
             placeholder="0"
-            className="h-14 text-2xl font-semibold font-tabular-nums"
+            className="font-tabular-nums"
           />
           <FieldError message={fieldErrors.amount} />
         </div>
