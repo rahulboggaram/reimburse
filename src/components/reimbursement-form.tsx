@@ -199,7 +199,7 @@ export function ReimbursementForm(props: {
     <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
       <PageHeading title={props.title} />
 
-      <Card className="space-y-5 ring-1 ring-emerald-100/50">
+      <Card className="space-y-5 ring-1 ring-zinc-200/80">
         {error ? (
           <p
             role="alert"

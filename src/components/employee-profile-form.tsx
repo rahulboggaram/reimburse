@@ -181,7 +181,7 @@ export function EmployeeProfileForm(props: {
   const bankEditing = isOnboarding || editingSection === "bank";
 
   const profileCardClass =
-    "ring-1 ring-emerald-100/50 transition-shadow hover:shadow-lg hover:shadow-emerald-100/30";
+    "ring-1 ring-zinc-200/80 transition-shadow hover:shadow-lg hover:shadow-zinc-200/50";
 
   const content = (
     <div className="space-y-5">

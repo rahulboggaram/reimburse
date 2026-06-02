@@ -32,11 +32,11 @@ export function ClaimListRow(props: {
       onClick={props.onOpen}
       className={cn(
         "flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200/70 bg-white/95 p-4 text-left shadow-md shadow-zinc-200/35 backdrop-blur-sm transition-all",
-        "hover:border-emerald-200/80 hover:shadow-lg hover:shadow-emerald-100/50 active:scale-[0.99]",
+        "hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-200/60 active:scale-[0.99]",
       )}
     >
       <div
-        className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-100/80"
+        className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-sm font-semibold text-zinc-800 ring-1 ring-zinc-200/80"
         aria-hidden
       >
         {initial}
