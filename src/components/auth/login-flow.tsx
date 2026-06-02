@@ -98,7 +98,7 @@ export function LoginFlow() {
   return (
     <div className="mx-auto w-full max-w-md px-4 py-8">
       <header className="mb-6">
-        <ReimburseBrand size="lg" />
+        <ReimburseBrand />
       </header>
 
       <Card className="space-y-4">
