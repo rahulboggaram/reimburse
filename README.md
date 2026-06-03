@@ -5,7 +5,7 @@ Expense reimbursements with mobile OTP login.
 ## Setup
 
 ```bash
-cd reimburse
+cd ~/reimburse
 npm install
 npm run db:setup
 npm run dev
