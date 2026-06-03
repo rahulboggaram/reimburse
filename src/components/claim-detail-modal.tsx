@@ -206,8 +206,8 @@ export function ClaimDetailModal(props: {
           <p className="text-sm text-zinc-500">Loading details…</p>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-2xl font-semibold font-tabular-nums text-zinc-900">
+        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+          <span className="text-lg font-semibold font-tabular-nums text-zinc-900">
             ₹{claim.amount.toLocaleString("en-IN")}
           </span>
           {hideStatusBadge ? null : (
@@ -215,9 +215,12 @@ export function ClaimDetailModal(props: {
           )}
         </div>
 
-        <p className="text-base font-medium text-zinc-900">{claim.category}</p>
-
-        <p className="text-base text-zinc-700">{claim.description}</p>
+        <div className="space-y-1">
+          <p className="text-lg font-semibold text-zinc-900">{claim.category}</p>
+          <p className="text-sm leading-relaxed text-zinc-600">
+            {claim.description}
+          </p>
+        </div>
 
         {showPayoutInfo ? (
           <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">

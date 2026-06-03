@@ -80,7 +80,7 @@ export function Modal(props: {
             </svg>
           </button>
         </div>
-        <div className="overflow-y-auto px-5 pb-6 pt-2">{props.children}</div>
+        <div className="overflow-y-auto px-5 pb-6 pt-0">{props.children}</div>
       </div>
     </div>
   );
