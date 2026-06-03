@@ -14,8 +14,22 @@ import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
-import { invalidateClientCache } from "@/lib/client-cache";
+import {
+  fetchClientCache,
+  invalidateClientCache,
+  readClientCache,
+} from "@/lib/client-cache";
 import { claimsMineCacheKey } from "@/lib/claims-cache";
+
+function MyClaimsLoadingSkeleton() {
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="h-10 animate-pulse bg-zinc-50" />
+      <div className="h-14 animate-pulse border-t border-zinc-100" />
+      <div className="h-14 animate-pulse border-t border-zinc-100" />
+    </Card>
+  );
+}
 
 export default function MyClaimsPage() {
   const router = useRouter();
@@ -33,94 +47,117 @@ export default function MyClaimsPage() {
     }
   }, [meLoading, user, router]);
 
-  const loadClaims = useCallback(async () => {
-    if (!user || user.role !== "EMPLOYEE") return;
+  const loadClaims = useCallback(
+    async (fresh = false) => {
+      if (!user || user.role !== "EMPLOYEE") return;
 
-    invalidateClientCache(claimsMineCacheKey(user.id));
-    const res = await fetch("/api/claims/mine", {
-      cache: "no-store",
-      credentials: "include",
-    });
-    if (!res.ok) {
-      setClaims([]);
-      return;
-    }
-    const rows = await readJson<SerializedClaim[]>(res);
-    setClaims(rows.filter((claim) => claim.employeeId === user.id));
-  }, [user]);
+      const key = claimsMineCacheKey(user.id);
+      if (fresh) invalidateClientCache(key);
 
-  useEffect(() => {
-    setClaims([]);
-    setSelected(null);
-  }, [user?.id]);
+      const rows = await fetchClientCache(key, async () => {
+        const res = await fetch("/api/claims/mine", {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (!res.ok) return [];
+        const data = await readJson<SerializedClaim[]>(res);
+        return data.filter((claim) => claim.employeeId === user.id);
+      });
+
+      setClaims(rows);
+    },
+    [user],
+  );
 
   useEffect(() => {
     if (meLoading || !user || user.role !== "EMPLOYEE") return;
 
-    setLoading(true);
-    loadClaims().finally(() => setLoading(false));
-  }, [meLoading, user, loadClaims]);
+    let cancelled = false;
+    const key = claimsMineCacheKey(user.id);
+    const cached = readClientCache<SerializedClaim[]>(key);
+    if (cached) {
+      setClaims(cached.filter((claim) => claim.employeeId === user.id));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    loadClaims()
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setClaims([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meLoading, user?.id, user?.role, loadClaims]);
+
+  useEffect(() => {
+    setSelected(null);
+  }, [user?.id]);
 
   if (meLoading || !user || user.role !== "EMPLOYEE") {
     return (
       <div className="space-y-4">
         <PageHeading title="My Reimbursements" />
-        <Card className="overflow-hidden p-0">
-          <div className="h-10 animate-pulse bg-zinc-50" />
-          <div className="h-14 animate-pulse border-t border-zinc-100" />
-        </Card>
+        <MyClaimsLoadingSkeleton />
       </div>
     );
   }
 
   const activeClaims = claims.filter((claim) => claim.status !== "REJECTED");
+  const waitingForClaims = loading && claims.length === 0;
 
-  if (claims.length === 0) {
-    return (
-      <>
-        <PageHeading title="My Reimbursements" className="mb-5" />
-        <RejectedClaimsSection onChanged={loadClaims} />
+  return (
+    <>
+      <PageHeading
+        title="My Reimbursements"
+        className={waitingForClaims || claims.length === 0 ? "mb-5" : "mb-4"}
+      />
+      <RejectedClaimsSection onChanged={() => loadClaims(true)} />
+
+      {waitingForClaims ? (
+        <MyClaimsLoadingSkeleton />
+      ) : claims.length === 0 ? (
         <EmployeeEmptyState
           title="No reimbursements yet"
           description="Submit your first reimbursement and track approval and payment here."
           actionLabel="New reimbursement"
           actionHref="/employee"
         />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <PageHeading title="My Reimbursements" className="mb-4" />
-      <RejectedClaimsSection onChanged={loadClaims} />
-
-      {activeClaims.length > 0 ? (
-        <Card className="overflow-hidden p-0">
-          <MyClaimsTableHeader />
-          <div>
-            {activeClaims.map((claim) => (
-              <MyClaimsTableRow
-                key={claim.id}
-                claim={claim}
-                onOpen={() => setSelected(claim)}
-              />
-            ))}
-          </div>
-        </Card>
       ) : (
-        <p className="text-sm text-zinc-600">
-          Approved and paid claims will appear in this list below.
-        </p>
-      )}
+        <>
+          {activeClaims.length > 0 ? (
+            <Card className="overflow-hidden p-0">
+              <MyClaimsTableHeader />
+              <div>
+                {activeClaims.map((claim) => (
+                  <MyClaimsTableRow
+                    key={claim.id}
+                    claim={claim}
+                    onOpen={() => setSelected(claim)}
+                  />
+                ))}
+              </div>
+            </Card>
+          ) : (
+            <p className="text-sm text-zinc-600">
+              Approved and paid claims will appear in this list below.
+            </p>
+          )}
 
-      <ClaimDetailModal
-        claim={selected}
-        open={selected !== null}
-        onClose={() => setSelected(null)}
-        variant="employee"
-        onUpdated={loadClaims}
-      />
+          <ClaimDetailModal
+            claim={selected}
+            open={selected !== null}
+            onClose={() => setSelected(null)}
+            variant="employee"
+            onUpdated={() => loadClaims(true)}
+          />
+        </>
+      )}
     </>
   );
 }

@@ -66,8 +66,15 @@ export default function ManagerPendingPage() {
     setClaims(data);
   }, []);
 
-  useEffect(() => {
+  function handleTabChange(next: QueueTab) {
+    if (next === tab) return;
+    setTab(next);
+    setClaims([]);
+    setSelected(null);
     setLoading(true);
+  }
+
+  useEffect(() => {
     loadClaims(tab, true).finally(() => setLoading(false));
   }, [tab, loadClaims]);
 
@@ -87,7 +94,7 @@ export default function ManagerPendingPage() {
       <SegmentControl
         options={queueSegments(user?.role)}
         value={tab}
-        onChange={setTab}
+        onChange={handleTabChange}
         ariaLabel="Approval queue"
         className="mb-5"
       />

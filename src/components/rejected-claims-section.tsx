@@ -12,7 +12,7 @@ import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import {
   fetchClientCache,
   invalidateClientCache,
-  writeClientCache,
+  readClientCache,
 } from "@/lib/client-cache";
 import { claimsRejectedCacheKey } from "@/lib/claims-cache";
 import type { SerializedClaim } from "@/lib/claim-types";
@@ -30,19 +30,29 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
-  const loadRejected = useCallback(async () => {
-    if (!user || user.role !== "EMPLOYEE") {
-      setClaims([]);
-      return;
-    }
+  const loadRejected = useCallback(
+    async (fresh = false) => {
+      if (!user || user.role !== "EMPLOYEE") {
+        setClaims([]);
+        return;
+      }
 
-    invalidateClientCache(claimsRejectedCacheKey(user.id));
+      const key = claimsRejectedCacheKey(user.id);
+      if (fresh) invalidateClientCache(key);
 
-    const res = await fetch("/api/claims/mine/rejected", { cache: "no-store" });
-    const rows = await readJson<SerializedClaim[]>(res);
-    writeClientCache(claimsRejectedCacheKey(user.id), rows, 5 * 60 * 1000);
-    setClaims(rows);
-  }, [user]);
+      const rows = await fetchClientCache(key, async () => {
+        const res = await fetch("/api/claims/mine/rejected", {
+          cache: "no-store",
+          credentials: "include",
+        });
+        if (!res.ok) return [];
+        return readJson<SerializedClaim[]>(res);
+      });
+
+      setClaims(rows);
+    },
+    [user],
+  );
 
   useEffect(() => {
     if (meLoading) return;
@@ -52,14 +62,31 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
       return;
     }
 
-    setLoading(true);
+    let cancelled = false;
+    const key = claimsRejectedCacheKey(user.id);
+    const cached = readClientCache<SerializedClaim[]>(key);
+    if (cached) {
+      setClaims(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     loadRejected()
-      .finally(() => setLoading(false))
-      .catch(() => setClaims([]));
-  }, [meLoading, user, loadRejected]);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setClaims([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meLoading, user?.id, user?.role, loadRejected]);
 
   async function handleDeleted() {
-    await loadRejected();
+    await loadRejected(true);
     await props.onChanged?.();
   }
 
