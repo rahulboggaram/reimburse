@@ -30,7 +30,7 @@ export default function MyClaimsPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <PageHeading title="My reimbursements" />
+        <PageHeading title="My Reimbursements" />
         <Card className="overflow-hidden p-0">
           <div className="h-10 animate-pulse bg-zinc-50" />
           <div className="h-14 animate-pulse border-t border-zinc-100" />
@@ -44,7 +44,7 @@ export default function MyClaimsPage() {
   if (claims.length === 0) {
     return (
       <>
-        <PageHeading title="My reimbursements" className="mb-5" />
+        <PageHeading title="My Reimbursements" className="mb-5" />
         <EmployeeEmptyState
           title="No reimbursements yet"
           description="Submit your first reimbursement and track approval and payment here."
@@ -57,7 +57,7 @@ export default function MyClaimsPage() {
 
   return (
     <>
-      <PageHeading title="My reimbursements" className="mb-4" />
+      <PageHeading title="My Reimbursements" className="mb-4" />
       <Card className="overflow-hidden p-0">
         <MyClaimsTableHeader />
         <div>
