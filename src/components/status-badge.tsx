@@ -133,21 +133,25 @@ export function StatusBadge(props: {
     labels[raw] ?? raw.replace(/_/g, " ").toLowerCase();
   const useCapitalize = !labels[raw];
   const iconKind = iconKindForStatus(raw, key);
+  const compact = props.compact === true;
 
   return (
     <span
       title={label}
       className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-full font-semibold",
-        props.compact
-          ? "truncate px-2 py-0.5 text-[11px] leading-snug"
-          : "px-2.5 py-0.5 text-xs leading-snug",
+        "inline-flex max-w-full items-center rounded-full font-semibold",
+        compact
+          ? "gap-1 truncate px-2.5 py-1 text-xs leading-normal"
+          : "gap-1.5 px-3 py-1.5 text-sm leading-normal",
         useCapitalize && "capitalize",
         styles[key] ?? styles[raw] ?? styles[label] ?? neutralStyle,
         props.className,
       )}
     >
-      <StatusIcon kind={iconKind} />
+      <StatusIcon
+        kind={iconKind}
+        className={compact ? "size-3.5" : "size-4"}
+      />
       <span className="truncate">{label}</span>
     </span>
   );
