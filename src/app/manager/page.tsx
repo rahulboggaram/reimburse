@@ -63,7 +63,7 @@ export default function ManagerPendingPage() {
     <>
       <PageHeading
         title="Approvals"
-        description="Tap a row to review and take action"
+        description="Review and take action"
         className="mb-4"
       />
 
