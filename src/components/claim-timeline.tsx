@@ -151,8 +151,13 @@ function subtextStyles(visual: VisualState) {
 const DOT_SIZE = "size-6";
 const DOT_CENTER = "left-3";
 
-function connectorStyles(visual: VisualState) {
-  return visual === "done" ? "bg-zinc-900" : "bg-zinc-200";
+function connectorStyles(
+  visual: VisualState,
+  nextVisual: VisualState | undefined,
+) {
+  if (visual === "done") return "bg-zinc-900";
+  if (nextVisual === "upcoming") return "bg-zinc-400";
+  return "bg-zinc-200";
 }
 
 function TimelineDot(props: { visual: VisualState }) {
@@ -170,7 +175,7 @@ function TimelineDot(props: { visual: VisualState }) {
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className="size-3.5 text-white"
+          className="size-4.5 text-white"
           fill="currentColor"
         >
           <path
@@ -214,6 +219,7 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
       <ol className="space-y-0">
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
+          const nextStep = steps[index + 1];
 
           return (
             <li key={step.key} className="relative flex gap-3 pb-5 last:pb-0">
@@ -223,7 +229,7 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
                   className={cn(
                     "absolute top-6 h-[calc(100%-0.875rem)] w-0.5 -translate-x-1/2",
                     DOT_CENTER,
-                    connectorStyles(step.visual),
+                    connectorStyles(step.visual, nextStep?.visual),
                   )}
                 />
               ) : null}
