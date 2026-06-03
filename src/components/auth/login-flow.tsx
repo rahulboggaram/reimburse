@@ -25,6 +25,7 @@ export function LoginFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<"whatsapp" | "sms" | null>(null);
 
   useEffect(() => {
     if (step !== "otp" || isMock) return;
@@ -61,9 +62,11 @@ export function LoginFlow() {
         phone: string;
         mock?: boolean;
         mockCode?: string;
+        channel?: "whatsapp" | "sms";
       }>(response);
       setPhoneE164(data.phone);
       setIsMock(Boolean(data.mock));
+      setOtpChannel(data.mock ? null : (data.channel ?? "sms"));
       setOtp(data.mock ? MOCK_OTP : "");
       setStep("otp");
     } catch (err) {
@@ -143,7 +146,9 @@ export function LoginFlow() {
         ) : (
           <form onSubmit={verifyOtp} className="space-y-4">
             <p className="text-sm text-zinc-600">
-              Code sent to{" "}
+              {otpChannel === "whatsapp"
+                ? "Code sent on WhatsApp to "
+                : "Code sent to "}
               <span className="font-medium text-zinc-900">{phoneInput}</span>
             </p>
             <div className="space-y-1.5">
@@ -170,6 +175,7 @@ export function LoginFlow() {
                 setOtp("");
                 setPhoneE164("");
                 setIsMock(false);
+                setOtpChannel(null);
               }}
             >
               Change number

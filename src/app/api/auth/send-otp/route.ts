@@ -1,6 +1,7 @@
 import { normalizePhone } from "@/lib/phone";
 import {
   createOtpChallenge,
+  getOtpDeliveryChannel,
   isOtpMockMode,
   otpSmsBody,
   SmsConfigError,
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       phone,
       mock: isOtpMockMode(),
       mockCode: isOtpMockMode() ? code : undefined,
+      channel: isOtpMockMode() ? undefined : getOtpDeliveryChannel(),
       smsPreview: otpSmsBody(code),
     });
   } catch (err) {
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
     }
     if (err instanceof SmsDeliveryError) {
       return Response.json(
-        { error: "Could not send SMS. Try again in a moment." },
+        { error: "Could not send OTP. Try again in a moment." },
         { status: 502 },
       );
     }

@@ -1,4 +1,6 @@
-/** SMS delivery for live OTP (when OTP_MOCK is false). */
+/** OTP delivery via WhatsApp, SMS (MSG91), or Twilio when OTP_MOCK is false. */
+
+export type OtpDeliveryChannel = "whatsapp" | "sms";
 
 export class SmsConfigError extends Error {
   constructor(message: string) {
@@ -14,9 +16,16 @@ export class SmsDeliveryError extends Error {
   }
 }
 
-type SmsProvider = "msg91" | "twilio";
+type OtpProvider = "whatsapp" | "msg91" | "twilio";
 
-function resolveProvider(): SmsProvider | null {
+function resolveProvider(): OtpProvider | null {
+  if (
+    process.env.WHATSAPP_ACCESS_TOKEN?.trim() &&
+    process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() &&
+    process.env.WHATSAPP_OTP_TEMPLATE_NAME?.trim()
+  ) {
+    return "whatsapp";
+  }
   if (process.env.MSG91_AUTH_KEY?.trim() && process.env.MSG91_TEMPLATE_ID?.trim()) {
     return "msg91";
   }
@@ -28,6 +37,12 @@ function resolveProvider(): SmsProvider | null {
     return "twilio";
   }
   return null;
+}
+
+export function getOtpDeliveryChannel(): OtpDeliveryChannel | null {
+  const provider = resolveProvider();
+  if (!provider) return null;
+  return provider === "whatsapp" ? "whatsapp" : "sms";
 }
 
 export function isSmsConfigured(): boolean {
@@ -74,6 +89,76 @@ async function sendViaMsg91(phoneE164: string, otp: string) {
   }
 }
 
+function whatsappApiVersion() {
+  return process.env.WHATSAPP_API_VERSION?.trim() || "v21.0";
+}
+
+function whatsappRecipient(phoneE164: string) {
+  return phoneE164.replace(/\D/g, "");
+}
+
+/** Meta authentication template (copy-code button). */
+async function sendViaWhatsapp(phoneE164: string, otp: string) {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN!.trim();
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID!.trim();
+  const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME!.trim();
+  const languageCode =
+    process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE?.trim() || "en_US";
+  const includeButton =
+    process.env.WHATSAPP_OTP_TEMPLATE_HAS_BUTTON?.trim().toLowerCase() !==
+    "false";
+
+  const components: Record<string, unknown>[] = [
+    {
+      type: "body",
+      parameters: [{ type: "text", text: otp }],
+    },
+  ];
+
+  if (includeButton) {
+    components.push({
+      type: "button",
+      sub_type: "url",
+      index: "0",
+      parameters: [{ type: "text", text: otp }],
+    });
+  }
+
+  const response = await fetch(
+    `https://graph.facebook.com/${whatsappApiVersion()}/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: whatsappRecipient(phoneE164),
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: languageCode },
+          components,
+        },
+      }),
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as {
+    error?: { message?: string; error_user_msg?: string };
+  } | null;
+
+  if (!response.ok) {
+    const detail =
+      payload?.error?.error_user_msg ??
+      payload?.error?.message ??
+      `WhatsApp error (${response.status})`;
+    throw new SmsDeliveryError(detail);
+  }
+}
+
 async function sendViaTwilio(phoneE164: string, body: string) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID!.trim();
   const authToken = process.env.TWILIO_AUTH_TOKEN!.trim();
@@ -108,13 +193,18 @@ async function sendViaTwilio(phoneE164: string, body: string) {
   }
 }
 
-/** Send OTP SMS in live mode. No-op when SMS is not configured (caller should guard). */
+/** Send OTP in live mode (WhatsApp or SMS). Caller should guard with isSmsConfigured(). */
 export async function sendOtpSms(phoneE164: string, otp: string, smsBody: string) {
   const provider = resolveProvider();
   if (!provider) {
     throw new SmsConfigError(
-      "SMS is not configured. Add MSG91 or Twilio env vars on the server, or set OTP_MOCK=true for demo login.",
+      "OTP delivery is not configured. Add WhatsApp, MSG91, or Twilio env vars, or set OTP_MOCK=true.",
     );
+  }
+
+  if (provider === "whatsapp") {
+    await sendViaWhatsapp(phoneE164, otp);
+    return;
   }
 
   if (provider === "msg91") {

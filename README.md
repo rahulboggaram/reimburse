@@ -30,10 +30,9 @@ npm run dev
 - **Admin**: list employees, assign **Approver** toggle (only after they complete profile)
 - **RazorpayX payouts**: pay approved claims from Admin → All claims
 
-## Live OTP (SMS login) — do this before live Razorpay
+## Live OTP — do this before live Razorpay
 
-1. Pick an SMS provider (India: [MSG91](https://msg91.com/) with DLT-approved OTP template is common).
-2. On **Vercel → Production** env vars, set:
+Set on **Vercel → Production**:
 
 ```env
 OTP_MOCK="false"
@@ -41,25 +40,46 @@ NEXT_PUBLIC_OTP_MOCK="false"
 NEXT_PUBLIC_OTP_DOMAIN="reimburse-jade.vercel.app"
 ```
 
-3. **MSG91** (recommended for +91 numbers):
+### Option A — WhatsApp OTP (good if you have a verified Business account)
+
+No Indian SMS DLT. User must have **WhatsApp on the same mobile number** they use to log in.
+
+1. [Meta Business Suite](https://business.facebook.com/) → WhatsApp → **API Setup** (Cloud API).
+2. Create an **Authentication** message template (category AUTHENTICATION, copy-code button). Note the **template name** and **language code** (e.g. `en_US`) after approval.
+3. Copy **Phone number ID** and a permanent **access token** with `whatsapp_business_messaging`.
+4. Add env vars (WhatsApp is used automatically when these are set):
+
+```env
+WHATSAPP_ACCESS_TOKEN="EAA..."
+WHATSAPP_PHONE_NUMBER_ID="123456789012345"
+WHATSAPP_OTP_TEMPLATE_NAME="your_auth_template_name"
+WHATSAPP_OTP_TEMPLATE_LANGUAGE="en_US"
+```
+
+If your template has no copy button, set `WHATSAPP_OTP_TEMPLATE_HAS_BUTTON="false"`.
+
+5. Redeploy. Login should say **“Code sent on WhatsApp”** and deliver the 6-digit code in WhatsApp.
+
+Pricing is per Meta’s [conversation rates](https://developers.facebook.com/docs/whatsapp/pricing/) (authentication category; often competitive vs SMS in India, not free).
+
+### Option B — MSG91 SMS (India + DLT)
 
 ```env
 MSG91_AUTH_KEY="your-authkey"
 MSG91_TEMPLATE_ID="your-dlt-otp-template-id"
 ```
 
-Template should include the OTP variable MSG91 expects (often `##OTP##`).
+(Do not set WhatsApp vars if you want MSG91.)
 
-4. **Or Twilio** (alternative):
+### Option C — Twilio SMS
 
 ```env
 TWILIO_ACCOUNT_SID=""
 TWILIO_AUTH_TOKEN=""
-TWILIO_FROM_NUMBER="+1..." 
+TWILIO_FROM_NUMBER="+1..."
 ```
 
-5. Redeploy Production. Test login with a registered phone — you should receive a real SMS (not 123456 on screen).
-6. Keep **`RAZORPAYX_MOCK="true"`** until OTP works, then follow Razorpay live steps below.
+Keep **`RAZORPAYX_MOCK="true"`** until OTP works, then enable live Razorpay below.
 
 ## RazorpayX setup (real payouts)
 

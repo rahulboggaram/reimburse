@@ -1,5 +1,15 @@
 import { prisma } from "@/lib/db";
-import { isSmsConfigured, sendOtpSms, SmsConfigError, SmsDeliveryError } from "@/lib/sms";
+import {
+  getOtpDeliveryChannel,
+  isSmsConfigured,
+  sendOtpSms,
+  SmsConfigError,
+  SmsDeliveryError,
+  type OtpDeliveryChannel,
+} from "@/lib/sms";
+
+export type { OtpDeliveryChannel };
+export { getOtpDeliveryChannel };
 
 export { SmsConfigError, SmsDeliveryError };
 
@@ -35,7 +45,7 @@ export async function createOtpChallenge(phone: string) {
   if (!isSmsConfigured()) {
     await prisma.otpChallenge.deleteMany({ where: { phone } });
     throw new SmsConfigError(
-      "Live OTP is on but SMS is not configured. Add MSG91 or Twilio keys on Vercel, or set OTP_MOCK=true.",
+      "Live OTP is on but delivery is not configured. Add WhatsApp, MSG91, or Twilio keys on Vercel, or set OTP_MOCK=true.",
     );
   }
 
