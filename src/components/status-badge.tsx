@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const labels: Record<string, string> = {
-  PENDING_FINANCE_APPROVAL: "Pending finance approval",
+  QUEUED: "Queued",
 };
 
 /** Light tint background + saturated text for readable compact badges. */

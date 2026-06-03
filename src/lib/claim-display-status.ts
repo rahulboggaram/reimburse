@@ -14,24 +14,22 @@ function awaitingFinancePayment(claim: {
   );
 }
 
-/** Branch managers and employees see finance handoff, not generic “approved”. */
-function showsPendingFinanceApproval(viewerRole: string | undefined) {
-  return viewerRole === "BRANCH_MANAGER" || viewerRole === "EMPLOYEE";
-}
-
 export function claimDisplayStatus(
   claim: {
     status: string;
     paidAt?: string | null;
     payoutStatus?: string | null;
   },
-  viewerRole?: string,
+  _viewerRole?: string,
 ): string {
-  if (awaitingFinancePayment(claim) && showsPendingFinanceApproval(viewerRole)) {
-    return "PENDING_FINANCE_APPROVAL";
+  if (awaitingFinancePayment(claim)) {
+    return "QUEUED";
   }
 
   if (claim.status === "APPROVED" && payoutInProgress(claim.payoutStatus)) {
+    if (claim.payoutStatus === "queued") {
+      return "QUEUED";
+    }
     return "paying";
   }
 
