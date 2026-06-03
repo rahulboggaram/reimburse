@@ -4,16 +4,18 @@ const labels: Record<string, string> = {
   PENDING_FINANCE_APPROVAL: "Pending finance approval",
 };
 
+const pendingStyle = "bg-amber-100 text-amber-700";
+
 const styles: Record<string, string> = {
-  PENDING: "bg-amber-100 text-amber-800",
-  pending_finance_approval: "bg-violet-100 text-violet-900",
-  PENDING_FINANCE_APPROVAL: "bg-violet-100 text-violet-900",
+  PENDING: pendingStyle,
+  pending: pendingStyle,
+  pending_finance_approval: pendingStyle,
+  PENDING_FINANCE_APPROVAL: pendingStyle,
   APPROVED: "bg-emerald-100 text-emerald-800",
   PAID: "bg-emerald-100 text-emerald-800",
   REJECTED: "bg-red-100 text-red-800",
   paying: "bg-blue-100 text-blue-800",
   queued: "bg-blue-100 text-blue-800",
-  pending: "bg-blue-100 text-blue-800",
   processing: "bg-blue-100 text-blue-800",
   processed: "bg-emerald-100 text-emerald-800",
   failed: "bg-red-100 text-red-800",
