@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MeProvider } from "@/components/me-provider";
-import { ReimburseBrand } from "@/components/wapas-brand";
+import { ReimburseBrand } from "@/components/reimburse-brand";
 import type { SessionUser } from "@/lib/session";
 
 const PREFETCH_ROUTES = [

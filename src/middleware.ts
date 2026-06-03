@@ -9,13 +9,13 @@ import {
 } from "@/lib/access-roles";
 import { getAppHomePathForRole } from "@/lib/home-path";
 
-const COOKIE_NAME = "wapas_session";
+const COOKIE_NAME = "reimburse_session";
 
 const publicPaths = ["/login", "/api/auth/send-otp", "/api/auth/verify-otp"];
 
 function secret() {
   return new TextEncoder().encode(
-    process.env.SESSION_SECRET ?? "wapas-dev-change-in-production",
+    process.env.SESSION_SECRET ?? "reimburse-dev-change-in-production",
   );
 }
 

@@ -45,7 +45,7 @@ export default function AdminReportsPage() {
       anchor.download =
         response.headers
           .get("Content-Disposition")
-          ?.match(/filename="(.+)"/)?.[1] ?? `wapas-${type}.csv`;
+          ?.match(/filename="(.+)"/)?.[1] ?? `reimburse-${type}.csv`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (err) {

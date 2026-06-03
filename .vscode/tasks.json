@@ -2,21 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Wapas: install",
+      "label": "Reimburse: install",
       "type": "shell",
       "command": "npm install",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
-      "label": "Wapas: db setup",
+      "label": "Reimburse: db setup",
       "type": "shell",
       "command": "npm run db:setup",
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     },
     {
-      "label": "Wapas: dev server",
+      "label": "Reimburse: dev server",
       "type": "shell",
       "command": "npm run dev",
       "options": { "cwd": "${workspaceFolder}" },

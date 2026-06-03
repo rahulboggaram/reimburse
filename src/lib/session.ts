@@ -18,7 +18,7 @@ export type SessionUser = {
   profileComplete: boolean;
 };
 
-const COOKIE_NAME = "wapas_session";
+const COOKIE_NAME = "reimburse_session";
 
 function secret() {
   const value = process.env.SESSION_SECRET;

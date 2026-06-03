@@ -102,5 +102,5 @@ export function defaultReportDates() {
 export function reportFilename(type: ReportType, from?: string, to?: string) {
   const suffix =
     from && to ? `${from}-to-${to}` : from ? `from-${from}` : to ? `to-${to}` : "all";
-  return `wapas-${type}-${suffix}.csv`;
+  return `reimburse-${type}-${suffix}.csv`;
 }

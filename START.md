@@ -1,7 +1,6 @@
-# Start Wapas
+# Start Reimburse
 
 ```bash
-cd ~/wapas
 npm install
 npm run db:setup
 npm run dev

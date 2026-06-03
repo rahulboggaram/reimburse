@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ReimburseBrand } from "@/components/wapas-brand";
+import { ReimburseBrand } from "@/components/reimburse-brand";
 import { TextLinkButton } from "@/components/text-link";
 import { readJson } from "@/lib/api";
 import { invalidateClientCache } from "@/lib/client-cache";

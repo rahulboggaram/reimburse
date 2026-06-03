@@ -1,11 +1,11 @@
-# Wapas
+# Reimburse
 
 Expense reimbursements with mobile OTP login.
 
 ## Setup
 
 ```bash
-cd ~/wapas
+cd reimburse
 npm install
 npm run db:setup
 npm run dev
