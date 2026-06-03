@@ -38,10 +38,7 @@ export function canViewOwnReimbursements(user: {
   role: string;
   profileComplete: boolean;
 }): boolean {
-  if (user.role === "EMPLOYEE") return user.profileComplete;
-  return (
-    user.role === "BRANCH_MANAGER" ||
-    user.role === "APPROVER" ||
-    user.role === "ADMIN"
-  );
+  const role = user.role as UserRole;
+  if (role === "EMPLOYEE") return user.profileComplete;
+  return canAccessManagerPortal(role) || role === "ADMIN";
 }

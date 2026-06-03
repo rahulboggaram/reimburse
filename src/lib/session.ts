@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { User, UserRole } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import {
   canAccessAdminPortal as roleCanAccessAdminPortal,
   canAccessEmployeePortal as roleCanAccessEmployeePortal,
@@ -78,11 +79,30 @@ export async function readSessionToken(
   }
 }
 
+/** Load session from DB so role changes (e.g. to Branch Manager) apply without re-login. */
 export async function getSession(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
-  return readSessionToken(token);
+
+  const fromToken = await readSessionToken(token);
+  if (!fromToken) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: fromToken.id },
+  });
+  if (!user || !user.active) return null;
+
+  const session = userToSession(user);
+
+  if (
+    session.role !== fromToken.role ||
+    session.profileComplete !== fromToken.profileComplete
+  ) {
+    await setSessionCookie(session);
+  }
+
+  return session;
 }
 
 export async function setSessionCookie(user: SessionUser) {

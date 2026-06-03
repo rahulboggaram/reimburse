@@ -7,7 +7,11 @@ import { useMe } from "@/components/me-provider";
 import type { MeUser } from "@/components/me-provider";
 import { invalidateClientCache } from "@/lib/client-cache";
 import { userDisplayLabel } from "@/lib/user-profile";
-import { canViewOwnReimbursements } from "@/lib/access-roles";
+import {
+  canAccessManagerPortal,
+  canViewOwnReimbursements,
+} from "@/lib/access-roles";
+import type { UserRole } from "@prisma/client";
 import type { SessionUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -187,9 +191,13 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     </MenuLink>
   ) : null;
 
+  const role = resolvedUser.role as UserRole;
+  const showMyReimbursements =
+    canViewOwnReimbursements(resolvedUser) || canAccessManagerPortal(role);
+
   const employeeLinks = (
     <>
-      {canViewOwnReimbursements(resolvedUser) ? (
+      {showMyReimbursements ? (
         <MenuLink
           href="/employee/claims"
           onNavigate={closeMenu}

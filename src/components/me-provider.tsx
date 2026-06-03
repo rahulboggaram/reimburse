@@ -61,8 +61,6 @@ export function MeProvider(props: {
   }, []);
 
   useEffect(() => {
-    if (props.initialUser) return;
-
     let cancelled = false;
 
     refreshMe().finally(() => {
@@ -72,7 +70,7 @@ export function MeProvider(props: {
     return () => {
       cancelled = true;
     };
-  }, [props.initialUser, refreshMe]);
+  }, [refreshMe]);
 
   const value = useMemo(
     () => ({ user, loading, refreshMe }),
