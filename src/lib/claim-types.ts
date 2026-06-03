@@ -25,9 +25,19 @@ export type SerializedClaim = {
   payoutInitiatedAt: string | null;
   paidAt: string | null;
   approverId: string;
-  approver: { id: string; name: string | null; phone: string };
+  approver: {
+    id: string;
+    name: string | null;
+    phone: string;
+    role: string;
+  };
   paymentApproverId: string;
-  paymentApprover: { id: string; name: string | null; phone: string };
+  paymentApprover: {
+    id: string;
+    name: string | null;
+    phone: string;
+    role: string;
+  };
   refiledFromId: string | null;
   receipts: ClaimReceipt[];
   /** Set on list API responses when receipt files are omitted. */

@@ -2,15 +2,15 @@ import type { Prisma } from "@prisma/client";
 import { receiptViewUrl } from "@/lib/receipt-url";
 
 export const claimInclude = {
-  approver: { select: { id: true, name: true, phone: true } },
-  paymentApprover: { select: { id: true, name: true, phone: true } },
+  approver: { select: { id: true, name: true, phone: true, role: true } },
+  paymentApprover: { select: { id: true, name: true, phone: true, role: true } },
   branch: { select: { id: true, name: true, active: true } },
   receipts: { orderBy: { createdAt: "asc" as const } },
 } satisfies Prisma.ReimbursementInclude;
 
 export const claimListInclude = {
-  approver: { select: { id: true, name: true, phone: true } },
-  paymentApprover: { select: { id: true, name: true, phone: true } },
+  approver: { select: { id: true, name: true, phone: true, role: true } },
+  paymentApprover: { select: { id: true, name: true, phone: true, role: true } },
   branch: { select: { id: true, name: true, active: true } },
   _count: { select: { receipts: true } },
 } satisfies Prisma.ReimbursementInclude;

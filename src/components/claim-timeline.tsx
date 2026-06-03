@@ -106,6 +106,13 @@ function branchManagerLabel(claim: SerializedClaim) {
   return personLabel(claim.approver?.name, "branch manager");
 }
 
+function approvalWaitingSubtext(claim: SerializedClaim) {
+  if (claim.approver?.role === "ADMIN") {
+    return "approval by Admin";
+  }
+  return `approval by ${branchManagerLabel(claim)}`;
+}
+
 function paymentApproverLabel(claim: SerializedClaim) {
   return personLabel(claim.paymentApprover?.name, "payment approver");
 }
@@ -218,13 +225,12 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   }
 
   if (claim.status === "PENDING") {
-    const manager = branchManagerLabel(claim);
     return [
       uploaded,
       {
         key: "approval-waiting",
         title: "Awaiting",
-        subtext: `approval by ${manager}`,
+        subtext: approvalWaitingSubtext(claim),
         visual: "awaiting",
       },
       {
