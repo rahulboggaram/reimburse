@@ -5,6 +5,75 @@ import {
   isAdminSelfServiceClaim,
   payoutInProgress,
 } from "@/lib/claim-display-status";
+
+function payoutFailed(status: string | null | undefined) {
+  return (
+    status === "failed" ||
+    status === "rejected" ||
+    status === "cancelled" ||
+    status === "reversed"
+  );
+}
+
+function formatRazorpayStatus(status: string | null | undefined) {
+  if (!status) return null;
+  return status.replace(/_/g, " ");
+}
+
+function paidSubtext(claim: SerializedClaim) {
+  const when = formatDisplayDateTime(
+    claim.paidAt ?? claim.payoutInitiatedAt ?? claim.updatedAt,
+  );
+  if (claim.payoutUtr?.trim()) {
+    return `${claim.payoutUtr.trim()} · ${when}`;
+  }
+  return when;
+}
+
+function paidStep(claim: SerializedClaim): TimelineStep {
+  let subtext = paidSubtext(claim);
+  if (claim.razorpayPayoutId?.startsWith("pout_mock_")) {
+    subtext = `${subtext} · Demo payout`;
+  }
+  return {
+    key: "paid",
+    title: "Paid",
+    subtext,
+    visual: "done",
+  };
+}
+
+function razorpayTimelineStep(claim: SerializedClaim): TimelineStep {
+  const status = formatRazorpayStatus(claim.payoutStatus);
+  const subtextParts: string[] = [];
+  if (claim.payoutInitiatedAt) {
+    subtextParts.push(formatDisplayDateTime(claim.payoutInitiatedAt));
+  }
+  if (claim.payoutError?.trim()) {
+    subtextParts.push(claim.payoutError.trim());
+  }
+  if (claim.razorpayPayoutId?.startsWith("pout_mock_")) {
+    subtextParts.push("Demo payout — not in RazorpayX");
+  }
+
+  if (payoutFailed(claim.payoutStatus)) {
+    return {
+      key: "razorpay-failed",
+      title: status ? `Razorpay · ${status}` : "Payment failed",
+      subtext:
+        subtextParts.length > 0 ? subtextParts.join(" · ") : undefined,
+      visual: "rejected",
+    };
+  }
+
+  return {
+    key: "razorpay-processing",
+    title: status ? `Razorpay · ${status}` : "Payment processing",
+    subtext:
+      subtextParts.length > 0 ? subtextParts.join(" · ") : "Sent to RazorpayX",
+    visual: "awaiting",
+  };
+}
 import { formatDisplayDateTime } from "@/lib/dates";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
@@ -75,28 +144,13 @@ function branchApprovalStep(claim: SerializedClaim): TimelineStep {
 
 function adminPaymentSteps(claim: SerializedClaim): TimelineStep[] {
   if (payoutComplete(claim)) {
-    const at = claim.paidAt ?? claim.payoutInitiatedAt ?? claim.updatedAt;
-    return [
-      {
-        key: "paid",
-        title: "Paid",
-        subtext: `${formatDisplayDateTime(at)}`,
-        visual: "done",
-      },
-    ];
+    return [paidStep(claim)];
   }
 
-  if (payoutStarted(claim) && payoutInProgress(claim.payoutStatus)) {
-    return [
-      {
-        key: "payment-processing",
-        title: "Payment processing",
-        subtext: claim.payoutInitiatedAt
-          ? formatDisplayDateTime(claim.payoutInitiatedAt)
-          : undefined,
-        visual: "awaiting",
-      },
-    ];
+  if (payoutStarted(claim)) {
+    if (payoutInProgress(claim.payoutStatus) || payoutFailed(claim.payoutStatus)) {
+      return [razorpayTimelineStep(claim)];
+    }
   }
 
   return [
@@ -134,21 +188,11 @@ function approverPaymentSteps(claim: SerializedClaim): TimelineStep[] {
   };
 
   if (payoutComplete(claim)) {
-    return [financeDone];
+    return [financeDone, paidStep(claim)];
   }
 
-  if (payoutInProgress(claim.payoutStatus)) {
-    return [
-      financeDone,
-      {
-        key: "payment-processing",
-        title: "Payment processing",
-        subtext: claim.payoutInitiatedAt
-          ? formatDisplayDateTime(claim.payoutInitiatedAt)
-          : "Sent to RazorpayX",
-        visual: "awaiting",
-      },
-    ];
+  if (payoutStarted(claim)) {
+    return [financeDone, razorpayTimelineStep(claim)];
   }
 
   return [financeDone];

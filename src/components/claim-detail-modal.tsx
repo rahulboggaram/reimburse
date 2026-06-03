@@ -10,7 +10,6 @@ import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
-import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { readJson } from "@/lib/api";
 import {
@@ -18,7 +17,6 @@ import {
   payoutInProgress,
 } from "@/lib/claim-display-status";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
-import { cn } from "@/lib/utils";
 
 function payoutFailed(status: string | null) {
   return (
@@ -26,32 +24,6 @@ function payoutFailed(status: string | null) {
     status === "rejected" ||
     status === "cancelled" ||
     status === "reversed"
-  );
-}
-
-function formatPayoutStatus(status: string) {
-  return status.replace(/_/g, " ");
-}
-
-function PaymentDetailItem(props: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="py-2.5">
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-        {props.label}
-      </dt>
-      <dd
-        className={cn(
-          "mt-0.5 text-sm font-medium text-zinc-900",
-          props.mono && "break-all font-mono text-xs font-normal",
-        )}
-      >
-        {props.value}
-      </dd>
-    </div>
   );
 }
 
@@ -238,12 +210,6 @@ export function ClaimDetailModal(props: {
 
   const canSyncPayout = payoutUnsettled;
 
-  const showPayoutInfo =
-    claim.razorpayPayoutId ||
-    claim.payoutStatus ||
-    claim.paidAt ||
-    claim.payoutError;
-
   const receiptsTotal = claimReceiptCount(claim);
 
   async function decide(status: "APPROVED" | "REJECTED") {
@@ -298,45 +264,7 @@ export function ClaimDetailModal(props: {
           </div>
         </div>
 
-        {showPayoutInfo ? (
-          <section className="rounded-xl border border-zinc-200/80 bg-zinc-50/90 px-4 py-3">
-            <h3 className="text-sm font-semibold text-zinc-900">Payment</h3>
-            <dl className="mt-1 divide-y divide-zinc-200/60">
-              {claim.paidAt ? (
-                <PaymentDetailItem
-                  label="Paid on"
-                  value={formatDisplayDateTime(claim.paidAt)}
-                />
-              ) : null}
-              {claim.payoutStatus ? (
-                <PaymentDetailItem
-                  label="Status"
-                  value={formatPayoutStatus(claim.payoutStatus)}
-                />
-              ) : null}
-              {claim.payoutUtr ? (
-                <PaymentDetailItem label="UTR" value={claim.payoutUtr} mono />
-              ) : null}
-              {claim.razorpayPayoutId ? (
-                <PaymentDetailItem
-                  label="Payout ID"
-                  value={claim.razorpayPayoutId}
-                  mono
-                />
-              ) : null}
-            </dl>
-            {claim.razorpayPayoutId?.startsWith("pout_mock_") ? (
-              <p className="mt-2.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs leading-relaxed text-amber-900">
-                Demo payout only — not sent to RazorpayX.
-              </p>
-            ) : null}
-            {claim.payoutError ? (
-              <p className="mt-2.5 rounded-lg bg-red-50 px-2.5 py-2 text-xs leading-relaxed text-red-800">
-                {claim.payoutError}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
+        <ClaimTimeline claim={claim} />
 
         <ReceiptGallery
           receipts={claim.receipts}
@@ -346,8 +274,6 @@ export function ClaimDetailModal(props: {
           hideCount
           loading={loadingDetail}
         />
-
-        <ClaimTimeline claim={claim} />
 
         {claim.rejectionReason ? (
           <div className="rounded-xl border border-red-200 bg-red-50 py-3">
