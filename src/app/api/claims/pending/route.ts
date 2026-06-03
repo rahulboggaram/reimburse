@@ -12,6 +12,44 @@ const failedPayoutStatuses = [
   "reversed",
 ] as const;
 
+function approverAssigned(sessionId: string) {
+  return {
+    paymentApproverId: sessionId,
+    employeeId: { not: sessionId },
+  };
+}
+
+/** Branch manager approved — payment approver has not sent to RazorpayX yet (or payout failed). */
+function approverWaitingWhere(sessionId: string): Prisma.ReimbursementWhereInput {
+  return {
+    ...approverAssigned(sessionId),
+    status: "APPROVED",
+    paidAt: null,
+    OR: [
+      { razorpayPayoutId: null },
+      { payoutStatus: { in: [...failedPayoutStatuses] } },
+    ],
+  };
+}
+
+/** Payment approver sent to RazorpayX — in progress or completed. */
+function approverApprovedWhere(sessionId: string): Prisma.ReimbursementWhereInput {
+  return {
+    ...approverAssigned(sessionId),
+    OR: [
+      { status: "PAID" },
+      {
+        status: "APPROVED",
+        razorpayPayoutId: { not: null },
+        OR: [
+          { payoutStatus: null },
+          { payoutStatus: { notIn: [...failedPayoutStatuses] } },
+        ],
+      },
+    ],
+  };
+}
+
 function queueWhere(
   session: { id: string; role: string },
   tab: QueueTab,
@@ -27,34 +65,9 @@ function queueWhere(
   }
 
   if (session.role === "APPROVER") {
-    const assigned = {
-      paymentApproverId: session.id,
-      employeeId: { not: session.id },
-    };
-    if (tab === "waiting") {
-      // Branch manager approved — payment approver has not sent to RazorpayX yet.
-      return {
-        ...assigned,
-        status: "APPROVED",
-        paidAt: null,
-        OR: [
-          { razorpayPayoutId: null },
-          { payoutStatus: { in: [...failedPayoutStatuses] } },
-        ],
-      };
-    }
-    // Sent to RazorpayX (in progress or done).
-    return {
-      ...assigned,
-      OR: [
-        { status: "PAID" },
-        {
-          status: "APPROVED",
-          razorpayPayoutId: { not: null },
-          NOT: { payoutStatus: { in: [...failedPayoutStatuses] } },
-        },
-      ],
-    };
+    return tab === "waiting"
+      ? approverWaitingWhere(session.id)
+      : approverApprovedWhere(session.id);
   }
 
   if (session.role === "ADMIN") {
@@ -81,7 +94,9 @@ export async function GET(request: Request) {
       ? session.role === "APPROVER"
         ? { payoutInitiatedAt: "desc" as const }
         : { decidedAt: "desc" as const }
-      : { createdAt: "desc" as const };
+      : session.role === "APPROVER"
+        ? { decidedAt: "desc" as const }
+        : { createdAt: "desc" as const };
 
   const claims = await prisma.reimbursement.findMany({
     where,

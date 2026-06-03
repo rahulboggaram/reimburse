@@ -21,6 +21,11 @@ const QUEUE_SEGMENTS: { id: QueueTab; label: string }[] = [
   { id: "approved", label: "Approved" },
 ];
 
+const PAYMENT_APPROVER_SEGMENTS: { id: QueueTab; label: string }[] = [
+  { id: "waiting", label: "Awaiting payment" },
+  { id: "approved", label: "Sent to Razorpay" },
+];
+
 function cacheKey(tab: QueueTab) {
   return `claims-pending-${tab}`;
 }
@@ -36,6 +41,10 @@ function emptyMessage(tab: QueueTab, role: string | undefined) {
     : "No approved claims in this list yet.";
 }
 
+function queueSegments(role: string | undefined) {
+  return role === "APPROVER" ? PAYMENT_APPROVER_SEGMENTS : QUEUE_SEGMENTS;
+}
+
 export default function ManagerPendingPage() {
   const { user } = useMe();
   const [tab, setTab] = useState<QueueTab>("waiting");
@@ -44,7 +53,10 @@ export default function ManagerPendingPage() {
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
-  const loadClaims = useCallback(async (activeTab: QueueTab) => {
+  const loadClaims = useCallback(async (activeTab: QueueTab, fresh = false) => {
+    if (fresh) {
+      invalidateClientCache(cacheKey(activeTab));
+    }
     const data = await fetchClientCache(cacheKey(activeTab), async () => {
       const response = await fetch(
         `/api/claims/pending?tab=${activeTab}`,
@@ -56,7 +68,7 @@ export default function ManagerPendingPage() {
 
   useEffect(() => {
     setLoading(true);
-    loadClaims(tab).finally(() => setLoading(false));
+    loadClaims(tab, true).finally(() => setLoading(false));
   }, [tab, loadClaims]);
 
   async function refreshQueue() {
@@ -73,7 +85,7 @@ export default function ManagerPendingPage() {
       />
 
       <SegmentControl
-        options={QUEUE_SEGMENTS}
+        options={queueSegments(user?.role)}
         value={tab}
         onChange={setTab}
         ariaLabel="Approval queue"
@@ -114,8 +126,7 @@ export default function ManagerPendingPage() {
         onUpdated={async () => {
           invalidateClientCache("claims-pending");
           setSelected(null);
-          await loadClaims("waiting");
-          await loadClaims("approved");
+          await loadClaims(tab, true);
         }}
       />
     </>

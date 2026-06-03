@@ -2,15 +2,25 @@ export function payoutInProgress(status: string | null | undefined) {
   return status === "queued" || status === "pending" || status === "processing";
 }
 
-function awaitingFinancePayment(claim: {
+function payoutFailed(status: string | null | undefined) {
+  return (
+    status === "failed" ||
+    status === "rejected" ||
+    status === "cancelled" ||
+    status === "reversed"
+  );
+}
+
+function awaitingPaymentApprover(claim: {
   status: string;
   paidAt?: string | null;
+  razorpayPayoutId?: string | null;
   payoutStatus?: string | null;
 }) {
   return (
     claim.status === "APPROVED" &&
     !claim.paidAt &&
-    !payoutInProgress(claim.payoutStatus)
+    (!claim.razorpayPayoutId || payoutFailed(claim.payoutStatus))
   );
 }
 
@@ -18,21 +28,28 @@ export function claimDisplayStatus(
   claim: {
     status: string;
     paidAt?: string | null;
+    razorpayPayoutId?: string | null;
     payoutStatus?: string | null;
   },
   _viewerRole?: string,
 ): string {
-  if (awaitingFinancePayment(claim)) {
-    return "QUEUED";
-  }
-
   if (claim.status === "PAID" || claim.paidAt) {
     return "PAID";
   }
 
-  if (claim.status === "APPROVED" && payoutInProgress(claim.payoutStatus)) {
-    if (claim.payoutStatus === "queued") {
-      return "QUEUED";
+  if (awaitingPaymentApprover(claim)) {
+    return "QUEUED";
+  }
+
+  if (claim.status === "APPROVED" && claim.razorpayPayoutId) {
+    if (payoutFailed(claim.payoutStatus)) {
+      return claim.payoutStatus ?? "failed";
+    }
+    if (payoutInProgress(claim.payoutStatus)) {
+      return "paying";
+    }
+    if (claim.payoutStatus === "processed") {
+      return "PAID";
     }
     return "paying";
   }
