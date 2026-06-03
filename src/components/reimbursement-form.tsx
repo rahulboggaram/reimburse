@@ -301,7 +301,7 @@ export function ReimbursementForm(props: {
           <Label htmlFor="branch">
             Branch{branchOptional ? " (optional)" : ""}
           </Label>
-          {branchOptional ? (
+          {branchOptional && meUser?.role !== "ADMIN" ? (
             <p className="text-xs text-zinc-500">
               Your claim goes to admin for approval — you can skip branch if
               you prefer.
