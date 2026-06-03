@@ -170,15 +170,13 @@ function TimelineDot(props: { visual: VisualState }) {
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className="size-2.5 text-white"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
+          className="size-3.5 text-white"
+          fill="currentColor"
         >
           <path
-            d="M5.5 10.5 8.5 13.5 14.5 7.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            fillRule="evenodd"
+            d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.008 7.02a1 1 0 0 1-1.415 0L3.29 9.698a1 1 0 1 1 1.414-1.414l4.002 4.002 6.3-6.302a1 1 0 0 1 1.414 0Z"
+            clipRule="evenodd"
           />
         </svg>
       </span>
@@ -223,7 +221,7 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute top-5 h-[calc(100%-0.75rem)] w-0.5 -translate-x-1/2",
+                    "absolute top-6 h-[calc(100%-0.875rem)] w-0.5 -translate-x-1/2",
                     DOT_CENTER,
                     connectorStyles(step.visual),
                   )}
