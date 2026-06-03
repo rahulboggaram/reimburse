@@ -73,8 +73,7 @@ export async function GET(request: Request) {
       orderBy,
       include: claimListInclude,
     }),
-    includeCounts &&
-    (session.role === "ADMIN" || session.role === "APPROVER")
+    includeCounts && session.role === "APPROVER"
       ? countPaymentWaiting(session)
       : Promise.resolve(0),
     includeCounts && session.role === "ADMIN"

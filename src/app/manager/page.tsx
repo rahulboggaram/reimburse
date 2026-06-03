@@ -93,8 +93,9 @@ export default function ManagerPendingPage() {
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
-  const wantsCounts =
-    user?.role === "ADMIN" || user?.role === "APPROVER";
+  const isApprover = user?.role === "APPROVER";
+  const isAdmin = user?.role === "ADMIN";
+  const wantsCounts = isApprover || isAdmin;
 
   const fetchTab = useCallback(
     async (activeTab: QueueTab): Promise<TabPayload> => {
@@ -224,10 +225,10 @@ export default function ManagerPendingPage() {
   }
 
   const showApproveAll =
-    user?.role === "ADMIN" && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
+    isAdmin && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
+  /** Only Sudhi’s payment queue — matches “Awaiting payment” tab, not admin approval or sent tab. */
   const showPayAll =
-    (user?.role === "APPROVER" && tab === "waiting") ||
-    (user?.role === "ADMIN" && (counts?.paymentWaiting ?? 0) > 0);
+    isApprover && tab === "waiting" && (counts?.paymentWaiting ?? 0) > 0;
   const payAllCount = counts?.paymentWaiting ?? 0;
   const approveAllCount = counts?.adminPending ?? 0;
 
@@ -270,9 +271,7 @@ export default function ManagerPendingPage() {
               onClick={() =>
                 void runBulk(
                   "/api/claims/bulk-pay",
-                  user?.role === "ADMIN"
-                    ? `Send ${payAllCount} approved reimbursement${payAllCount === 1 ? "" : "s"} to Razorpay now?`
-                    : `Pay all ${payAllCount} reimbursement${payAllCount === 1 ? "" : "s"} in your queue via Razorpay?`,
+                  `Pay all ${payAllCount} reimbursement${payAllCount === 1 ? "" : "s"} in your queue via Razorpay?`,
                   "No reimbursements are waiting for payout.",
                 )
               }
