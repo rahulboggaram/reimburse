@@ -18,6 +18,7 @@ import {
   canInitiateClaimPayment,
   payoutInProgress,
 } from "@/lib/claim-display-status";
+import { cn } from "@/lib/utils";
 
 function payoutFailed(status: string | null) {
   return (
@@ -28,11 +29,28 @@ function payoutFailed(status: string | null) {
   );
 }
 
-function DetailRow(props: { label: string; value: string }) {
+function formatPayoutStatus(status: string) {
+  return status.replace(/_/g, " ");
+}
+
+function PaymentDetailItem(props: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium text-zinc-500">{props.label}</p>
-      <p className="text-base text-zinc-900">{props.value}</p>
+    <div className="py-2.5">
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+        {props.label}
+      </dt>
+      <dd
+        className={cn(
+          "mt-0.5 text-sm font-medium text-zinc-900",
+          props.mono && "break-all font-mono text-xs font-normal",
+        )}
+      >
+        {props.value}
+      </dd>
     </div>
   );
 }
@@ -245,46 +263,43 @@ export function ClaimDetailModal(props: {
         </div>
 
         {showPayoutInfo ? (
-          <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Payment
-            </p>
-            {claim.paidAt ? (
-              <DetailRow
-                label="Paid on"
-                value={formatDisplayDateTime(claim.paidAt)}
-              />
-            ) : null}
-            {claim.payoutStatus ? (
-              <DetailRow
-                label="Payout status"
-                value={claim.payoutStatus}
-              />
-            ) : null}
-            {claim.payoutUtr ? (
-              <DetailRow label="UTR" value={claim.payoutUtr} />
-            ) : null}
-            {claim.razorpayPayoutId ? (
-              <>
-                <DetailRow label="Payout ID" value={claim.razorpayPayoutId} />
-                {claim.razorpayPayoutId.startsWith("pout_mock_") ? (
-                  <p className="text-sm text-amber-800">
-                    This was a demo payout only. It will not appear in RazorpayX.
-                    Set <span className="font-medium">RAZORPAYX_MOCK=false</span>{" "}
-                    on Vercel and use real test keys.
-                  </p>
-                ) : (
-                  <p className="text-sm text-zinc-600">
-                    Search this payout ID in RazorpayX under{" "}
-                    <span className="font-medium">Payouts</span>.
-                  </p>
-                )}
-              </>
+          <section className="rounded-xl border border-zinc-200/80 bg-zinc-50/90 px-4 py-3">
+            <h3 className="text-sm font-semibold text-zinc-900">Payment</h3>
+            <dl className="mt-1 divide-y divide-zinc-200/60">
+              {claim.paidAt ? (
+                <PaymentDetailItem
+                  label="Paid on"
+                  value={formatDisplayDateTime(claim.paidAt)}
+                />
+              ) : null}
+              {claim.payoutStatus ? (
+                <PaymentDetailItem
+                  label="Status"
+                  value={formatPayoutStatus(claim.payoutStatus)}
+                />
+              ) : null}
+              {claim.payoutUtr ? (
+                <PaymentDetailItem label="UTR" value={claim.payoutUtr} mono />
+              ) : null}
+              {claim.razorpayPayoutId ? (
+                <PaymentDetailItem
+                  label="Payout ID"
+                  value={claim.razorpayPayoutId}
+                  mono
+                />
+              ) : null}
+            </dl>
+            {claim.razorpayPayoutId?.startsWith("pout_mock_") ? (
+              <p className="mt-2.5 rounded-lg bg-amber-50 px-2.5 py-2 text-xs leading-relaxed text-amber-900">
+                Demo payout only — not sent to RazorpayX.
+              </p>
             ) : null}
             {claim.payoutError ? (
-              <p className="text-sm text-red-700">{claim.payoutError}</p>
+              <p className="mt-2.5 rounded-lg bg-red-50 px-2.5 py-2 text-xs leading-relaxed text-red-800">
+                {claim.payoutError}
+              </p>
             ) : null}
-          </div>
+          </section>
         ) : null}
 
         <ReceiptGallery
