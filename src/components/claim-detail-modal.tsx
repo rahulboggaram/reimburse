@@ -235,7 +235,14 @@ export function ClaimDetailModal(props: {
           rejectionReason: status === "REJECTED" ? rejectionReason : undefined,
         }),
       });
-      await readJson(response);
+      const updated = await readJson<
+        SerializedClaim & { payoutWarning?: string }
+      >(response);
+      if (updated.payoutWarning) {
+        setError(updated.payoutWarning);
+        await props.onUpdated?.();
+        return;
+      }
       props.onClose();
       await props.onUpdated?.();
     } catch (err) {
@@ -307,8 +314,7 @@ export function ClaimDetailModal(props: {
           />
         ) : null}
 
-        {(props.variant === "admin" || user?.role === "BRANCH_MANAGER") &&
-        claim.status === "PENDING" ? (
+        {claim.status === "PENDING" && user?.id === claim.approverId ? (
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="rejection-reason">Rejection reason</Label>

@@ -2,6 +2,7 @@
 
 import type { SerializedClaim } from "@/lib/claim-types";
 import {
+  isAdminLedPayment,
   isAdminSelfServiceClaim,
   payoutInProgress,
 } from "@/lib/claim-display-status";
@@ -225,6 +226,7 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   }
 
   if (claim.status === "PENDING") {
+    const approverSubmitted = claim.employee?.role === "APPROVER";
     return [
       uploaded,
       {
@@ -233,12 +235,19 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
         subtext: approvalWaitingSubtext(claim),
         visual: "awaiting",
       },
-      {
-        key: "finance-next",
-        title: "Financial approval",
-        subtext: `by ${paymentApproverLabel(claim)} · Up next`,
-        visual: "upcoming",
-      },
+      approverSubmitted
+        ? {
+            key: "payment-next",
+            title: "Payment",
+            subtext: "Razorpay payout after admin approval · Up next",
+            visual: "upcoming",
+          }
+        : {
+            key: "finance-next",
+            title: "Financial approval",
+            subtext: `by ${paymentApproverLabel(claim)} · Up next`,
+            visual: "upcoming",
+          },
     ];
   }
 
@@ -246,7 +255,7 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
     ? adminApprovalStep(claim)
     : branchApprovalStep(claim);
 
-  const paymentSteps = adminSelf
+  const paymentSteps = isAdminLedPayment(claim)
     ? adminPaymentSteps(claim)
     : approverPaymentSteps(claim);
 

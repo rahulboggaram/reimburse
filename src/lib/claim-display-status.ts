@@ -23,6 +23,21 @@ export function isAdminSelfServiceClaim(claim: {
   );
 }
 
+/** Payment runs via admin / Razorpay, not a separate payment-approver queue. */
+export function isAdminLedPayment(claim: {
+  employeeId: string;
+  employee?: { role: string };
+  approverId: string;
+  paymentApproverId: string;
+}): boolean {
+  if (isAdminSelfServiceClaim(claim)) return true;
+  return (
+    claim.employee?.role === "APPROVER" &&
+    claim.approverId === claim.paymentApproverId
+  );
+}
+
+/** Payment approver queue — not used when admin already owns payment (e.g. approver submitter). */
 function awaitingPaymentApprover(claim: {
   employeeId: string;
   approverId: string;
@@ -33,6 +48,7 @@ function awaitingPaymentApprover(claim: {
   payoutStatus?: string | null;
 }) {
   if (isAdminSelfServiceClaim(claim)) return false;
+  if (claim.approverId === claim.paymentApproverId) return false;
   return (
     claim.status === "APPROVED" &&
     !claim.paidAt &&

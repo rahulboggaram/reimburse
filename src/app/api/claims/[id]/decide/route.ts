@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
+import { tryAutoPayAfterAdminApproval } from "@/lib/admin-auto-payout";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { decideReimbursementSchema } from "@/lib/validators";
 
@@ -40,11 +41,6 @@ export async function POST(
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  if (body.data.status === "APPROVED") {
-    // Branch manager approval should not initiate payment.
-    // Payment approver will trigger RazorpayX payout later.
-  }
-
   await prisma.reimbursement.update({
     where: { id },
     data: {
@@ -57,10 +53,21 @@ export async function POST(
     },
   });
 
+  let payoutWarning: string | undefined;
+  if (body.data.status === "APPROVED" && session.role === "ADMIN") {
+    const payoutResult = await tryAutoPayAfterAdminApproval(id, session.id);
+    if (!payoutResult.ok && "error" in payoutResult) {
+      payoutWarning = payoutResult.error;
+    }
+  }
+
   const claim = await prisma.reimbursement.findUnique({
     where: { id },
     include: claimInclude,
   });
 
-  return Response.json(serializeClaim(claim!));
+  return Response.json({
+    ...serializeClaim(claim!),
+    payoutWarning,
+  });
 }
