@@ -4,11 +4,44 @@ import { useEffect } from "react";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
 
+function ModalCloseButton(props: {
+  onClose: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClose}
+      aria-label="Close"
+      className={cn(
+        "shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800",
+        props.className,
+      )}
+    >
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="size-5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 18 18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export function Modal(props: {
   open: boolean;
   onClose: () => void;
   title?: string;
   subtitle?: string;
+  headerLeading?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -32,7 +65,9 @@ export function Modal(props: {
 
   if (!props.open) return null;
 
-  const hasHeader = Boolean(props.title || props.subtitle);
+  const hasHeader = Boolean(
+    props.title || props.subtitle || props.headerLeading,
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
@@ -53,53 +88,52 @@ export function Modal(props: {
         )}
       >
         <div className="overflow-y-auto p-5">
-          <div className="flex items-start justify-between gap-4">
-            {hasHeader ? (
-              <div className="min-w-0 flex-1">
-                {props.title ? (
-                  <h2
-                    id="modal-title"
-                    className="text-lg font-semibold text-zinc-900"
-                  >
-                    {toTitleCase(props.title)}
-                  </h2>
-                ) : null}
-                {props.subtitle ? (
-                  <p
-                    className={cn(
-                      "text-sm text-zinc-500",
-                      props.title ? "mt-1" : undefined,
-                    )}
-                  >
-                    {props.subtitle}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              <div className="min-w-0 flex-1" />
-            )}
-            <button
-              type="button"
-              onClick={props.onClose}
-              aria-label="Close"
-              className="-mr-1.5 -mt-1.5 shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
-            >
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="size-5"
+          {props.headerLeading ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">{props.headerLeading}</div>
+              <ModalCloseButton onClose={props.onClose} className="-mr-1.5" />
+            </div>
+          ) : props.title ? (
+            <div className="flex items-start justify-between gap-4">
+              <h2
+                id="modal-title"
+                className="min-w-0 flex-1 text-lg font-semibold text-zinc-900"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18 18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+                {toTitleCase(props.title)}
+              </h2>
+              <ModalCloseButton
+                onClose={props.onClose}
+                className="-mr-1.5 -mt-1.5"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <ModalCloseButton
+                onClose={props.onClose}
+                className="-mr-1.5 -mt-1.5"
+              />
+            </div>
+          )}
+
+          {props.title && props.headerLeading ? (
+            <h2
+              id="modal-title"
+              className="mt-2 text-lg font-semibold text-zinc-900"
+            >
+              {toTitleCase(props.title)}
+            </h2>
+          ) : null}
+
+          {props.subtitle ? (
+            <p
+              className={cn(
+                "text-sm text-zinc-500",
+                hasHeader ? "mt-2" : undefined,
+              )}
+            >
+              {props.subtitle}
+            </p>
+          ) : null}
 
           <div className={cn(hasHeader ? "mt-4" : "mt-3")}>{props.children}</div>
         </div>

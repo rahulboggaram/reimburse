@@ -222,14 +222,15 @@ export function ClaimDetailModal(props: {
       open={props.open}
       onClose={props.onClose}
       subtitle={modalSubtitle}
+      headerLeading={
+        <p className="text-lg font-bold font-tabular-nums text-zinc-900">
+          ₹{claim.amount.toLocaleString("en-IN")}
+        </p>
+      }
     >
       <div className="space-y-8">
         <div>
-          <p className="text-lg font-bold font-tabular-nums text-zinc-900">
-            ₹{claim.amount.toLocaleString("en-IN")}
-          </p>
-
-          <div className="mt-8 space-y-1">
+          <div className="space-y-1">
             <p className="text-xs font-medium text-zinc-500">{claim.category}</p>
             <p className="text-sm leading-relaxed text-zinc-600">
               {claim.description}
