@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  ApprovalsTableHeader,
+  ApprovalsTableRow,
+} from "@/components/approvals-table";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
-import { ClaimListRow } from "@/components/claim-list-row";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import type { AdminClaim } from "@/lib/claim-types";
-import { formatDisplayDate } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
@@ -80,20 +82,20 @@ export default function AdminClaimsPage() {
           <p className="text-sm text-zinc-600">No reimbursements found.</p>
         </Card>
       ) : (
-        <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white">
-          {filtered.map((claim) => (
-            <li key={claim.id}>
-              <ClaimListRow
-                title={claim.employeeName}
-                subtitle={`${claim.category} · ${formatDisplayDate(claim.expenseDate)}`}
-                amount={claim.amount}
-                approvalStatus={claim.status}
-                paymentStatus={claim.payoutStatus}
+        <Card className="overflow-hidden p-0">
+          <ApprovalsTableHeader showCategory showStatus />
+          <div>
+            {filtered.map((claim) => (
+              <ApprovalsTableRow
+                key={claim.id}
+                claim={claim}
+                showCategory
+                showStatus
                 onOpen={() => setSelected(claim)}
               />
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+        </Card>
       )}
 
       <ClaimDetailModal
