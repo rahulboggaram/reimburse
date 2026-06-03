@@ -32,6 +32,8 @@ export function Modal(props: {
 
   if (!props.open) return null;
 
+  const hasHeader = Boolean(props.title || props.subtitle);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <button
@@ -50,9 +52,31 @@ export function Modal(props: {
           props.className,
         )}
       >
-        <div className="overflow-y-auto">
-          <div className="flex items-start gap-3 px-5 pb-6 pt-5">
-            <div className="min-w-0 flex-1">
+        <div className="relative overflow-y-auto p-5">
+          <button
+            type="button"
+            onClick={props.onClose}
+            aria-label="Close"
+            className="absolute right-5 top-5 z-10 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
+          >
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="size-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18 18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+
+          {hasHeader ? (
+            <div className="mb-4 pr-10">
               {props.title ? (
                 <h2
                   id="modal-title"
@@ -71,36 +95,10 @@ export function Modal(props: {
                   {props.subtitle}
                 </p>
               ) : null}
-              <div
-                className={cn(
-                  props.title || props.subtitle ? "mt-4" : undefined,
-                )}
-              >
-                {props.children}
-              </div>
             </div>
-            <button
-              type="button"
-              onClick={props.onClose}
-              aria-label="Close"
-              className="shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
-            >
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="size-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18 18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+          ) : null}
+
+          <div>{props.children}</div>
         </div>
       </div>
     </div>
