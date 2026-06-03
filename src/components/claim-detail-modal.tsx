@@ -266,6 +266,13 @@ export function ClaimDetailModal(props: {
         <div className="grid gap-3 sm:grid-cols-2">
           <DetailRow label="Expense date" value={expenseDate} />
           <DetailRow label="Submitted" value={formatDisplayDateTime(claim.createdAt)} />
+          {claim.decidedAt &&
+          (claim.status === "APPROVED" || claim.status === "PAID") ? (
+            <DetailRow
+              label="Approved on"
+              value={formatDisplayDateTime(claim.decidedAt)}
+            />
+          ) : null}
           <DetailRow
             label={
               claim.status === "PENDING" && props.variant === "admin"

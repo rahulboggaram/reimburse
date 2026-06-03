@@ -35,6 +35,18 @@ export function formatDisplayDateTime(value: string | Date) {
   return date.toLocaleString("en-IN", DISPLAY_DATETIME);
 }
 
+/** e.g. 01 Apr, 3:30 pm — for compact tables */
+export function formatDisplayDateTimeNoYear(value: string | Date) {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 /** For HTML date inputs (YYYY-MM-DD). */
 export function toInputDateValue(iso: string) {
   return iso.slice(0, 10);
