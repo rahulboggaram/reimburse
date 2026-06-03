@@ -40,24 +40,6 @@ function DetailRow(props: { label: string; value: string }) {
   );
 }
 
-function DetailRowWithBadge(props: {
-  label: string;
-  value: React.ReactNode;
-  badge?: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium text-zinc-500">{props.label}</p>
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="text-2xl font-semibold font-tabular-nums text-zinc-900">
-          {props.value}
-        </span>
-        {props.badge}
-      </div>
-    </div>
-  );
-}
-
 function claimNeedsFullLoad(claim: SerializedClaim) {
   if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
     return false;
@@ -224,15 +206,14 @@ export function ClaimDetailModal(props: {
           <p className="text-sm text-zinc-500">Loading details…</p>
         ) : null}
 
-        <DetailRowWithBadge
-          label="Amount"
-          value={`₹${claim.amount.toLocaleString("en-IN")}`}
-          badge={
-            hideStatusBadge ? null : (
-              <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
-            )
-          }
-        />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-2xl font-semibold font-tabular-nums text-zinc-900">
+            ₹{claim.amount.toLocaleString("en-IN")}
+          </span>
+          {hideStatusBadge ? null : (
+            <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
+          )}
+        </div>
 
         <DetailRow label="Category" value={claim.category} />
 
