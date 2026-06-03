@@ -6,71 +6,88 @@ import { formatDisplayDateTime } from "@/lib/dates";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
 
-function branchManagerLabel(claim: SerializedClaim) {
-  const name = claim.approver?.name?.trim();
-  return name ? toTitleCase(name) : "branch manager";
-}
-
-type StepState = "complete" | "pending" | "current" | "rejected";
+type VisualState = "done" | "awaiting" | "upcoming" | "rejected";
 
 type TimelineStep = {
+  key: string;
   title: string;
-  date: string | null;
-  state: StepState;
-  hint?: string;
+  subtitle?: string;
+  visual: VisualState;
 };
 
-function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
-  const uploaded: TimelineStep = {
-    title: "Uploaded",
-    date: claim.createdAt,
-    state: "complete",
+function personLabel(name: string | null | undefined, fallback: string) {
+  const trimmed = name?.trim();
+  return trimmed ? toTitleCase(trimmed) : fallback;
+}
+
+function uploadedStep(claim: SerializedClaim): TimelineStep {
+  const who = personLabel(claim.employeeName, "Employee");
+  return {
+    key: "uploaded",
+    title: "Uploaded by",
+    subtitle: `${who} · ${formatDisplayDateTime(claim.createdAt)}`,
+    visual: "done",
   };
+}
+
+function branchManagerLabel(claim: SerializedClaim) {
+  return personLabel(claim.approver?.name, "branch manager");
+}
+
+function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
+  const uploaded = uploadedStep(claim);
+  const manager = branchManagerLabel(claim);
 
   if (claim.status === "REJECTED") {
     return [
       uploaded,
       {
+        key: "rejected",
         title: "Rejected",
-        date: claim.decidedAt,
-        state: "rejected",
+        subtitle: claim.decidedAt
+          ? `${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+          : `by ${manager}`,
+        visual: "rejected",
       },
     ];
   }
 
   if (claim.status === "PENDING") {
-    const manager = branchManagerLabel(claim);
     return [
       uploaded,
       {
-        title: "Approval",
-        date: null,
-        state: "pending",
-        hint: `Awaiting branch approval from ${manager}`,
+        key: "approval-waiting",
+        title: "Awaiting approval",
+        subtitle: `from ${manager}`,
+        visual: "awaiting",
       },
       {
+        key: "finance-next",
         title: "Financial approval",
-        date: null,
-        state: "pending",
-        hint: "After branch approval",
+        subtitle: "Up next",
+        visual: "upcoming",
       },
     ];
   }
 
-  const approval: TimelineStep = {
-    title: "Approval",
-    date: claim.decidedAt,
-    state: claim.decidedAt ? "complete" : "pending",
+  const approvalDone: TimelineStep = {
+    key: "approval-done",
+    title: "Approved",
+    subtitle: claim.decidedAt
+      ? `by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+      : `by ${manager}`,
+    visual: "done",
   };
 
   if (claim.paidAt) {
     return [
       uploaded,
-      approval,
+      approvalDone,
       {
+        key: "finance-done",
         title: "Financial approval",
-        date: claim.paidAt,
-        state: "complete",
+        subtitle: formatDisplayDateTime(claim.paidAt),
+        visual: "done",
       },
     ];
   }
@@ -78,45 +95,71 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   if (payoutInProgress(claim.payoutStatus)) {
     return [
       uploaded,
-      approval,
+      approvalDone,
       {
-        title: "Financial approval",
-        date: claim.payoutInitiatedAt,
-        state: "current",
-        hint: "Payment in progress",
+        key: "finance-progress",
+        title: "Awaiting financial approval",
+        subtitle: claim.payoutInitiatedAt
+          ? `Payment in progress · ${formatDisplayDateTime(claim.payoutInitiatedAt)}`
+          : "Payment in progress",
+        visual: "awaiting",
       },
     ];
   }
 
   return [
     uploaded,
-    approval,
+    approvalDone,
     {
-      title: "Financial approval",
-      date: null,
-      state: "pending",
-      hint: "Awaiting finance approval",
+      key: "finance-waiting",
+      title: "Awaiting financial approval",
+      subtitle: "Pending payment",
+      visual: "awaiting",
     },
   ];
 }
 
-function dotStyles(state: StepState) {
-  switch (state) {
-    case "complete":
-      return "border-zinc-900 bg-zinc-900";
-    case "current":
-      return "border-blue-600 bg-blue-600 ring-4 ring-blue-100";
+function titleStyles(visual: VisualState) {
+  switch (visual) {
+    case "done":
+      return "text-zinc-900";
+    case "awaiting":
+      return "text-amber-700";
+    case "upcoming":
+      return "text-zinc-400";
     case "rejected":
-      return "border-red-600 bg-red-600";
-    default:
-      return "border-zinc-300 bg-white";
+      return "text-red-800";
   }
 }
 
-function lineStyles(state: StepState) {
-  return state === "complete" || state === "current" || state === "rejected"
-    ? "bg-zinc-300"
-    : "bg-zinc-200";
+function subtitleStyles(visual: VisualState) {
+  switch (visual) {
+    case "done":
+      return "text-zinc-600";
+    case "awaiting":
+      return "text-amber-700/90";
+    case "upcoming":
+      return "text-zinc-400";
+    case "rejected":
+      return "text-red-700";
+  }
+}
+
+function dotStyles(visual: VisualState) {
+  switch (visual) {
+    case "done":
+      return "border-zinc-900 bg-zinc-900";
+    case "awaiting":
+      return "border-amber-500 bg-amber-500";
+    case "upcoming":
+      return "border-zinc-300 bg-zinc-200";
+    case "rejected":
+      return "border-red-600 bg-red-600";
+  }
+}
+
+function lineStyles(visual: VisualState) {
+  return visual === "upcoming" ? "bg-zinc-200" : "bg-zinc-300";
 }
 
 export function ClaimTimeline(props: { claim: SerializedClaim }) {
@@ -127,16 +170,15 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
       <ol className="space-y-0">
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
-          const showDate = step.date && step.state !== "pending";
 
           return (
-            <li key={step.title} className="relative flex gap-3 pb-6 last:pb-0">
+            <li key={step.key} className="relative flex gap-3 pb-6 last:pb-0">
               {!isLast ? (
                 <span
                   aria-hidden
                   className={cn(
                     "absolute top-3 left-[0.4375rem] h-[calc(100%-0.75rem)] w-0.5 -translate-x-1/2",
-                    lineStyles(step.state),
+                    lineStyles(step.visual),
                   )}
                 />
               ) : null}
@@ -144,30 +186,27 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
                 aria-hidden
                 className={cn(
                   "relative z-10 mt-0.5 size-2.5 shrink-0 rounded-full border-2",
-                  dotStyles(step.state),
+                  dotStyles(step.visual),
                 )}
               />
               <div className="min-w-0 flex-1 pt-px">
                 <p
                   className={cn(
                     "text-sm font-semibold",
-                    step.state === "rejected"
-                      ? "text-red-800"
-                      : step.state === "pending"
-                        ? "text-zinc-500"
-                        : "text-zinc-900",
+                    titleStyles(step.visual),
                   )}
                 >
                   {step.title}
                 </p>
-                {showDate ? (
-                  <p className="mt-0.5 text-sm text-zinc-600 tabular-nums">
-                    {formatDisplayDateTime(step.date!)}
+                {step.subtitle ? (
+                  <p
+                    className={cn(
+                      "mt-0.5 text-sm tabular-nums",
+                      subtitleStyles(step.visual),
+                    )}
+                  >
+                    {step.subtitle}
                   </p>
-                ) : step.hint ? (
-                  <p className="mt-0.5 text-sm text-zinc-500">{step.hint}</p>
-                ) : step.state === "pending" ? (
-                  <p className="mt-0.5 text-sm text-zinc-400">Not yet</p>
                 ) : null}
               </div>
             </li>
