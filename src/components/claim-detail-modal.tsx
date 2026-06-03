@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { useMe } from "@/components/me-provider";
 import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
-import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -19,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { readJson } from "@/lib/api";
 import {
   canInitiateClaimPayment,
-  claimDisplayStatus,
   payoutInProgress,
 } from "@/lib/claim-display-status";
 
@@ -132,10 +130,6 @@ export function ClaimDetailModal(props: {
   if (!props.claim) return null;
 
   const claim = detailClaim ?? props.claim;
-  const hideStatusBadge =
-    user?.role === "BRANCH_MANAGER" &&
-    props.variant === "approver" &&
-    claim.status === "APPROVED";
 
   async function payClaim() {
     setError(null);
@@ -233,18 +227,13 @@ export function ClaimDetailModal(props: {
     >
       <div className="space-y-8">
         <div>
-          <div className="flex flex-wrap items-start gap-2.5">
-            <div>
-              <p className="text-lg font-bold font-tabular-nums text-zinc-900">
-                ₹{claim.amount.toLocaleString("en-IN")}
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                by {toTitleCase(claim.employeeName)}
-              </p>
-            </div>
-            {hideStatusBadge ? null : (
-              <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
-            )}
+          <div>
+            <p className="text-lg font-bold font-tabular-nums text-zinc-900">
+              ₹{claim.amount.toLocaleString("en-IN")}
+            </p>
+            <p className="mt-1 text-sm text-zinc-600">
+              by {toTitleCase(claim.employeeName)}
+            </p>
           </div>
 
           <div className="mt-8 space-y-1">

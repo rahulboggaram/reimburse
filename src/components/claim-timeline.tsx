@@ -119,14 +119,17 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   ];
 }
 
+const AWAITING_COLOR = "text-amber-600";
+const UPCOMING_COLOR = "text-zinc-400";
+
 function titleStyles(visual: VisualState) {
   switch (visual) {
     case "done":
       return "text-zinc-900";
     case "awaiting":
-      return "text-amber-700";
+      return AWAITING_COLOR;
     case "upcoming":
-      return "text-zinc-400";
+      return UPCOMING_COLOR;
     case "rejected":
       return "text-red-700";
   }
@@ -137,9 +140,9 @@ function subtextStyles(visual: VisualState) {
     case "done":
       return "text-zinc-500";
     case "awaiting":
-      return "text-amber-600/90";
+      return AWAITING_COLOR;
     case "upcoming":
-      return "text-zinc-400";
+      return UPCOMING_COLOR;
     case "rejected":
       return "text-red-600/80";
   }
@@ -188,12 +191,21 @@ function TimelineDot(props: { visual: VisualState }) {
     );
   }
 
-  const filled =
-    props.visual === "awaiting"
-      ? "border-2 border-amber-500 bg-amber-500"
-      : "border-2 border-zinc-300 bg-zinc-200";
+  if (props.visual === "awaiting") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "border-2 border-amber-600 bg-amber-600")}
+      />
+    );
+  }
 
-  return <span aria-hidden className={cn(base, filled)} />;
+  return (
+    <span
+      aria-hidden
+      className={cn(base, "border-2 border-zinc-400 bg-zinc-400")}
+    />
+  );
 }
 
 export function ClaimTimeline(props: { claim: SerializedClaim }) {
