@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
-import { ClaimListRow } from "@/components/claim-list-row";
+import {
+  MyClaimsTableHeader,
+  MyClaimsTableRow,
+} from "@/components/my-claims-table";
 import { EmployeeEmptyState } from "@/components/employee-empty-state";
-import { formatDisplayDate } from "@/lib/dates";
+import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
-import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { fetchClientCache } from "@/lib/client-cache";
 
 export default function MyClaimsPage() {
@@ -29,11 +31,12 @@ export default function MyClaimsPage() {
     return (
       <div className="space-y-4">
         <PageHeading title="My claims" />
-        <div className="space-y-3">
-          <div className="h-[4.5rem] animate-pulse rounded-2xl bg-white/60 ring-1 ring-zinc-200/80" />
-          <div className="h-[4.5rem] animate-pulse rounded-2xl bg-white/60 ring-1 ring-zinc-200/80" />
-          <div className="h-[4.5rem] animate-pulse rounded-2xl bg-white/60 ring-1 ring-zinc-200/80" />
-        </div>
+        <Card className="overflow-hidden p-0">
+          <div className="h-10 animate-pulse bg-zinc-50" />
+          <div className="h-14 animate-pulse border-t border-zinc-100" />
+          <div className="h-14 animate-pulse border-t border-zinc-100" />
+          <div className="h-14 animate-pulse border-t border-zinc-100" />
+        </Card>
       </div>
     );
   }
@@ -55,21 +58,18 @@ export default function MyClaimsPage() {
   return (
     <>
       <PageHeading title="My claims" className="mb-4" />
-      <ul className="space-y-3">
-        {claims.map((claim) => (
-          <li key={claim.id}>
-            <ClaimListRow
-              title={claim.category}
-              subtitle={`${formatDisplayDate(claim.expenseDate)} · ${claimReceiptCount(claim)} receipt${claimReceiptCount(claim) === 1 ? "" : "s"}`}
-              amount={claim.amount}
-              approvalStatus={claim.status}
-              paymentStatus={claim.payoutStatus}
-              paidAt={claim.paidAt}
+      <Card className="overflow-hidden p-0">
+        <MyClaimsTableHeader />
+        <div>
+          {claims.map((claim) => (
+            <MyClaimsTableRow
+              key={claim.id}
+              claim={claim}
               onOpen={() => setSelected(claim)}
             />
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      </Card>
 
       <ClaimDetailModal
         claim={selected}
