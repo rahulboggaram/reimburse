@@ -60,18 +60,20 @@ export async function resolveClaimRouting(
     };
   }
 
-  const branchManager = await prisma.user.findFirst({
-    where: { role: "BRANCH_MANAGER", active: true, branchId },
-    orderBy: { createdAt: "asc" },
-  });
+  const [branchManager, paymentApprover] = await Promise.all([
+    prisma.user.findFirst({
+      where: { role: "BRANCH_MANAGER", active: true, branchId },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.user.findFirst({
+      where: { role: "APPROVER", active: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+
   if (!branchManager) {
     return { error: "No branch manager assigned for this branch yet." };
   }
-
-  const paymentApprover = await prisma.user.findFirst({
-    where: { role: "APPROVER", active: true },
-    orderBy: { createdAt: "asc" },
-  });
   if (!paymentApprover) {
     return { error: "No payment approver assigned yet." };
   }

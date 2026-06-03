@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
 import { resolveClaimRouting } from "@/lib/claim-routing";
-import { claimInclude, serializeClaim } from "@/lib/claims";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { replaceClaimReceipts } from "@/lib/attach-receipts";
 import { receiptFilesFromFormData } from "@/lib/receipt-files";
@@ -20,37 +19,31 @@ export async function POST(request: Request) {
 
     const receiptFiles = receiptFilesFromFormData(formData);
 
-    const branch = await prisma.branch.findFirst({
-      where: { id: body.branchId, active: true },
-    });
+    const [branch, category, routingResult] = await Promise.all([
+      prisma.branch.findFirst({
+        where: { id: body.branchId, active: true },
+      }),
+      prisma.expenseCategory.findFirst({
+        where: { name: body.category, active: true },
+      }),
+      resolveClaimRouting({ id: session.id, role: session.role }, body.branchId),
+    ]);
+
     if (!branch) {
       return Response.json({ error: "Invalid branch" }, { status: 400 });
     }
-
-    const routingResult = await resolveClaimRouting(
-      { id: session.id, role: session.role },
-      branch.id,
-    );
+    if (!category) {
+      return Response.json({ error: "Invalid category" }, { status: 400 });
+    }
     if ("error" in routingResult) {
       return Response.json({ error: routingResult.error }, { status: 400 });
     }
     const { routing } = routingResult;
 
-    const category = await prisma.expenseCategory.findFirst({
-      where: { name: body.category, active: true },
-    });
-    if (!category) {
-      return Response.json({ error: "Invalid category" }, { status: 400 });
-    }
-
-    const employee = await prisma.user.findUniqueOrThrow({
-      where: { id: session.id },
-    });
-
     const claim = await prisma.reimbursement.create({
       data: {
         employeeId: session.id,
-        employeeName: employee.name ?? "Employee",
+        employeeName: session.name ?? "Employee",
         amount: body.amount,
         branchId: branch.id,
         category: body.category,
@@ -77,15 +70,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const fullClaim = await prisma.reimbursement.findUniqueOrThrow({
-      where: { id: claim.id },
-      include: claimInclude,
-    });
-
-    return Response.json(
-      { ...serializeClaim(fullClaim), payoutWarning },
-      { status: 201 },
-    );
+    return Response.json({ id: claim.id, payoutWarning }, { status: 201 });
   } catch (err) {
     console.error("create-claim failed", err);
     return Response.json(

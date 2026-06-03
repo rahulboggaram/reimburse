@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,9 @@ import {
   fetchClientCache,
   invalidateClientCache,
 } from "@/lib/client-cache";
-import { toTitleCase } from "@/lib/user-profile";
+import { prepareReceiptFilesForUpload } from "@/lib/compress-receipt-image";
+
+type SubmitPhase = "idle" | "preparing" | "uploading";
 
 type Branch = { id: string; name: string };
 type ExpenseCategory = { id: string; name: string };
@@ -57,11 +59,13 @@ export function ReimbursementForm(props: {
   onSuccess?: () => void;
 }) {
   const router = useRouter();
+  const [, startNavigation] = useTransition();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
   const [amount, setAmount] = useState(props.initial?.amount ?? "");
   const [branchId, setBranchId] = useState(props.initial?.branchId ?? "");
@@ -91,6 +95,12 @@ export function ReimbursementForm(props: {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
   }, []);
+
+  useEffect(() => {
+    if (!props.claimId) {
+      router.prefetch("/employee/claims");
+    }
+  }, [router, props.claimId]);
 
   function validate(): FieldErrors {
     const errors: FieldErrors = {};
@@ -130,14 +140,19 @@ export function ReimbursementForm(props: {
     const parsedAmount = Number.parseFloat(amount);
 
     setSubmitting(true);
+    setSubmitPhase("preparing");
     try {
+      const preparedReceipts = await prepareReceiptFilesForUpload(
+        receipts.map((item) => item.file),
+      );
+
       const formData = new FormData();
       formData.set("amount", String(parsedAmount));
       formData.set("branchId", branchId.trim());
       formData.set("category", category);
       formData.set("description", description.trim());
-      for (const item of receipts) {
-        formData.append("receipts", item.file);
+      for (const file of preparedReceipts) {
+        formData.append("receipts", file);
       }
 
       const url = props.claimId
@@ -145,11 +160,14 @@ export function ReimbursementForm(props: {
         : "/api/claims";
       const method = props.claimId ? "PATCH" : "POST";
 
+      setSubmitPhase("uploading");
       const response = await fetch(url, {
         method,
         body: formData,
       });
-      const result = await readJson<{ payoutWarning?: string }>(response);
+      const result = await readJson<{ id: string; payoutWarning?: string }>(
+        response,
+      );
       invalidateClientCache("claims-mine");
 
       if (result.payoutWarning) {
@@ -162,7 +180,9 @@ export function ReimbursementForm(props: {
       if (props.onSuccess) {
         props.onSuccess();
       } else {
-        router.push("/employee/claims");
+        startNavigation(() => {
+          router.replace("/employee/claims");
+        });
       }
     } catch (err) {
       setError(
@@ -172,8 +192,16 @@ export function ReimbursementForm(props: {
       );
     } finally {
       setSubmitting(false);
+      setSubmitPhase("idle");
     }
   }
+
+  const submitButtonLabel = (() => {
+    if (!submitting) return props.submitLabel;
+    if (submitPhase === "preparing") return "Preparing photos…";
+    if (submitPhase === "uploading") return "Submitting…";
+    return "Saving…";
+  })();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -336,7 +364,7 @@ export function ReimbursementForm(props: {
           categories.length === 0
         }
       >
-        {submitting ? "Saving…" : props.submitLabel}
+        {submitButtonLabel}
       </Button>
     </form>
 
