@@ -4,26 +4,31 @@ const labels: Record<string, string> = {
   PENDING_FINANCE_APPROVAL: "Pending finance approval",
 };
 
-const pendingStyle = "bg-amber-100 text-amber-700";
+/** Light tint background + saturated text for readable compact badges. */
+const pendingStyle = "bg-amber-50 text-amber-600";
+const successStyle = "bg-emerald-50 text-emerald-600";
+const errorStyle = "bg-red-50 text-red-600";
+const progressStyle = "bg-blue-50 text-blue-600";
+const neutralStyle = "bg-zinc-100 text-zinc-600";
 
 const styles: Record<string, string> = {
   PENDING: pendingStyle,
   pending: pendingStyle,
   pending_finance_approval: pendingStyle,
   PENDING_FINANCE_APPROVAL: pendingStyle,
-  APPROVED: "bg-emerald-100 text-emerald-800",
-  PAID: "bg-emerald-100 text-emerald-800",
-  REJECTED: "bg-red-100 text-red-800",
-  paying: "bg-blue-100 text-blue-800",
-  queued: "bg-blue-100 text-blue-800",
-  processing: "bg-blue-100 text-blue-800",
-  processed: "bg-emerald-100 text-emerald-800",
-  failed: "bg-red-100 text-red-800",
-  rejected: "bg-red-100 text-red-800",
-  reversed: "bg-red-100 text-red-800",
-  cancelled: "bg-red-100 text-red-800",
-  "not started": "bg-zinc-100 text-zinc-700",
-  not_started: "bg-zinc-100 text-zinc-700",
+  APPROVED: successStyle,
+  PAID: successStyle,
+  processed: successStyle,
+  REJECTED: errorStyle,
+  failed: errorStyle,
+  rejected: errorStyle,
+  reversed: errorStyle,
+  cancelled: errorStyle,
+  paying: progressStyle,
+  queued: progressStyle,
+  processing: progressStyle,
+  "not started": neutralStyle,
+  not_started: neutralStyle,
 };
 
 type IconKind = "pending" | "finance" | "success" | "error" | "progress";
@@ -31,10 +36,13 @@ type IconKind = "pending" | "finance" | "success" | "error" | "progress";
 function iconKindForStatus(raw: string, key: string): IconKind {
   const lower = raw.toLowerCase();
 
-  if (raw === "PENDING_FINANCE_APPROVAL" || key === "pending_finance_approval") {
-    return "finance";
-  }
-  if (lower === "pending" || raw === "PENDING" || lower === "not_started") {
+  if (
+    lower === "pending" ||
+    raw === "PENDING" ||
+    raw === "PENDING_FINANCE_APPROVAL" ||
+    key === "pending_finance_approval" ||
+    lower === "not_started"
+  ) {
     return "pending";
   }
   if (
@@ -130,12 +138,12 @@ export function StatusBadge(props: {
     <span
       title={label}
       className={cn(
-        "inline-flex max-w-full items-center gap-1 rounded-full font-semibold ring-1 ring-inset ring-black/5",
+        "inline-flex max-w-full items-center gap-1 rounded-full font-semibold",
         props.compact
-          ? "truncate px-2 py-0.5 text-[10px] leading-tight"
-          : "px-2.5 py-0.5 text-xs",
+          ? "truncate px-2 py-0.5 text-[11px] leading-snug"
+          : "px-2.5 py-0.5 text-xs leading-snug",
         useCapitalize && "capitalize",
-        styles[key] ?? styles[raw] ?? styles[label] ?? "bg-zinc-100 text-zinc-700",
+        styles[key] ?? styles[raw] ?? styles[label] ?? neutralStyle,
         props.className,
       )}
     >
