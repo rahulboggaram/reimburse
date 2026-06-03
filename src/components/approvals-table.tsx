@@ -15,6 +15,12 @@ import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDateNoYear } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
+const employeeCellClass =
+  "truncate text-sm font-semibold text-zinc-900";
+
+const bodyCellClass =
+  "text-sm font-normal text-zinc-600 tabular-nums";
+
 export function ApprovalsTableHeader(props: {
   showStatus?: boolean;
   showCategory?: boolean;
@@ -25,10 +31,10 @@ export function ApprovalsTableHeader(props: {
 
   return (
     <div className={claimsTableHeaderClass(grid)}>
+      <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
       {showCategory ? (
         <span className={cn(claimsTableColStart, "truncate")}>Category</span>
       ) : null}
-      <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
         Amount
@@ -58,36 +64,22 @@ export function ApprovalsTableRow(props: {
       onClick={props.onOpen}
       className={claimsTableRowClass(grid)}
     >
+      <span className={cn(claimsTableColStart, employeeCellClass)}>
+        {claim.employeeName}
+      </span>
       {showCategory ? (
-        <span
-          className={cn(
-            claimsTableColStart,
-            "truncate text-sm font-medium text-zinc-900",
-          )}
-        >
+        <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
           {claim.category}
         </span>
       ) : null}
-      <span
-        className={cn(
-          claimsTableColStart,
-          "truncate text-sm font-medium text-zinc-900",
-        )}
-      >
-        {claim.employeeName}
-      </span>
-      <span
-        className={cn(
-          claimsTableColCenter,
-          "text-sm whitespace-nowrap text-zinc-600 tabular-nums",
-        )}
-      >
+      <span className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}>
         {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
       <span
         className={cn(
           claimsTableColCenter,
-          "text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums",
+          bodyCellClass,
+          "whitespace-nowrap",
         )}
       >
         ₹{claim.amount.toLocaleString("en-IN")}
