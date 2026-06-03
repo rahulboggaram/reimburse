@@ -13,7 +13,6 @@ import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { toTitleCase } from "@/lib/user-profile";
 import { readJson } from "@/lib/api";
 import {
   canInitiateClaimPayment,
