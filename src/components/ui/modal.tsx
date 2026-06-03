@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 export function Modal(props: {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
   className?: string;
@@ -43,21 +43,41 @@ export function Modal(props: {
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={props.title ? "modal-title" : undefined}
+        aria-label={props.title ? undefined : "Details"}
         className={cn(
           "relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl",
           props.className,
         )}
       >
-        <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-5">
-          <div className="min-w-0 pr-2">
-            <h2 id="modal-title" className="text-lg font-semibold text-zinc-900">
-              {toTitleCase(props.title)}
-            </h2>
-            {props.subtitle ? (
-              <p className="mt-1 text-sm text-zinc-500">{props.subtitle}</p>
-            ) : null}
-          </div>
+        <div
+          className={cn(
+            "flex items-start gap-3 px-5 pb-2 pt-5",
+            props.title || props.subtitle ? "justify-between" : "justify-end",
+          )}
+        >
+          {props.title || props.subtitle ? (
+            <div className="min-w-0 pr-2">
+              {props.title ? (
+                <h2
+                  id="modal-title"
+                  className="text-lg font-semibold text-zinc-900"
+                >
+                  {toTitleCase(props.title)}
+                </h2>
+              ) : null}
+              {props.subtitle ? (
+                <p
+                  className={cn(
+                    "text-sm text-zinc-500",
+                    props.title ? "mt-1" : undefined,
+                  )}
+                >
+                  {props.subtitle}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <button
             type="button"
             onClick={props.onClose}

@@ -76,12 +76,22 @@ function ReceiptLightbox(props: {
   );
 }
 
+function ReceiptHeading(props: { title: string; count: number; hideCount?: boolean }) {
+  return (
+    <p className="text-xs font-medium text-zinc-500">
+      {props.title}
+      {!props.hideCount && props.count > 0 ? ` (${props.count})` : ""}
+    </p>
+  );
+}
+
 export function ReceiptGallery(props: {
   receipts: Receipt[];
   receiptCount?: number;
   title?: string;
   compact?: boolean;
   loading?: boolean;
+  hideCount?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Receipt | null>(null);
   const count = props.receiptCount ?? props.receipts.length;
@@ -93,10 +103,11 @@ export function ReceiptGallery(props: {
   if (props.loading && props.receipts.length === 0 && props.compact) {
     return (
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-500">
-          {heading}
-          {count > 0 ? ` (${count})` : ""}
-        </p>
+        <ReceiptHeading
+          title={heading}
+          count={count}
+          hideCount={props.hideCount}
+        />
         <ul className="flex flex-wrap gap-3" aria-busy="true" aria-label="Loading receipts">
           {Array.from({ length: count }, (_, index) => (
             <li key={index}>
@@ -111,10 +122,11 @@ export function ReceiptGallery(props: {
   if (!props.compact) {
     return (
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-500">
-          {heading}
-          {count > 0 ? ` (${count})` : ""}
-        </p>
+        <ReceiptHeading
+          title={heading}
+          count={count}
+          hideCount={props.hideCount}
+        />
         <ul className="grid grid-cols-2 gap-2">
           {props.receipts.map((receipt) => (
             <li key={receipt.id}>
@@ -152,17 +164,18 @@ export function ReceiptGallery(props: {
   return (
     <>
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-500">
-          {heading}
-          {count > 0 ? ` (${count})` : ""}
-        </p>
+        <ReceiptHeading
+          title={heading}
+          count={count}
+          hideCount={props.hideCount}
+        />
         <ul className="flex flex-wrap gap-3">
           {props.receipts.map((receipt) => (
-            <li key={receipt.id} className="flex flex-col items-center gap-1.5">
+            <li key={receipt.id}>
               <button
                 type="button"
                 onClick={() => setExpanded(receipt)}
-                className="size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
+                className="group relative size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -176,13 +189,14 @@ export function ReceiptGallery(props: {
                     📄
                   </span>
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setExpanded(receipt)}
-                className={cn("text-xs font-medium", textLinkClassName)}
-              >
-                View
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/45 opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-zinc-900">
+                    View
+                  </span>
+                </span>
               </button>
             </li>
           ))}

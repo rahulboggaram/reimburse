@@ -14,6 +14,7 @@ import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
 import { readJson } from "@/lib/api";
 import {
@@ -228,15 +229,19 @@ export function ClaimDetailModal(props: {
     <Modal
       open={props.open}
       onClose={props.onClose}
-      title={claim.employeeName}
       subtitle={modalSubtitle}
     >
       <div className="space-y-8">
         <div>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <span className="text-lg font-semibold font-tabular-nums text-zinc-900">
-              ₹{claim.amount.toLocaleString("en-IN")}
-            </span>
+          <div className="flex flex-wrap items-start gap-2.5">
+            <div>
+              <p className="text-lg font-bold font-tabular-nums text-zinc-900">
+                ₹{claim.amount.toLocaleString("en-IN")}
+              </p>
+              <p className="mt-1 text-sm text-zinc-600">
+                by {toTitleCase(claim.employeeName)}
+              </p>
+            </div>
             {hideStatusBadge ? null : (
               <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
             )}
@@ -293,6 +298,15 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
+        <ReceiptGallery
+          receipts={claim.receipts}
+          receiptCount={receiptsTotal}
+          title="Receipts"
+          compact
+          hideCount
+          loading={loadingDetail}
+        />
+
         <ClaimTimeline claim={claim} />
 
         {claim.rejectionReason ? (
@@ -301,14 +315,6 @@ export function ClaimDetailModal(props: {
             <p className="mt-1 text-sm text-red-800">{claim.rejectionReason}</p>
           </div>
         ) : null}
-
-        <ReceiptGallery
-          receipts={claim.receipts}
-          receiptCount={receiptsTotal}
-          title="Receipt photos"
-          compact
-          loading={loadingDetail}
-        />
 
         {props.variant === "employee" && claim.status === "REJECTED" ? (
           <Link
