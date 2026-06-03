@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import {
   MyClaimsTableHeader,
@@ -12,20 +13,27 @@ import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 import { fetchClientCache } from "@/lib/client-cache";
+import { claimsMineCacheKey } from "@/lib/claims-cache";
 
 export default function MyClaimsPage() {
+  const { user, loading: meLoading } = useMe();
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   useEffect(() => {
-    fetchClientCache("claims-mine", async () => {
+    if (meLoading || !user) return;
+
+    setLoading(true);
+    fetchClientCache(claimsMineCacheKey(user.id), async () => {
       const res = await fetch("/api/claims/mine");
       return readJson<SerializedClaim[]>(res);
     })
-      .then(setClaims)
+      .then((rows) =>
+        setClaims(rows.filter((claim) => claim.employeeId === user.id)),
+      )
       .finally(() => setLoading(false));
-  }, []);
+  }, [meLoading, user?.id]);
 
   if (loading) {
     return (

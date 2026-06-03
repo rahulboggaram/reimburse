@@ -168,7 +168,8 @@ export function ReimbursementForm(props: {
       const result = await readJson<{ id: string; payoutWarning?: string }>(
         response,
       );
-      invalidateClientCache("claims-mine");
+      invalidateClientCache("claims-mine:");
+      invalidateClientCache("claims-rejected:");
 
       if (result.payoutWarning) {
         setError(

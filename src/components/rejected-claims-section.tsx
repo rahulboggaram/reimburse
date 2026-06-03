@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import { ClaimListRow } from "@/components/claim-list-row";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { formatDisplayDate } from "@/lib/dates";
 import { readJson } from "@/lib/api";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { fetchClientCache } from "@/lib/client-cache";
+import { claimsRejectedCacheKey } from "@/lib/claims-cache";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { toTitleCase } from "@/lib/user-profile";
 
@@ -19,20 +21,33 @@ function rejectorLabel(claim: SerializedClaim) {
 }
 
 export function RejectedClaimsSection() {
+  const { user, loading: meLoading } = useMe();
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   useEffect(() => {
-    fetchClientCache("claims-mine", async () => {
-      const res = await fetch("/api/claims/mine");
+    if (meLoading) return;
+    if (!user || user.role !== "EMPLOYEE") {
+      setClaims([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    fetchClientCache(claimsRejectedCacheKey(user.id), async () => {
+      const res = await fetch("/api/claims/mine/rejected");
       return readJson<SerializedClaim[]>(res);
     })
       .then(setClaims)
       .finally(() => setLoading(false));
-  }, []);
+  }, [meLoading, user?.id, user?.role]);
 
-  const rejected = claims.filter((claim) => claim.status === "REJECTED");
+  if (!meLoading && user?.role !== "EMPLOYEE") return null;
+
+  const rejected = claims.filter(
+    (claim) => claim.status === "REJECTED" && claim.employeeId === user?.id,
+  );
 
   if (loading) {
     return (

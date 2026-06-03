@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useMe } from "@/components/me-provider";
 import type { MeUser } from "@/components/me-provider";
+import { invalidateClientCache } from "@/lib/client-cache";
 import { userDisplayLabel } from "@/lib/user-profile";
 import type { SessionUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -151,6 +152,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
 
   async function logout() {
     closeMenu();
+    invalidateClientCache();
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
