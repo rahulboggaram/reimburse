@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
 import { tryAutoPayAfterAdminApproval } from "@/lib/admin-auto-payout";
+import { canDecideReimbursement } from "@/lib/claim-decide-access";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { decideReimbursementSchema } from "@/lib/validators";
 
@@ -29,7 +30,10 @@ export async function POST(
 
   const existing = await prisma.reimbursement.findUnique({
     where: { id },
-    include: { employee: { select: employeeForPayoutSelect } },
+    include: {
+      employee: { select: { ...employeeForPayoutSelect, role: true } },
+      approver: { select: { role: true } },
+    },
   });
   if (!existing) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
@@ -37,7 +41,7 @@ export async function POST(
   if (existing.status !== "PENDING") {
     return Response.json({ error: "Claim already decided" }, { status: 409 });
   }
-  if (existing.approverId !== session.id) {
+  if (!canDecideReimbursement(session, existing)) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
@@ -46,6 +50,7 @@ export async function POST(
     data: {
       status: body.data.status,
       decidedAt: new Date(),
+      ...(session.role === "ADMIN" ? { approverId: session.id } : {}),
       rejectionReason:
         body.data.status === "REJECTED"
           ? body.data.rejectionReason ?? null

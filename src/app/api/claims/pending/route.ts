@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
+import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import {
   claimNeedsPayoutSync,
   refreshPayoutsFromRazorpay,
@@ -76,7 +77,7 @@ function queueWhere(
 
   if (session.role === "ADMIN") {
     if (tab === "waiting") {
-      return { status: "PENDING", approverId: session.id };
+      return adminApprovalQueueWhere();
     }
     return {
       approverId: session.id,

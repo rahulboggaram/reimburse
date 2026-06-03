@@ -18,6 +18,7 @@ import {
   payoutInProgress,
 } from "@/lib/claim-display-status";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
+import { canDecideReimbursement } from "@/lib/claim-decide-access";
 
 function payoutFailed(status: string | null) {
   return (
@@ -314,7 +315,7 @@ export function ClaimDetailModal(props: {
           />
         ) : null}
 
-        {claim.status === "PENDING" && user?.id === claim.approverId ? (
+        {user && canDecideReimbursement(user, claim) ? (
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="rejection-reason">Rejection reason</Label>
