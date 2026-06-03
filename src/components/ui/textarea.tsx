@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 const textareaClassName =
-  "flex min-h-24 w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-base outline-none ring-zinc-900 focus-visible:ring-2";
+  "flex min-h-24 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-base outline-none ring-zinc-900 focus-visible:ring-2";
 
 function resizeToContent(textarea: HTMLTextAreaElement) {
   textarea.style.height = "0px";

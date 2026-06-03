@@ -225,14 +225,9 @@ export function ClaimDetailModal(props: {
     >
       <div className="space-y-8">
         <div>
-          <div>
-            <p className="text-lg font-bold font-tabular-nums text-zinc-900">
-              ₹{claim.amount.toLocaleString("en-IN")}
-            </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              by {toTitleCase(claim.employeeName)}
-            </p>
-          </div>
+          <p className="text-lg font-bold font-tabular-nums text-zinc-900">
+            ₹{claim.amount.toLocaleString("en-IN")}
+          </p>
 
           <div className="mt-8 space-y-1">
             <p className="text-xs font-medium text-zinc-500">{claim.category}</p>
@@ -243,7 +238,7 @@ export function ClaimDetailModal(props: {
         </div>
 
         {showPayoutInfo ? (
-          <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+          <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 py-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Payment
             </p>
@@ -297,7 +292,7 @@ export function ClaimDetailModal(props: {
         <ClaimTimeline claim={claim} />
 
         {claim.rejectionReason ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+          <div className="rounded-xl border border-red-200 bg-red-50 py-3">
             <p className="text-xs font-medium text-zinc-500">Rejection reason</p>
             <p className="mt-1 text-sm text-red-800">{claim.rejectionReason}</p>
           </div>

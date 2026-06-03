@@ -52,53 +52,56 @@ export function Modal(props: {
           props.className,
         )}
       >
-        <div className="relative overflow-y-auto p-5">
-          <button
-            type="button"
-            onClick={props.onClose}
-            aria-label="Close"
-            className="absolute right-5 top-5 z-10 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
-          >
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="size-5"
+        <div className="overflow-y-auto p-5">
+          <div className="flex items-start justify-between gap-4">
+            {hasHeader ? (
+              <div className="min-w-0 flex-1">
+                {props.title ? (
+                  <h2
+                    id="modal-title"
+                    className="text-lg font-semibold text-zinc-900"
+                  >
+                    {toTitleCase(props.title)}
+                  </h2>
+                ) : null}
+                {props.subtitle ? (
+                  <p
+                    className={cn(
+                      "text-sm text-zinc-500",
+                      props.title ? "mt-1" : undefined,
+                    )}
+                  >
+                    {props.subtitle}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="min-w-0 flex-1" />
+            )}
+            <button
+              type="button"
+              onClick={props.onClose}
+              aria-label="Close"
+              className="-mr-1.5 -mt-1.5 shrink-0 rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              <svg
+                aria-hidden
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="size-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18 18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
 
-          {hasHeader ? (
-            <div className="mb-4 pr-10">
-              {props.title ? (
-                <h2
-                  id="modal-title"
-                  className="text-lg font-semibold text-zinc-900"
-                >
-                  {toTitleCase(props.title)}
-                </h2>
-              ) : null}
-              {props.subtitle ? (
-                <p
-                  className={cn(
-                    "text-sm text-zinc-500",
-                    props.title ? "mt-1" : undefined,
-                  )}
-                >
-                  {props.subtitle}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div>{props.children}</div>
+          <div className={cn(hasHeader ? "mt-4" : "mt-3")}>{props.children}</div>
         </div>
       </div>
     </div>

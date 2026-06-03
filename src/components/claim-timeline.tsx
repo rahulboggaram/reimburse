@@ -217,8 +217,8 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
   const steps = buildTimelineSteps(props.claim);
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4">
-      <ol className="space-y-0">
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 py-4">
+      <ol className="space-y-0 px-3">
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
           const nextStep = steps[index + 1];
