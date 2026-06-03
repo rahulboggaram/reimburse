@@ -16,12 +16,7 @@ export async function GET(request: Request) {
   const claims = await prisma.reimbursement.findMany({
     where: employeeId ? { employeeId } : undefined,
     orderBy: { createdAt: "desc" },
-    include: {
-      ...claimListInclude,
-      employee: {
-        select: { id: true, name: true, phone: true },
-      },
-    },
+    include: claimListInclude,
   });
 
   const syncIds = claims.filter(claimNeedsPayoutSync).map((c) => c.id);
@@ -34,19 +29,9 @@ export async function GET(request: Request) {
       ? await prisma.reimbursement.findMany({
           where: employeeId ? { employeeId } : undefined,
           orderBy: { createdAt: "desc" },
-          include: {
-            ...claimListInclude,
-            employee: {
-              select: { id: true, name: true, phone: true },
-            },
-          },
+          include: claimListInclude,
         })
       : claims;
 
-  return Response.json(
-    fresh.map((claim) => ({
-      ...serializeClaimListItem(claim),
-      employee: claim.employee,
-    })),
-  );
+  return Response.json(fresh.map(serializeClaimListItem));
 }

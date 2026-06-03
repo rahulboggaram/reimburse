@@ -9,6 +9,12 @@ export type SerializedClaim = {
   id: string;
   employeeId: string;
   employeeName: string;
+  employee: {
+    id: string;
+    name: string | null;
+    phone: string;
+    role: string;
+  };
   amount: number;
   category: string;
   description: string;
@@ -46,6 +52,4 @@ export type SerializedClaim = {
   updatedAt: string;
 };
 
-export type AdminClaim = SerializedClaim & {
-  employee: { id: string; name: string | null; phone: string };
-};
+export type AdminClaim = SerializedClaim;

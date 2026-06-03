@@ -103,7 +103,6 @@ export default function AdminClaimsPage() {
         open={selected !== null}
         onClose={() => setSelected(null)}
         variant="admin"
-        employeePhone={selected?.employee.phone}
         onUpdated={async () => {
           invalidateClientCache("admin-claims");
           const list = await fetchClientCache("admin-claims", () =>

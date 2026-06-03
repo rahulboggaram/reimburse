@@ -10,7 +10,8 @@ import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
-import { formatPhoneDisplay } from "@/lib/phone";
+import { formatRole } from "@/lib/access-roles";
+import { toTitleCase } from "@/lib/user-profile";
 import { readJson } from "@/lib/api";
 import {
   canInitiateClaimPayment,
@@ -56,7 +57,6 @@ export function ClaimDetailModal(props: {
   open: boolean;
   onClose: () => void;
   variant: "employee" | "admin" | "approver";
-  employeePhone?: string | null;
   onUpdated?: () => void | Promise<void>;
 }) {
   const [detailClaim, setDetailClaim] = useState<SerializedClaim | null>(null);
@@ -211,8 +211,17 @@ export function ClaimDetailModal(props: {
   const canSyncPayout = payoutUnsettled;
 
   const receiptsTotal = claimReceiptCount(claim);
-  const showBranchInSummary =
-    props.variant === "employee" || user?.role === "BRANCH_MANAGER";
+  const showSubmitterRole =
+    props.variant === "admin" || props.variant === "approver";
+
+  function summarySecondLine() {
+    const branch = claim.branch.name;
+    if (!showSubmitterRole) return branch;
+    const role = claim.employee?.role
+      ? formatRole(claim.employee.role)
+      : null;
+    return role ? `${branch} · ${role}` : branch;
+  }
 
   async function decide(status: "APPROVED" | "REJECTED") {
     setError(null);
@@ -239,11 +248,9 @@ export function ClaimDetailModal(props: {
     }
   }
 
-  const modalSubtitle =
-    (props.variant === "admin" || props.variant === "approver") &&
-    props.employeePhone
-      ? formatPhoneDisplay(props.employeePhone)
-      : undefined;
+  const modalSubtitle = showSubmitterRole
+    ? toTitleCase(claim.employeeName)
+    : undefined;
 
   return (
     <Modal
@@ -259,23 +266,10 @@ export function ClaimDetailModal(props: {
       <div className="space-y-8">
         <div>
           <div className="space-y-1">
-            {showBranchInSummary ? (
-              <>
-                <p className="text-sm leading-relaxed text-zinc-900">
-                  {claim.category}: {claim.description}
-                </p>
-                <p className="text-sm text-zinc-600">{claim.branch.name}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs font-medium text-zinc-500">
-                  {claim.category}
-                </p>
-                <p className="text-sm leading-relaxed text-zinc-600">
-                  {claim.description}
-                </p>
-              </>
-            )}
+            <p className="text-sm leading-relaxed text-zinc-900">
+              {claim.category}: {claim.description}
+            </p>
+            <p className="text-sm text-zinc-600">{summarySecondLine()}</p>
           </div>
         </div>
 

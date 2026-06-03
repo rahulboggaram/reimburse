@@ -1,7 +1,15 @@
 import type { Prisma } from "@prisma/client";
 import { receiptViewUrl } from "@/lib/receipt-url";
 
+const employeeSelect = {
+  id: true,
+  name: true,
+  phone: true,
+  role: true,
+} as const;
+
 export const claimInclude = {
+  employee: { select: employeeSelect },
   approver: { select: { id: true, name: true, phone: true, role: true } },
   paymentApprover: { select: { id: true, name: true, phone: true, role: true } },
   branch: { select: { id: true, name: true, active: true } },
@@ -9,6 +17,7 @@ export const claimInclude = {
 } satisfies Prisma.ReimbursementInclude;
 
 export const claimListInclude = {
+  employee: { select: employeeSelect },
   approver: { select: { id: true, name: true, phone: true, role: true } },
   paymentApprover: { select: { id: true, name: true, phone: true, role: true } },
   branch: { select: { id: true, name: true, active: true } },
@@ -32,6 +41,7 @@ function serializeClaimCore(
     id: claim.id,
     employeeId: claim.employeeId,
     employeeName: claim.employeeName,
+    employee: claim.employee,
     amount: Number(claim.amount),
     category: claim.category,
     description: claim.description,
