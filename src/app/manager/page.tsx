@@ -64,7 +64,7 @@ export default function ManagerPendingPage() {
       <PageHeading
         title="Approvals"
         description="Review and take action"
-        className="mb-4"
+        className="mb-8"
       />
 
       <SegmentControl
