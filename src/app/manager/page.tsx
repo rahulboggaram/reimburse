@@ -79,20 +79,18 @@ export default function ManagerPendingPage() {
           <p className="text-sm text-zinc-600">{emptyMessage(tab)}</p>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-          <div className="min-w-[520px]">
-            <ApprovalsTableHeader />
-            <div>
-              {claims.map((claim) => (
-                <ApprovalsTableRow
-                  key={claim.id}
-                  claim={claim}
-                  onOpen={() => setSelected(claim)}
-                />
-              ))}
-            </div>
+        <Card className="overflow-hidden p-0">
+          <ApprovalsTableHeader />
+          <div>
+            {claims.map((claim) => (
+              <ApprovalsTableRow
+                key={claim.id}
+                claim={claim}
+                onOpen={() => setSelected(claim)}
+              />
+            ))}
           </div>
-        </div>
+        </Card>
       )}
 
       <ClaimDetailModal

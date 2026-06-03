@@ -21,6 +21,13 @@ export function formatDisplayDate(value: string | Date) {
   return date.toLocaleDateString("en-IN", DISPLAY_DATE);
 }
 
+/** e.g. 01 Apr */
+export function formatDisplayDateNoYear(value: string | Date) {
+  const date = toDate(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+}
+
 /** e.g. 01 Apr 2026, 3:30 pm */
 export function formatDisplayDateTime(value: string | Date) {
   const date = toDate(value);
