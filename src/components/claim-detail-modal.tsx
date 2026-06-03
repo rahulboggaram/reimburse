@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMe } from "@/components/me-provider";
 import { ClaimTimeline } from "@/components/claim-timeline";
@@ -18,6 +17,7 @@ import {
   canInitiateClaimPayment,
   payoutInProgress,
 } from "@/lib/claim-display-status";
+import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { cn } from "@/lib/utils";
 
 function payoutFailed(status: string | null) {
@@ -353,14 +353,20 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {props.variant === "employee" && claim.status === "REJECTED" ? (
-          <Link
-            href={`/employee/refile/${claim.id}`}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
-            onClick={props.onClose}
-          >
-            Edit & refile
-          </Link>
+        {props.variant === "employee" &&
+        claim.status === "REJECTED" &&
+        user?.id &&
+        claim.employeeId === user.id ? (
+          <RejectedClaimActions
+            claim={claim}
+            userId={user.id}
+            layout="stacked"
+            onRefileClick={props.onClose}
+            onDeleted={async () => {
+              props.onClose();
+              await props.onUpdated?.();
+            }}
+          />
         ) : null}
 
         {(props.variant === "admin" || user?.role === "BRANCH_MANAGER") &&
