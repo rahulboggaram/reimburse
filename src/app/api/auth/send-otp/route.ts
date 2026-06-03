@@ -1,5 +1,11 @@
 import { normalizePhone } from "@/lib/phone";
-import { createOtpChallenge, isOtpMockMode, otpSmsBody } from "@/lib/otp";
+import {
+  createOtpChallenge,
+  isOtpMockMode,
+  otpSmsBody,
+  SmsConfigError,
+  SmsDeliveryError,
+} from "@/lib/otp";
 import { prisma } from "@/lib/db";
 import { sendOtpSchema } from "@/lib/validators";
 
@@ -38,7 +44,16 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("send-otp failed", err);
 
-    // Most common prod cause is DB/env config; give a helpful, non-technical nudge.
+    if (err instanceof SmsConfigError) {
+      return Response.json({ error: err.message }, { status: 503 });
+    }
+    if (err instanceof SmsDeliveryError) {
+      return Response.json(
+        { error: "Could not send SMS. Try again in a moment." },
+        { status: 502 },
+      );
+    }
+
     const isDbConfigured =
       Boolean(process.env.DATABASE_URL) && Boolean(process.env.DIRECT_URL);
 

@@ -30,6 +30,37 @@ npm run dev
 - **Admin**: list employees, assign **Approver** toggle (only after they complete profile)
 - **RazorpayX payouts**: pay approved claims from Admin → All claims
 
+## Live OTP (SMS login) — do this before live Razorpay
+
+1. Pick an SMS provider (India: [MSG91](https://msg91.com/) with DLT-approved OTP template is common).
+2. On **Vercel → Production** env vars, set:
+
+```env
+OTP_MOCK="false"
+NEXT_PUBLIC_OTP_MOCK="false"
+NEXT_PUBLIC_OTP_DOMAIN="reimburse-jade.vercel.app"
+```
+
+3. **MSG91** (recommended for +91 numbers):
+
+```env
+MSG91_AUTH_KEY="your-authkey"
+MSG91_TEMPLATE_ID="your-dlt-otp-template-id"
+```
+
+Template should include the OTP variable MSG91 expects (often `##OTP##`).
+
+4. **Or Twilio** (alternative):
+
+```env
+TWILIO_ACCOUNT_SID=""
+TWILIO_AUTH_TOKEN=""
+TWILIO_FROM_NUMBER="+1..." 
+```
+
+5. Redeploy Production. Test login with a registered phone — you should receive a real SMS (not 123456 on screen).
+6. Keep **`RAZORPAYX_MOCK="true"`** until OTP works, then follow Razorpay live steps below.
+
 ## RazorpayX setup (real payouts)
 
 1. Sign up at [RazorpayX](https://razorpay.com/x/) and complete KYC.

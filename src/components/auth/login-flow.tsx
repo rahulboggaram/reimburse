@@ -12,6 +12,7 @@ import { readJson } from "@/lib/api";
 import { invalidateClientCache } from "@/lib/client-cache";
 
 const MOCK_OTP = "123456";
+const showDemoHints = process.env.NEXT_PUBLIC_OTP_MOCK === "true";
 
 type Step = "phone" | "otp";
 
@@ -177,9 +178,11 @@ export function LoginFlow() {
         )}
       </Card>
 
-      <p className="mt-6 text-center text-xs text-zinc-500">
-        Demo OTP is always 123456 · Admin 9999000001 · Employee 9999000003
-      </p>
+      {showDemoHints ? (
+        <p className="mt-6 text-center text-xs text-zinc-500">
+          Demo OTP is always 123456 · Admin 9999000001 · Employee 9999000003
+        </p>
+      ) : null}
     </div>
   );
 }

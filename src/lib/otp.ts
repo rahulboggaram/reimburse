@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/db";
+import { isSmsConfigured, sendOtpSms, SmsConfigError, SmsDeliveryError } from "@/lib/sms";
+
+export { SmsConfigError, SmsDeliveryError };
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 export const MOCK_OTP_CODE = "123456";
@@ -26,6 +29,21 @@ export async function createOtpChallenge(phone: string) {
 
   if (isOtpMockMode()) {
     console.log(`[Reimburse OTP] ${phone} → ${code}`);
+    return { code, expiresAt };
+  }
+
+  if (!isSmsConfigured()) {
+    await prisma.otpChallenge.deleteMany({ where: { phone } });
+    throw new SmsConfigError(
+      "Live OTP is on but SMS is not configured. Add MSG91 or Twilio keys on Vercel, or set OTP_MOCK=true.",
+    );
+  }
+
+  try {
+    await sendOtpSms(phone, code, otpSmsBody(code));
+  } catch (error) {
+    await prisma.otpChallenge.deleteMany({ where: { phone } });
+    throw error;
   }
 
   return { code, expiresAt };

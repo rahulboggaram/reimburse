@@ -1,5 +1,10 @@
 import { requireEmployeePortalAccess } from "@/lib/auth-api";
-import { createOtpChallenge, isOtpMockMode } from "@/lib/otp";
+import {
+  createOtpChallenge,
+  isOtpMockMode,
+  SmsConfigError,
+  SmsDeliveryError,
+} from "@/lib/otp";
 import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/db";
 import { sendOtpSchema } from "@/lib/validators";
@@ -36,12 +41,29 @@ export async function POST(request: Request) {
     );
   }
 
-  const { code } = await createOtpChallenge(phone);
+  try {
+    const { code } = await createOtpChallenge(phone);
 
-  return Response.json({
-    ok: true,
-    phone,
-    mock: isOtpMockMode(),
-    mockCode: isOtpMockMode() ? code : undefined,
-  });
+    return Response.json({
+      ok: true,
+      phone,
+      mock: isOtpMockMode(),
+      mockCode: isOtpMockMode() ? code : undefined,
+    });
+  } catch (err) {
+    console.error("change-phone send-otp failed", err);
+    if (err instanceof SmsConfigError) {
+      return Response.json({ error: err.message }, { status: 503 });
+    }
+    if (err instanceof SmsDeliveryError) {
+      return Response.json(
+        { error: "Could not send SMS. Try again in a moment." },
+        { status: 502 },
+      );
+    }
+    return Response.json(
+      { error: "Server error. Please try again." },
+      { status: 500 },
+    );
+  }
 }
