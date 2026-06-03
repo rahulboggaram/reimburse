@@ -318,7 +318,7 @@ export function ClaimDetailModal(props: {
         claim.status === "PENDING" ? (
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="rejection-reason">Rejection reason (if rejecting)</Label>
+              <Label htmlFor="rejection-reason">Rejection reason</Label>
               <Textarea
                 id="rejection-reason"
                 rows={1}
