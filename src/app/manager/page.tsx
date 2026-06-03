@@ -109,10 +109,8 @@ export default function ManagerPendingPage() {
         onUpdated={async () => {
           invalidateClientCache("claims-pending");
           setSelected(null);
-          await refreshQueue();
-          if (tab === "waiting") {
-            await loadClaims("approved");
-          }
+          await loadClaims("waiting");
+          await loadClaims("approved");
         }}
       />
     </>

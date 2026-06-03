@@ -152,6 +152,19 @@ export async function applyPayoutResult(input: {
   return claim;
 }
 
+/** Refresh payout status from Razorpay when still queued or processing. */
+export async function refreshPayoutIfInProgress(claimId: string) {
+  const claim = await prisma.reimbursement.findUnique({
+    where: { id: claimId },
+    select: { razorpayPayoutId: true, payoutStatus: true },
+  });
+  if (!claim?.razorpayPayoutId) return null;
+  if (!claim.payoutStatus || !isPayoutInProgress(claim.payoutStatus)) {
+    return null;
+  }
+  return syncPayoutForClaim(claimId);
+}
+
 export async function syncPayoutFromWebhook(payout: RazorpayPayoutResponse) {
   const claim = await prisma.reimbursement.findFirst({
     where: { razorpayPayoutId: payout.id },

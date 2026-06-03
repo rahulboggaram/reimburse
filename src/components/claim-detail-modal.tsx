@@ -156,7 +156,11 @@ export function ClaimDetailModal(props: {
     setError(null);
     setSyncingPayout(true);
     try {
-      const response = await fetch(`/api/admin/claims/${claim.id}/payout/sync`, {
+      const syncUrl =
+        props.variant === "admin"
+          ? `/api/admin/claims/${claim.id}/payout/sync`
+          : `/api/claims/${claim.id}/payout/sync`;
+      const response = await fetch(syncUrl, {
         method: "POST",
       });
       const updated = await readJson<SerializedClaim>(response);
@@ -171,12 +175,14 @@ export function ClaimDetailModal(props: {
   }
 
   const canRetryPay =
-    claim.status === "APPROVED" && payoutFailed(claim.payoutStatus) && props.variant === "admin";
+    canPay &&
+    claim.status === "APPROVED" &&
+    payoutFailed(claim.payoutStatus);
 
   const canSyncPayout =
-    props.variant === "admin" &&
-    claim.status === "APPROVED" &&
-    Boolean(claim.razorpayPayoutId);
+    (props.variant === "admin" || props.variant === "approver") &&
+    Boolean(claim.razorpayPayoutId) &&
+    !claim.paidAt;
 
   const showPayoutInfo =
     claim.razorpayPayoutId ||
@@ -309,7 +315,7 @@ export function ClaimDetailModal(props: {
           </Link>
         ) : null}
 
-        {(props.variant === "approver" || props.variant === "admin") &&
+        {(props.variant === "admin" || user?.role === "BRANCH_MANAGER") &&
         claim.status === "PENDING" ? (
           <div className="space-y-4">
             <div className="space-y-1.5">
@@ -418,7 +424,7 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {props.variant === "admin" &&
+        {(props.variant === "admin" || props.variant === "approver") &&
         claim.status === "APPROVED" &&
         payoutInProgress(claim.payoutStatus) ? (
           <p className="border-t border-zinc-100 pt-8 text-sm text-blue-700">

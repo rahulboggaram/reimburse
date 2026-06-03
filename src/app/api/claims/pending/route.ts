@@ -5,6 +5,13 @@ import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
 type QueueTab = "waiting" | "approved";
 
+const failedPayoutStatuses = [
+  "failed",
+  "rejected",
+  "cancelled",
+  "reversed",
+] as const;
+
 function queueWhere(
   session: { id: string; role: string },
   tab: QueueTab,
@@ -13,31 +20,51 @@ function queueWhere(
     if (tab === "waiting") {
       return { status: "PENDING", approverId: session.id };
     }
-    return { status: "APPROVED", approverId: session.id };
+    return {
+      approverId: session.id,
+      status: { in: ["APPROVED", "PAID"] },
+    };
   }
 
   if (session.role === "APPROVER") {
-    const base = {
-      status: "APPROVED" as const,
+    const assigned = {
       paymentApproverId: session.id,
       employeeId: { not: session.id },
     };
     if (tab === "waiting") {
-      return { ...base, paidAt: null };
+      return {
+        ...assigned,
+        status: "APPROVED",
+        paidAt: null,
+        OR: [
+          { razorpayPayoutId: null },
+          { payoutStatus: { in: [...failedPayoutStatuses] } },
+        ],
+      };
     }
-    return { ...base, paidAt: { not: null } };
+    return {
+      ...assigned,
+      OR: [
+        { status: "PAID" },
+        {
+          status: "APPROVED",
+          razorpayPayoutId: { not: null },
+          payoutStatus: { notIn: [...failedPayoutStatuses] },
+        },
+      ],
+    };
   }
 
   if (session.role === "ADMIN") {
     if (tab === "waiting") {
       return { status: "PENDING" };
     }
-    return { status: "APPROVED" };
+    return { status: { in: ["APPROVED", "PAID"] } };
   }
 
   return tab === "waiting"
     ? { status: "PENDING" }
-    : { status: "APPROVED" };
+    : { status: { in: ["APPROVED", "PAID"] } };
 }
 
 export async function GET(request: Request) {
@@ -50,7 +77,7 @@ export async function GET(request: Request) {
   const orderBy =
     tab === "approved"
       ? session.role === "APPROVER"
-        ? { paidAt: "desc" as const }
+        ? { payoutInitiatedAt: "desc" as const }
         : { decidedAt: "desc" as const }
       : { createdAt: "desc" as const };
 

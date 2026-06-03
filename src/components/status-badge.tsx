@@ -14,8 +14,8 @@ const neutralStyle = "bg-zinc-100 text-zinc-600";
 const styles: Record<string, string> = {
   PENDING: pendingStyle,
   pending: pendingStyle,
-  pending_finance_approval: pendingStyle,
-  PENDING_FINANCE_APPROVAL: pendingStyle,
+  QUEUED: progressStyle,
+  queued: progressStyle,
   APPROVED: successStyle,
   PAID: successStyle,
   processed: successStyle,

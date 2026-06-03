@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
-import { initiateClaimPayout } from "@/lib/payouts";
+import { initiateClaimPayout, refreshPayoutIfInProgress } from "@/lib/payouts";
+import { getRazorpayConfig } from "@/lib/razorpayx";
 
 export async function POST(
   _request: Request,
@@ -33,8 +34,20 @@ export async function POST(
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
+  const razorpay = getRazorpayConfig();
+  if (!razorpay.enabled) {
+    return Response.json(
+      {
+        error:
+          "RazorpayX is not configured. Set RAZORPAYX_MOCK=true or add RazorpayX API keys on Vercel.",
+      },
+      { status: 503 },
+    );
+  }
+
   try {
     await initiateClaimPayout({ claim, actorId: session.id });
+    await refreshPayoutIfInProgress(id);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Could not initiate payout.";

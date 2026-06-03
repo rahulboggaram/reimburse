@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
-import { initiateClaimPayout } from "@/lib/payouts";
+import { initiateClaimPayout, refreshPayoutIfInProgress } from "@/lib/payouts";
+import { getRazorpayConfig } from "@/lib/razorpayx";
 
 const employeeForPayoutSelect = {
   id: true,
@@ -66,8 +67,20 @@ export async function POST(
     );
   }
 
+  const razorpay = getRazorpayConfig();
+  if (!razorpay.enabled) {
+    return Response.json(
+      {
+        error:
+          "RazorpayX is not configured on the server. Set RAZORPAYX_MOCK=true for demo payouts, or add test/live API keys on Vercel.",
+      },
+      { status: 503 },
+    );
+  }
+
   try {
     await initiateClaimPayout({ claim, actorId: session.id });
+    await refreshPayoutIfInProgress(id);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Payment failed.";
     return Response.json({ error: message }, { status: 502 });

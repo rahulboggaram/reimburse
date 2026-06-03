@@ -26,6 +26,10 @@ export function claimDisplayStatus(
     return "QUEUED";
   }
 
+  if (claim.status === "PAID" || claim.paidAt) {
+    return "PAID";
+  }
+
   if (claim.status === "APPROVED" && payoutInProgress(claim.payoutStatus)) {
     if (claim.payoutStatus === "queued") {
       return "QUEUED";
