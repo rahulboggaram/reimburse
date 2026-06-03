@@ -47,6 +47,23 @@ function claimNeedsFullLoad(claim: SerializedClaim) {
   return claim.receipts.length === 0 || !claim.receipts[0]?.url;
 }
 
+const claimDetailCache = new Map<string, SerializedClaim>();
+
+function cacheClaimDetail(claim: SerializedClaim) {
+  claimDetailCache.set(claim.id, claim);
+}
+
+function claimFromCache(stub: SerializedClaim): SerializedClaim | null {
+  const cached = claimDetailCache.get(stub.id);
+  if (!cached) return null;
+  return {
+    ...cached,
+    ...stub,
+    receipts: cached.receipts,
+    receiptCount: cached.receipts.length,
+  };
+}
+
 export function ClaimDetailModal(props: {
   claim: SerializedClaim | null;
   open: boolean;
@@ -67,26 +84,37 @@ export function ClaimDetailModal(props: {
 
   useEffect(() => {
     if (!props.open || !props.claim) {
-      setDetailClaim(null);
       setLoadingDetail(false);
       return;
     }
 
     const stub = props.claim;
+
     if (!claimNeedsFullLoad(stub)) {
       setDetailClaim(stub);
+      setLoadingDetail(false);
+      cacheClaimDetail(stub);
+      return;
+    }
+
+    const cached = claimFromCache(stub);
+    if (cached) {
+      setDetailClaim(cached);
       setLoadingDetail(false);
       return;
     }
 
     let cancelled = false;
-    setLoadingDetail(true);
     setDetailClaim(stub);
+    setLoadingDetail(true);
 
     fetch(`/api/claims/${stub.id}`)
       .then((res) => readJson<SerializedClaim>(res))
       .then((data) => {
-        if (!cancelled) setDetailClaim(data);
+        if (!cancelled) {
+          cacheClaimDetail(data);
+          setDetailClaim(data);
+        }
       })
       .catch(() => {
         if (!cancelled) setDetailClaim(stub);
@@ -118,6 +146,7 @@ export function ClaimDetailModal(props: {
           : `/api/claims/${claim.id}/pay`;
       const response = await fetch(url, { method: "POST" });
       const updated = await readJson<SerializedClaim>(response);
+      cacheClaimDetail(updated);
       setDetailClaim(updated);
       await props.onUpdated?.();
       if (props.variant !== "admin") {
@@ -138,6 +167,7 @@ export function ClaimDetailModal(props: {
         method: "POST",
       });
       const updated = await readJson<SerializedClaim>(response);
+      cacheClaimDetail(updated);
       setDetailClaim(updated);
       await props.onUpdated?.();
     } catch (err) {
@@ -202,11 +232,7 @@ export function ClaimDetailModal(props: {
       subtitle={modalSubtitle}
     >
       <div className="space-y-8">
-        {loadingDetail ? (
-          <p className="text-sm text-zinc-500">Loading details…</p>
-        ) : null}
-
-        <div className="space-y-4">
+        <div>
           <div className="mt-3 flex flex-wrap items-center gap-2.5">
             <span className="text-lg font-semibold font-tabular-nums text-zinc-900">
               ₹{claim.amount.toLocaleString("en-IN")}
@@ -216,7 +242,7 @@ export function ClaimDetailModal(props: {
             )}
           </div>
 
-          <div className="space-y-1">
+          <div className="mt-8 space-y-1">
             <p className="text-sm font-medium text-zinc-800">{claim.category}</p>
             <p className="text-sm leading-relaxed text-zinc-600">
               {claim.description}
@@ -276,14 +302,13 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {!loadingDetail ? (
-          <ReceiptGallery
-            receipts={claim.receipts}
-            receiptCount={receiptsTotal}
-            title="Receipt photos"
-            compact
-          />
-        ) : null}
+        <ReceiptGallery
+          receipts={claim.receipts}
+          receiptCount={receiptsTotal}
+          title="Receipt photos"
+          compact
+          loading={loadingDetail}
+        />
 
         {props.variant === "employee" && claim.status === "REJECTED" ? (
           <Link

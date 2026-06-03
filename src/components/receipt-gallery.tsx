@@ -81,6 +81,7 @@ export function ReceiptGallery(props: {
   receiptCount?: number;
   title?: string;
   compact?: boolean;
+  loading?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Receipt | null>(null);
   const count = props.receiptCount ?? props.receipts.length;
@@ -88,6 +89,24 @@ export function ReceiptGallery(props: {
   if (count === 0 && props.receipts.length === 0) return null;
 
   const heading = props.title ?? "Receipt photos";
+
+  if (props.loading && props.receipts.length === 0 && props.compact) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-zinc-500">
+          {heading}
+          {count > 0 ? ` (${count})` : ""}
+        </p>
+        <ul className="flex flex-wrap gap-3" aria-busy="true" aria-label="Loading receipts">
+          {Array.from({ length: count }, (_, index) => (
+            <li key={index}>
+              <div className="size-16 animate-pulse rounded-lg bg-zinc-200" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
   if (!props.compact) {
     return (

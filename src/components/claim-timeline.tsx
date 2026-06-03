@@ -10,7 +10,8 @@ type VisualState = "done" | "awaiting" | "upcoming" | "rejected";
 
 type TimelineStep = {
   key: string;
-  line: string;
+  title: string;
+  subtext?: string;
   visual: VisualState;
 };
 
@@ -23,7 +24,8 @@ function uploadedStep(claim: SerializedClaim): TimelineStep {
   const who = personLabel(claim.employeeName, "Employee");
   return {
     key: "uploaded",
-    line: `Uploaded by ${who} · ${formatDisplayDateTime(claim.createdAt)}`,
+    title: "Uploaded",
+    subtext: `by ${who} · ${formatDisplayDateTime(claim.createdAt)}`,
     visual: "done",
   };
 }
@@ -41,9 +43,10 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       uploaded,
       {
         key: "rejected",
-        line: claim.decidedAt
-          ? `Rejected by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
-          : `Rejected by ${manager}`,
+        title: "Rejected",
+        subtext: claim.decidedAt
+          ? `by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+          : `by ${manager}`,
         visual: "rejected",
       },
     ];
@@ -54,12 +57,14 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       uploaded,
       {
         key: "approval-waiting",
-        line: `Awaiting approval from ${manager}`,
+        title: "Awaiting",
+        subtext: `approval by ${manager}`,
         visual: "awaiting",
       },
       {
         key: "finance-next",
-        line: "Financial approval · up next",
+        title: "Financial approval",
+        subtext: "Up next",
         visual: "upcoming",
       },
     ];
@@ -67,9 +72,10 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
 
   const approvalDone: TimelineStep = {
     key: "approval-done",
-    line: claim.decidedAt
-      ? `Approved by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
-      : `Approved by ${manager}`,
+    title: "Approved",
+    subtext: claim.decidedAt
+      ? `by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+      : `by ${manager}`,
     visual: "done",
   };
 
@@ -79,7 +85,8 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       approvalDone,
       {
         key: "finance-done",
-        line: `Financial approval · ${formatDisplayDateTime(claim.paidAt)}`,
+        title: "Financial approval",
+        subtext: formatDisplayDateTime(claim.paidAt),
         visual: "done",
       },
     ];
@@ -91,9 +98,10 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       approvalDone,
       {
         key: "finance-progress",
-        line: claim.payoutInitiatedAt
-          ? `Awaiting financial approval · payment in progress · ${formatDisplayDateTime(claim.payoutInitiatedAt)}`
-          : "Awaiting financial approval · payment in progress",
+        title: "Awaiting financial approval",
+        subtext: claim.payoutInitiatedAt
+          ? `payment in progress · ${formatDisplayDateTime(claim.payoutInitiatedAt)}`
+          : "payment in progress",
         visual: "awaiting",
       },
     ];
@@ -104,13 +112,14 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
     approvalDone,
     {
       key: "finance-waiting",
-      line: "Awaiting financial approval · pending payment",
+      title: "Awaiting financial approval",
+      subtext: "pending payment",
       visual: "awaiting",
     },
   ];
 }
 
-function lineStyles(visual: VisualState) {
+function titleStyles(visual: VisualState) {
   switch (visual) {
     case "done":
       return "text-zinc-900";
@@ -123,21 +132,68 @@ function lineStyles(visual: VisualState) {
   }
 }
 
-function dotStyles(visual: VisualState) {
+function subtextStyles(visual: VisualState) {
   switch (visual) {
     case "done":
-      return "border-zinc-900 bg-zinc-900";
+      return "text-zinc-500";
     case "awaiting":
-      return "border-amber-500 bg-amber-500";
+      return "text-amber-600/90";
     case "upcoming":
-      return "border-zinc-300 bg-zinc-200";
+      return "text-zinc-400";
     case "rejected":
-      return "border-red-600 bg-red-600";
+      return "text-red-600/80";
   }
 }
 
+const DOT_SIZE = "size-5";
+const DOT_CENTER = "left-[0.625rem]";
+
 function connectorStyles(visual: VisualState) {
-  return visual === "upcoming" ? "bg-zinc-200" : "bg-zinc-300";
+  return visual === "done" ? "bg-zinc-900" : "bg-zinc-200";
+}
+
+function TimelineDot(props: { visual: VisualState }) {
+  const base = cn(
+    "relative z-10 mt-0.5 shrink-0 rounded-full",
+    DOT_SIZE,
+  );
+
+  if (props.visual === "done") {
+    return (
+      <span
+        aria-hidden
+        className={cn(base, "flex items-center justify-center bg-zinc-900")}
+      >
+        <svg
+          aria-hidden
+          viewBox="0 0 20 20"
+          className="size-2.5 text-white"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <path
+            d="M5.5 10.5 8.5 13.5 14.5 7.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    );
+  }
+
+  if (props.visual === "rejected") {
+    return (
+      <span aria-hidden className={cn(base, "border-2 border-red-600 bg-red-600")} />
+    );
+  }
+
+  const filled =
+    props.visual === "awaiting"
+      ? "border-2 border-amber-500 bg-amber-500"
+      : "border-2 border-zinc-300 bg-zinc-200";
+
+  return <span aria-hidden className={cn(base, filled)} />;
 }
 
 export function ClaimTimeline(props: { claim: SerializedClaim }) {
@@ -155,26 +211,33 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute top-2.5 left-[0.4375rem] h-[calc(100%-0.5rem)] w-0.5 -translate-x-1/2",
+                    "absolute top-5 h-[calc(100%-0.75rem)] w-0.5 -translate-x-1/2",
+                    DOT_CENTER,
                     connectorStyles(step.visual),
                   )}
                 />
               ) : null}
-              <span
-                aria-hidden
-                className={cn(
-                  "relative z-10 mt-1 size-2 shrink-0 rounded-full border-2",
-                  dotStyles(step.visual),
-                )}
-              />
-              <p
-                className={cn(
-                  "min-w-0 flex-1 pt-0.5 text-sm leading-snug tabular-nums",
-                  lineStyles(step.visual),
-                )}
-              >
-                {step.line}
-              </p>
+              <TimelineDot visual={step.visual} />
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p
+                  className={cn(
+                    "text-sm font-medium leading-snug",
+                    titleStyles(step.visual),
+                  )}
+                >
+                  {step.title}
+                </p>
+                {step.subtext ? (
+                  <p
+                    className={cn(
+                      "mt-0.5 text-xs leading-snug tabular-nums",
+                      subtextStyles(step.visual),
+                    )}
+                  >
+                    {step.subtext}
+                  </p>
+                ) : null}
+              </div>
             </li>
           );
         })}
