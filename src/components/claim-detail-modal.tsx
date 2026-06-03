@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useMe } from "@/components/me-provider";
+import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
-import { formatDisplayDate, formatDisplayDateTime } from "@/lib/dates";
+import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { readJson } from "@/lib/api";
 import {
@@ -159,7 +160,6 @@ export function ClaimDetailModal(props: {
     claim.paidAt ||
     claim.payoutError;
 
-  const expenseDate = formatDisplayDate(claim.expenseDate);
   const receiptsTotal = claimReceiptCount(claim);
 
   async function decide(status: "APPROVED" | "REJECTED") {
@@ -263,16 +263,9 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
+        <ClaimTimeline claim={claim} />
+
         <div className="grid gap-3 sm:grid-cols-2">
-          <DetailRow label="Expense date" value={expenseDate} />
-          <DetailRow label="Submitted" value={formatDisplayDateTime(claim.createdAt)} />
-          {claim.decidedAt &&
-          (claim.status === "APPROVED" || claim.status === "PAID") ? (
-            <DetailRow
-              label="Approved on"
-              value={formatDisplayDateTime(claim.decidedAt)}
-            />
-          ) : null}
           <DetailRow
             label={
               claim.status === "PENDING" && props.variant === "admin"
