@@ -14,6 +14,7 @@ import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { cn } from "@/lib/utils";
 import { readJson } from "@/lib/api";
 import {
   canInitiateClaimPayment,
@@ -32,9 +33,27 @@ function payoutFailed(status: string | null) {
 
 function DetailRow(props: { label: string; value: string }) {
   return (
-    <div>
+    <div className="space-y-2">
       <p className="text-xs font-medium text-zinc-500">{props.label}</p>
-      <p className="text-sm text-zinc-900">{props.value}</p>
+      <p className="text-base text-zinc-900">{props.value}</p>
+    </div>
+  );
+}
+
+function DetailRowWithBadge(props: {
+  label: string;
+  value: React.ReactNode;
+  badge?: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-zinc-500">{props.label}</p>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="text-2xl font-semibold font-tabular-nums text-zinc-900">
+          {props.value}
+        </span>
+        {props.badge}
+      </div>
     </div>
   );
 }
@@ -187,41 +206,40 @@ export function ClaimDetailModal(props: {
     }
   }
 
+  const modalSubtitle =
+    (props.variant === "admin" || props.variant === "approver") &&
+    props.employeePhone
+      ? formatPhoneDisplay(props.employeePhone)
+      : undefined;
+
   return (
     <Modal
       open={props.open}
       onClose={props.onClose}
-      title={claim.category}
+      title={claim.employeeName}
+      subtitle={modalSubtitle}
     >
-      <div className="space-y-4">
+      <div className="space-y-8">
         {loadingDetail ? (
           <p className="text-sm text-zinc-500">Loading details…</p>
         ) : null}
 
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-2xl font-semibold font-tabular-nums text-zinc-900">
-            ₹{claim.amount.toLocaleString("en-IN")}
-          </p>
-          {hideStatusBadge ? null : (
-            <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
-          )}
-        </div>
+        <DetailRowWithBadge
+          label="Amount"
+          value={`₹${claim.amount.toLocaleString("en-IN")}`}
+          badge={
+            hideStatusBadge ? null : (
+              <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
+            )
+          }
+        />
 
-        {props.variant === "admin" || props.variant === "approver" ? (
-          <DetailRow
-            label="Employee"
-            value={
-              props.employeePhone
-                ? `${claim.employeeName} · ${formatPhoneDisplay(props.employeePhone)}`
-                : claim.employeeName
-            }
-          />
-        ) : null}
+        <DetailRow label="Category" value={claim.category} />
 
         <DetailRow label="Description" value={claim.description} />
 
         {showPayoutInfo ? (
-          <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
+          <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Payment
             </p>
@@ -293,7 +311,7 @@ export function ClaimDetailModal(props: {
 
         {(props.variant === "approver" || props.variant === "admin") &&
         claim.status === "PENDING" ? (
-          <div className="space-y-3 border-t border-zinc-100 pt-4">
+          <div className={cn("space-y-4 border-t border-zinc-100 pt-8")}>
             <div className="space-y-1.5">
               <Label htmlFor="rejection-reason">Rejection reason (if rejecting)</Label>
               <Textarea
@@ -332,7 +350,7 @@ export function ClaimDetailModal(props: {
         claim.status === "APPROVED" &&
         !claim.paidAt &&
         !payoutInProgress(claim.payoutStatus) ? (
-          <div className="space-y-3 border-t border-zinc-100 pt-4">
+          <div className="space-y-4 border-t border-zinc-100 pt-8">
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}
@@ -354,7 +372,7 @@ export function ClaimDetailModal(props: {
         ) : null}
 
         {canRetryPay ? (
-          <div className="space-y-2 border-t border-zinc-100 pt-4">
+          <div className="space-y-4 border-t border-zinc-100 pt-8">
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}
@@ -376,7 +394,7 @@ export function ClaimDetailModal(props: {
         ) : null}
 
         {canSyncPayout ? (
-          <div className="space-y-2 border-t border-zinc-100 pt-4">
+          <div className="space-y-4 border-t border-zinc-100 pt-8">
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}
@@ -401,7 +419,7 @@ export function ClaimDetailModal(props: {
         {props.variant === "admin" &&
         claim.status === "APPROVED" &&
         payoutInProgress(claim.payoutStatus) ? (
-          <p className="border-t border-zinc-100 pt-4 text-sm text-blue-700">
+          <p className="border-t border-zinc-100 pt-8 text-sm text-blue-700">
             Payout is in progress. This usually completes within a few minutes.
           </p>
         ) : null}

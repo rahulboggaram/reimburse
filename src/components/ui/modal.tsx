@@ -8,6 +8,7 @@ export function Modal(props: {
   open: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -48,10 +49,15 @@ export function Modal(props: {
           props.className,
         )}
       >
-        <div className="flex items-start justify-between gap-3 px-5 py-4">
-          <h2 id="modal-title" className="text-lg font-semibold text-zinc-900">
-            {toTitleCase(props.title)}
-          </h2>
+        <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-5">
+          <div className="min-w-0 pr-2">
+            <h2 id="modal-title" className="text-lg font-semibold text-zinc-900">
+              {toTitleCase(props.title)}
+            </h2>
+            {props.subtitle ? (
+              <p className="mt-1 text-sm text-zinc-500">{props.subtitle}</p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={props.onClose}
@@ -74,7 +80,7 @@ export function Modal(props: {
             </svg>
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4">{props.children}</div>
+        <div className="overflow-y-auto px-5 pb-6 pt-2">{props.children}</div>
       </div>
     </div>
   );
