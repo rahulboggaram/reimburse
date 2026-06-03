@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +85,38 @@ function ReceiptHeading(props: { title: string; count: number; hideCount?: boole
   );
 }
 
+function ReceiptThumbImage(props: {
+  receipt: Receipt;
+  className: string;
+  onBroken: () => void;
+}) {
+  const [broken, setBroken] = useState(false);
+
+  function handleError(event: SyntheticEvent<HTMLImageElement>) {
+    setBroken(true);
+    props.onBroken();
+    event.currentTarget.style.display = "none";
+  }
+
+  if (broken) {
+    return (
+      <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
+        Could not load
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={props.receipt.url}
+      alt={props.receipt.fileName ?? "Receipt"}
+      className={props.className}
+      onError={handleError}
+    />
+  );
+}
+
 export function ReceiptGallery(props: {
   receipts: Receipt[];
   receiptCount?: number;
@@ -94,7 +126,12 @@ export function ReceiptGallery(props: {
   hideCount?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Receipt | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const count = props.receiptCount ?? props.receipts.length;
+
+  useEffect(() => {
+    setLoadError(false);
+  }, [props.receipts]);
 
   if (count === 0 && props.receipts.length === 0) return null;
 
@@ -137,11 +174,10 @@ export function ReceiptGallery(props: {
                 className="block overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={receipt.url}
-                    alt={receipt.fileName ?? "Receipt"}
+                  <ReceiptThumbImage
+                    receipt={receipt}
                     className="aspect-[4/3] w-full object-cover"
+                    onBroken={() => setLoadError(true)}
                   />
                 ) : (
                   <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 px-2 text-center">
@@ -178,11 +214,10 @@ export function ReceiptGallery(props: {
                 className="group relative size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={receipt.url}
-                    alt={receipt.fileName ?? "Receipt"}
+                  <ReceiptThumbImage
+                    receipt={receipt}
                     className="size-full object-cover"
+                    onBroken={() => setLoadError(true)}
                   />
                 ) : (
                   <span className="flex size-full items-center justify-center text-lg">
@@ -201,6 +236,11 @@ export function ReceiptGallery(props: {
             </li>
           ))}
         </ul>
+        {loadError ? (
+          <p className="text-xs text-amber-800">
+            A receipt could not be loaded. Sign in again or refresh the page.
+          </p>
+        ) : null}
       </div>
       {expanded ? (
         <ReceiptLightbox receipt={expanded} onClose={() => setExpanded(null)} />

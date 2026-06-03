@@ -123,7 +123,10 @@ export function ClaimDetailModal(props: {
     setDetailClaim(stub);
     setLoadingDetail(true);
 
-    fetch(`/api/claims/${stub.id}`)
+    fetch(`/api/claims/${stub.id}`, {
+      cache: "no-store",
+      credentials: "include",
+    })
       .then((res) => readJson<SerializedClaim>(res))
       .then((data) => {
         if (!cancelled) {
