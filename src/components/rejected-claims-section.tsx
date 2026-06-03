@@ -36,7 +36,7 @@ export function RejectedClaimsSection() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadRejected = useCallback(async () => {
-    if (!user || user.role !== "EMPLOYEE") {
+    if (!user) {
       setClaims([]);
       return;
     }
@@ -50,7 +50,7 @@ export function RejectedClaimsSection() {
 
   useEffect(() => {
     if (meLoading) return;
-    if (!user || user.role !== "EMPLOYEE") {
+    if (!user) {
       setClaims([]);
       setLoading(false);
       return;
@@ -86,8 +86,6 @@ export function RejectedClaimsSection() {
       setDeleting(false);
     }
   }
-
-  if (!meLoading && user?.role !== "EMPLOYEE") return null;
 
   const rejected = claims.filter(
     (claim) => claim.status === "REJECTED" && claim.employeeId === user?.id,

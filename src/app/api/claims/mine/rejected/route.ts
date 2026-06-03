@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
-import { requireEmployeeWithProfile } from "@/lib/auth-api";
+import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
-/** Rejected reimbursements for the signed-in employee only (not visible to approvers/admins). */
+/** Rejected reimbursements created by the signed-in user only. */
 export async function GET() {
-  const session = await requireEmployeeWithProfile();
+  const session = await requireCanSubmitReimbursement();
   if (session instanceof Response) return session;
 
   const claims = await prisma.reimbursement.findMany({
