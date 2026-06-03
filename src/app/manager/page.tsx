@@ -28,11 +28,11 @@ function cacheKey(tab: QueueTab) {
 function emptyMessage(tab: QueueTab, role: string | undefined) {
   if (tab === "waiting") {
     return role === "APPROVER"
-      ? "No failed payouts to retry."
+      ? "No reimbursements waiting for payment approval."
       : "No claims waiting for your approval.";
   }
   return role === "APPROVER"
-    ? "No approved reimbursements in this list yet."
+    ? "No reimbursements sent to RazorpayX yet."
     : "No approved claims in this list yet.";
 }
 

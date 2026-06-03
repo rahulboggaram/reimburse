@@ -32,18 +32,28 @@ function queueWhere(
       employeeId: { not: session.id },
     };
     if (tab === "waiting") {
-      // Retry queue only — first-time and in-flight payouts live under Approved.
+      // Branch manager approved — payment approver has not sent to RazorpayX yet.
       return {
         ...assigned,
         status: "APPROVED",
         paidAt: null,
-        payoutStatus: { in: [...failedPayoutStatuses] },
+        OR: [
+          { razorpayPayoutId: null },
+          { payoutStatus: { in: [...failedPayoutStatuses] } },
+        ],
       };
     }
-    // All branch-manager-approved claims (Queued) plus paid / payout in progress.
+    // Sent to RazorpayX (in progress or done).
     return {
       ...assigned,
-      status: { in: ["APPROVED", "PAID"] },
+      OR: [
+        { status: "PAID" },
+        {
+          status: "APPROVED",
+          razorpayPayoutId: { not: null },
+          NOT: { payoutStatus: { in: [...failedPayoutStatuses] } },
+        },
+      ],
     };
   }
 
@@ -69,7 +79,7 @@ export async function GET(request: Request) {
   const orderBy =
     tab === "approved"
       ? session.role === "APPROVER"
-        ? [{ paidAt: "desc" as const }, { decidedAt: "desc" as const }]
+        ? { payoutInitiatedAt: "desc" as const }
         : { decidedAt: "desc" as const }
       : { createdAt: "desc" as const };
 
