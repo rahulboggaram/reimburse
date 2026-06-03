@@ -36,27 +36,26 @@ function cacheKey(tab: QueueTab) {
   return `claims-pending-${tab}`;
 }
 
+function usesPaymentApproverTabs(role: string | undefined) {
+  return role === "APPROVER" || role === "ADMIN";
+}
+
 function emptyMessage(tab: QueueTab, role: string | undefined) {
+  if (usesPaymentApproverTabs(role)) {
+    return tab === "waiting"
+      ? "No reimbursements waiting for payment approval."
+      : "No reimbursements sent to RazorpayX yet.";
+  }
   if (tab === "waiting") {
-    if (role === "APPROVER") {
-      return "No reimbursements waiting for payment approval.";
-    }
-    if (role === "ADMIN") {
-      return "No reimbursements waiting for admin approval.";
-    }
     return "No claims waiting for your approval.";
-  }
-  if (role === "APPROVER") {
-    return "No reimbursements sent to RazorpayX yet.";
-  }
-  if (role === "ADMIN") {
-    return "No claims you approved yet.";
   }
   return "No approved claims in this list yet.";
 }
 
 function queueSegments(role: string | undefined) {
-  return role === "APPROVER" ? PAYMENT_APPROVER_SEGMENTS : QUEUE_SEGMENTS;
+  return usesPaymentApproverTabs(role)
+    ? PAYMENT_APPROVER_SEGMENTS
+    : QUEUE_SEGMENTS;
 }
 
 function readTabCache(tab: QueueTab) {
