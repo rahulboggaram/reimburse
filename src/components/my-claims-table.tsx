@@ -3,6 +3,8 @@
 import { useMe } from "@/components/me-provider";
 import {
   claimsTableColCenter,
+  claimsTableColChevron,
+  claimsTableColStart,
   claimsTableGridWithStatus,
   claimsTableHeaderClass,
   claimsTableRowClass,
@@ -16,13 +18,13 @@ import { cn } from "@/lib/utils";
 export function MyClaimsTableHeader() {
   return (
     <div className={claimsTableHeaderClass(claimsTableGridWithStatus)}>
-      <span className="min-w-0 truncate">Category</span>
+      <span className={cn(claimsTableColStart, "truncate")}>Category</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
         Amount
       </span>
       <span className={claimsTableColCenter}>Status</span>
-      <span className="flex justify-center" aria-hidden />
+      <span className={claimsTableColChevron} aria-hidden />
     </div>
   );
 }
@@ -41,7 +43,12 @@ export function MyClaimsTableRow(props: {
       onClick={props.onOpen}
       className={claimsTableRowClass(claimsTableGridWithStatus)}
     >
-      <span className="min-w-0 truncate text-left text-sm font-medium text-zinc-900">
+      <span
+        className={cn(
+          claimsTableColStart,
+          "truncate text-sm font-medium text-zinc-900",
+        )}
+      >
         {claim.category}
       </span>
       <span
@@ -61,12 +68,9 @@ export function MyClaimsTableRow(props: {
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
       <span className={claimsTableColCenter}>
-        <StatusBadge status={status} compact />
+        <StatusBadge status={status} compact className="mx-auto" />
       </span>
-      <span
-        className="flex items-center justify-center text-base leading-none text-zinc-400"
-        aria-hidden
-      >
+      <span className={claimsTableColChevron} aria-hidden>
         ›
       </span>
     </button>

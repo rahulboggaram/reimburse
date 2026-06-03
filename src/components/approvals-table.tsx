@@ -3,6 +3,8 @@
 import { useMe } from "@/components/me-provider";
 import {
   claimsTableColCenter,
+  claimsTableColChevron,
+  claimsTableColStart,
   claimsTableGridNoStatus,
   claimsTableGridWithStatus,
   claimsTableHeaderClass,
@@ -20,15 +22,13 @@ export function ApprovalsTableHeader(props: { showStatus?: boolean }) {
 
   return (
     <div className={claimsTableHeaderClass(grid)}>
-      <span className="min-w-0 truncate">Employee</span>
+      <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
         Amount
       </span>
-      {showStatus ? (
-        <span className={claimsTableColCenter}>Status</span>
-      ) : null}
-      <span className="flex justify-center" aria-hidden />
+      {showStatus ? <span className={claimsTableColCenter}>Status</span> : null}
+      <span className={claimsTableColChevron} aria-hidden />
     </div>
   );
 }
@@ -48,26 +48,38 @@ export function ApprovalsTableRow(props: {
     <button
       type="button"
       onClick={props.onOpen}
-      className={cn(claimsTableRowClass(grid), "w-full")}
+      className={claimsTableRowClass(grid)}
     >
-      <span className="min-w-0 truncate text-left text-sm font-medium text-zinc-900">
+      <span
+        className={cn(
+          claimsTableColStart,
+          "truncate text-sm font-medium text-zinc-900",
+        )}
+      >
         {claim.employeeName}
       </span>
-      <span className="text-left text-sm whitespace-nowrap text-zinc-600 tabular-nums">
+      <span
+        className={cn(
+          claimsTableColCenter,
+          "text-sm whitespace-nowrap text-zinc-600 tabular-nums",
+        )}
+      >
         {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
-      <span className="text-right text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums">
+      <span
+        className={cn(
+          claimsTableColCenter,
+          "text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums",
+        )}
+      >
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
       {showStatus ? (
-        <span className="flex min-w-0 items-center">
-          <StatusBadge status={status} compact />
+        <span className={claimsTableColCenter}>
+          <StatusBadge status={status} compact className="mx-auto" />
         </span>
       ) : null}
-      <span
-        className="flex items-center justify-center text-base leading-none text-zinc-400"
-        aria-hidden
-      >
+      <span className={claimsTableColChevron} aria-hidden>
         ›
       </span>
     </button>
