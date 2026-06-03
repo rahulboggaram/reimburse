@@ -1,0 +1,28 @@
+---
+description: Auto-commit and push to main for Vercel after completing work
+alwaysApply: true
+---
+
+# Deploy via Vercel (default)
+
+This project deploys from GitHub `main` to Vercel (https://reimburse-jade.vercel.app). **Do not ask the user to confirm push** unless they explicitly say not to deploy.
+
+## After finishing requested changes
+
+When code or UI work is complete and the working tree has changes:
+
+1. Run `git status` and `git diff` to review what will ship.
+2. **Do not commit** `.env`, credentials, or other secret files.
+3. Commit with a clear 1–2 sentence message (HEREDOC format).
+4. **Push to `origin/main`** without waiting for a separate “yes push” step.
+5. Tell the user deploy is in progress and to **hard-refresh** the live site after a minute (Cmd+Shift+R).
+
+## When not to push
+
+- User explicitly says not to commit, not to push, or to keep changes local.
+- There are no changes to commit.
+- Push would require destructive git operations (never force-push `main`).
+
+## Local testing
+
+Prefer Vercel over local dev instructions unless the user asks to run locally.
