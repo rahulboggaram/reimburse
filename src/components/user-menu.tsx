@@ -246,6 +246,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
             <>
               {approvalsLink}
               {myReimbursementsLink}
+              <MenuDivider />
               <MenuLink
                 href="/admin/people"
                 onNavigate={closeMenu}
@@ -267,6 +268,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
               >
                 Categories
               </MenuLink>
+              <MenuDivider />
               <MenuLink
                 href="/admin/claims"
                 onNavigate={closeMenu}
