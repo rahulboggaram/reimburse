@@ -64,6 +64,7 @@ export default function MyClaimsPage() {
               amount={claim.amount}
               approvalStatus={claim.status}
               paymentStatus={claim.payoutStatus}
+              paidAt={claim.paidAt}
               onOpen={() => setSelected(claim)}
             />
           </li>

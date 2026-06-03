@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useMe } from "@/components/me-provider";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -13,10 +14,11 @@ import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { readJson } from "@/lib/api";
-
-function payoutInProgress(status: string | null) {
-  return status === "queued" || status === "pending" || status === "processing";
-}
+import {
+  canInitiateClaimPayment,
+  claimDisplayStatus,
+  payoutInProgress,
+} from "@/lib/claim-display-status";
 
 function payoutFailed(status: string | null) {
   return (
@@ -25,13 +27,6 @@ function payoutFailed(status: string | null) {
     status === "cancelled" ||
     status === "reversed"
   );
-}
-
-function claimStatusLabel(claim: SerializedClaim) {
-  if (claim.status === "APPROVED" && payoutInProgress(claim.payoutStatus)) {
-    return "paying";
-  }
-  return claim.status;
 }
 
 function DetailRow(props: { label: string; value: string }) {
@@ -65,6 +60,8 @@ export function ClaimDetailModal(props: {
   const [syncingPayout, setSyncingPayout] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const { user } = useMe();
+  const canPay = canInitiateClaimPayment(user?.role, props.variant);
 
   useEffect(() => {
     if (!props.open || !props.claim) {
@@ -214,7 +211,7 @@ export function ClaimDetailModal(props: {
               </p>
             ) : null}
           </div>
-          <StatusBadge status={claimStatusLabel(claim)} />
+          <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
         </div>
 
         {showPayoutInfo ? (
@@ -340,7 +337,7 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {(props.variant === "approver" || props.variant === "admin") &&
+        {canPay &&
         claim.status === "APPROVED" &&
         !claim.paidAt &&
         !payoutInProgress(claim.payoutStatus) ? (

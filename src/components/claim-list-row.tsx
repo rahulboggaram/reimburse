@@ -1,6 +1,8 @@
 "use client";
 
+import { useMe } from "@/components/me-provider";
 import { StatusBadge } from "@/components/status-badge";
+import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { cn } from "@/lib/utils";
 
 export function ClaimListRow(props: {
@@ -9,20 +11,18 @@ export function ClaimListRow(props: {
   amount: number;
   approvalStatus: string;
   paymentStatus?: string | null;
+  paidAt?: string | null;
   onOpen: () => void;
 }) {
-  const relevantStatus = (() => {
-    if (props.approvalStatus === "REJECTED") return "REJECTED";
-    if (props.approvalStatus === "PENDING") return "PENDING";
-
-    if (props.approvalStatus === "APPROVED") {
-      return props.paymentStatus ?? "APPROVED";
-    }
-
-    if (props.approvalStatus === "PAID") return "PAID";
-
-    return props.approvalStatus;
-  })();
+  const { user } = useMe();
+  const relevantStatus = claimDisplayStatus(
+    {
+      status: props.approvalStatus,
+      paidAt: props.paidAt,
+      payoutStatus: props.paymentStatus,
+    },
+    user?.role,
+  );
 
   return (
     <button

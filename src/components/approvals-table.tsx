@@ -1,7 +1,9 @@
 "use client";
 
+import { useMe } from "@/components/me-provider";
 import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
+import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDate } from "@/lib/dates";
 
 const gridCols =
@@ -27,6 +29,8 @@ export function ApprovalsTableRow(props: {
   onOpen: () => void;
 }) {
   const { claim } = props;
+  const { user } = useMe();
+  const status = claimDisplayStatus(claim, user?.role);
 
   return (
     <button
@@ -45,7 +49,7 @@ export function ApprovalsTableRow(props: {
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
       <span>
-        <StatusBadge status={claim.status} />
+        <StatusBadge status={status} />
       </span>
       <span className="text-center text-lg text-zinc-400" aria-hidden>
         ›

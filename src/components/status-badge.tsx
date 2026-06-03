@@ -1,7 +1,13 @@
 import { cn } from "@/lib/utils";
 
+const labels: Record<string, string> = {
+  PENDING_FINANCE_APPROVAL: "Pending finance approval",
+};
+
 const styles: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-800",
+  pending_finance_approval: "bg-violet-100 text-violet-900",
+  PENDING_FINANCE_APPROVAL: "bg-violet-100 text-violet-900",
   APPROVED: "bg-emerald-100 text-emerald-800",
   PAID: "bg-emerald-100 text-emerald-800",
   REJECTED: "bg-red-100 text-red-800",
@@ -22,13 +28,16 @@ const styles: Record<string, string> = {
 export function StatusBadge(props: { status: string }) {
   const raw = props.status ?? "";
   const key = raw.includes("_") ? raw.toLowerCase() : raw;
-  const label = raw.replace(/_/g, " ").toLowerCase();
+  const label =
+    labels[raw] ?? raw.replace(/_/g, " ").toLowerCase();
+  const useCapitalize = !labels[raw];
 
   return (
     <span
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ring-1 ring-inset ring-black/5",
-        styles[key] ?? styles[label] ?? "bg-zinc-100 text-zinc-700",
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ring-black/5",
+        useCapitalize && "capitalize",
+        styles[key] ?? styles[raw] ?? styles[label] ?? "bg-zinc-100 text-zinc-700",
       )}
     >
       {label}
