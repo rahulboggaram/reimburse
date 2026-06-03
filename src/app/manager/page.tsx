@@ -11,12 +11,25 @@ import { Card } from "@/components/ui/card";
 import { SegmentControl } from "@/components/segment-control";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
+import { Button } from "@/components/ui/button";
 import { readJson } from "@/lib/api";
 import {
   fetchClientCache,
   invalidateClientCache,
   readClientCache,
 } from "@/lib/client-cache";
+
+type ActionCounts = {
+  paymentWaiting: number;
+  adminPending: number;
+};
+
+type BulkActionSummary = {
+  total: number;
+  succeeded: number;
+  failed: number;
+  results: { claimId: string; employeeName: string; ok: boolean; error?: string }[];
+};
 
 type QueueTab = "waiting" | "approved";
 
@@ -70,7 +83,24 @@ export default function ManagerPendingPage() {
   );
   const [loading, setLoading] = useState(() => !readTabCache("waiting"));
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
+  const [counts, setCounts] = useState<ActionCounts | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
+
+  const refreshCounts = useCallback(async () => {
+    if (user?.role !== "ADMIN" && user?.role !== "APPROVER") {
+      setCounts(null);
+      return;
+    }
+    try {
+      const response = await fetch("/api/claims/action-counts");
+      const data = await readJson<ActionCounts>(response);
+      setCounts(data);
+    } catch {
+      setCounts(null);
+    }
+  }, [user?.role]);
 
   const fetchTab = useCallback(async (activeTab: QueueTab) => {
     const response = await fetch(`/api/claims/pending?tab=${activeTab}`);
@@ -87,6 +117,16 @@ export default function ManagerPendingPage() {
     },
     [fetchTab],
   );
+
+  const refreshQueue = useCallback(async () => {
+    invalidateClientCache("claims-pending");
+    setLoading(true);
+    const data = await loadTab(tab, true);
+    setClaims(data);
+    setLoading(false);
+    void Promise.all(TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)));
+    void refreshCounts();
+  }, [loadTab, tab, refreshCounts]);
 
   function handleTabChange(next: QueueTab) {
     if (next === tab) return;
@@ -128,6 +168,56 @@ export default function ManagerPendingPage() {
     );
   }, [fetchTab, tab]);
 
+  useEffect(() => {
+    void refreshCounts();
+  }, [refreshCounts]);
+
+  async function runBulk(
+    endpoint: string,
+    confirmText: string,
+    emptyText: string,
+  ) {
+    if (bulkBusy) return;
+    if (!window.confirm(confirmText)) return;
+    setBulkBusy(true);
+    setBulkMessage(null);
+    try {
+      const response = await fetch(endpoint, { method: "POST" });
+      const body = await response.json();
+      if (!response.ok) {
+        setBulkMessage(body.error ?? "Something went wrong. Try again.");
+        return;
+      }
+      const summary = body as BulkActionSummary;
+      if (summary.total === 0) {
+        setBulkMessage(emptyText);
+        return;
+      }
+      const partial = summary.results.filter((r) => r.ok && r.error).length;
+      let msg = `Done: ${summary.succeeded} of ${summary.total} succeeded.`;
+      if (summary.failed > 0) {
+        msg += ` ${summary.failed} could not be completed.`;
+      }
+      if (partial > 0) {
+        msg += ` ${partial} approved but payout needs attention.`;
+      }
+      setBulkMessage(msg);
+      await refreshQueue();
+    } catch {
+      setBulkMessage("Something went wrong. Try again.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const showApproveAll =
+    user?.role === "ADMIN" && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
+  const showPayAll =
+    (user?.role === "APPROVER" && tab === "waiting") ||
+    (user?.role === "ADMIN" && (counts?.paymentWaiting ?? 0) > 0);
+  const payAllCount = counts?.paymentWaiting ?? 0;
+  const approveAllCount = counts?.adminPending ?? 0;
+
   return (
     <>
       <PageHeading
@@ -143,6 +233,48 @@ export default function ManagerPendingPage() {
         ariaLabel="Approval queue"
         className="mb-5"
       />
+
+      {(showApproveAll || showPayAll) && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          {showApproveAll && (
+            <Button
+              disabled={bulkBusy}
+              onClick={() =>
+                void runBulk(
+                  "/api/claims/bulk-decide",
+                  `Approve all ${approveAllCount} reimbursement${approveAllCount === 1 ? "" : "s"} waiting in your queue? Payment approver claims will be sent to Razorpay when bank details are ready.`,
+                  "Nothing waiting for your approval right now.",
+                )
+              }
+            >
+              {bulkBusy ? "Working…" : `Approve all (${approveAllCount})`}
+            </Button>
+          )}
+          {showPayAll && payAllCount > 0 && (
+            <Button
+              variant={showApproveAll ? "outline" : "default"}
+              disabled={bulkBusy}
+              onClick={() =>
+                void runBulk(
+                  "/api/claims/bulk-pay",
+                  user?.role === "ADMIN"
+                    ? `Send ${payAllCount} approved reimbursement${payAllCount === 1 ? "" : "s"} to Razorpay now?`
+                    : `Pay all ${payAllCount} reimbursement${payAllCount === 1 ? "" : "s"} in your queue via Razorpay?`,
+                  "No reimbursements are waiting for payout.",
+                )
+              }
+            >
+              {bulkBusy ? "Working…" : `Pay all (${payAllCount})`}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {bulkMessage && (
+        <p className="mb-4 text-sm text-zinc-600" role="status">
+          {bulkMessage}
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
@@ -176,15 +308,8 @@ export default function ManagerPendingPage() {
         onClose={() => setSelected(null)}
         variant="approver"
         onUpdated={async () => {
-          invalidateClientCache("claims-pending");
           setSelected(null);
-          setLoading(true);
-          const data = await loadTab(tab, true);
-          setClaims(data);
-          setLoading(false);
-          void Promise.all(
-            TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)),
-          );
+          await refreshQueue();
         }}
       />
     </>

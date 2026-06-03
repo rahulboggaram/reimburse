@@ -3,53 +3,12 @@ import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
+import {
+  approverPaymentSentWhere,
+  approverPaymentWaitingWhere,
+} from "@/lib/claim-payment-queue";
 
 type QueueTab = "waiting" | "approved";
-
-const failedPayoutStatuses = [
-  "failed",
-  "rejected",
-  "cancelled",
-  "reversed",
-] as const;
-
-function approverAssigned(sessionId: string) {
-  return {
-    paymentApproverId: sessionId,
-    employeeId: { not: sessionId },
-  };
-}
-
-/** Branch manager approved — payment approver has not sent to RazorpayX yet (or payout failed). */
-function approverWaitingWhere(sessionId: string): Prisma.ReimbursementWhereInput {
-  return {
-    ...approverAssigned(sessionId),
-    status: "APPROVED",
-    paidAt: null,
-    OR: [
-      { razorpayPayoutId: null },
-      { payoutStatus: { in: [...failedPayoutStatuses] } },
-    ],
-  };
-}
-
-/** Payment approver sent to RazorpayX — in progress or completed. */
-function approverApprovedWhere(sessionId: string): Prisma.ReimbursementWhereInput {
-  return {
-    ...approverAssigned(sessionId),
-    OR: [
-      { status: "PAID" },
-      {
-        status: "APPROVED",
-        razorpayPayoutId: { not: null },
-        OR: [
-          { payoutStatus: null },
-          { payoutStatus: { notIn: [...failedPayoutStatuses] } },
-        ],
-      },
-    ],
-  };
-}
 
 function queueWhere(
   session: { id: string; role: string },
@@ -67,8 +26,8 @@ function queueWhere(
 
   if (session.role === "APPROVER") {
     return tab === "waiting"
-      ? approverWaitingWhere(session.id)
-      : approverApprovedWhere(session.id);
+      ? approverPaymentWaitingWhere(session.id)
+      : approverPaymentSentWhere(session.id);
   }
 
   if (session.role === "ADMIN") {
