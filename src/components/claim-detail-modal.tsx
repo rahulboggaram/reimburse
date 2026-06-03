@@ -215,9 +215,9 @@ export function ClaimDetailModal(props: {
           )}
         </div>
 
-        <DetailRow label="Category" value={claim.category} />
+        <p className="text-base font-medium text-zinc-900">{claim.category}</p>
 
-        <DetailRow label="Description" value={claim.description} />
+        <p className="text-base text-zinc-700">{claim.description}</p>
 
         {showPayoutInfo ? (
           <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
