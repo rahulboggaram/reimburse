@@ -250,7 +250,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
                 onNavigate={closeMenu}
                 active={pathname.startsWith("/admin/claims")}
               >
-                All Claims
+                All Reimbursements
               </MenuLink>
               <MenuLink
                 href="/admin/activity"

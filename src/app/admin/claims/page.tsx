@@ -57,7 +57,7 @@ export default function AdminClaimsPage() {
 
   return (
     <>
-      <PageHeading title="All claims" className="mb-4" />
+      <PageHeading title="All reimbursements" className="mb-4" />
       <RazorpayXStatusBanner />
       <div className="mb-4 space-y-1.5">
         <Label htmlFor="filter-employee">Filter by employee</Label>
