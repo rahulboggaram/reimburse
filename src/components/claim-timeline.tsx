@@ -176,12 +176,14 @@ function TimelineDot(props: { visual: VisualState }) {
           aria-hidden
           viewBox="0 0 20 20"
           className="size-4.5 text-white"
-          fill="currentColor"
+          fill="none"
         >
           <path
-            fillRule="evenodd"
-            d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.008 7.02a1 1 0 0 1-1.415 0L3.29 9.698a1 1 0 1 1 1.414-1.414l4.002 4.002 6.3-6.302a1 1 0 0 1 1.414 0Z"
-            clipRule="evenodd"
+            d="M5.25 10.25 8.25 13.25 14.75 6.75"
+            stroke="currentColor"
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       </span>
