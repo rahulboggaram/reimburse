@@ -200,6 +200,13 @@ export async function refreshPayoutsFromRazorpay(claimIds: string[]) {
   );
 }
 
+/** Refresh payout status in the background — never block list/login APIs on Razorpay. */
+export function queuePayoutSync(claimIds: string[]) {
+  const unique = [...new Set(claimIds)];
+  if (unique.length === 0) return;
+  void refreshPayoutsFromRazorpay(unique);
+}
+
 export async function syncPayoutFromWebhook(payout: RazorpayPayoutResponse) {
   const claim = await prisma.reimbursement.findFirst({
     where: { razorpayPayoutId: payout.id },

@@ -25,8 +25,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({ where: { phone } });
-    if (!user || !user.active) {
+    const user = await prisma.user.findUnique({
+      where: { phone },
+      select: { id: true, active: true },
+    });
+    if (!user?.active) {
       return Response.json(
         { error: "This number is not registered. Contact your admin." },
         { status: 403 },

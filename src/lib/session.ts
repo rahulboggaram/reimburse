@@ -79,30 +79,53 @@ export async function readSessionToken(
   }
 }
 
-/** Load session from DB so role changes (e.g. to Branch Manager) apply without re-login. */
-export async function getSession(): Promise<SessionUser | null> {
+/** Read session from the signed cookie (fast path for APIs). */
+export async function getSessionFromCookie(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
+  return readSessionToken(token);
+}
 
-  const fromToken = await readSessionToken(token);
-  if (!fromToken) return null;
-
+/** Refresh role/profile from DB and re-issue cookie when something changed. */
+export async function refreshSessionFromDb(
+  fromToken: SessionUser,
+): Promise<SessionUser | null> {
   const user = await prisma.user.findUnique({
     where: { id: fromToken.id },
+    select: {
+      id: true,
+      phone: true,
+      name: true,
+      role: true,
+      ifscCode: true,
+      bankAccountNumber: true,
+      active: true,
+    },
   });
-  if (!user || !user.active) return null;
+  if (!user?.active) return null;
 
-  const session = userToSession(user);
-
+  const session = userToSession(user as User);
   if (
     session.role !== fromToken.role ||
-    session.profileComplete !== fromToken.profileComplete
+    session.profileComplete !== fromToken.profileComplete ||
+    session.name !== fromToken.name
   ) {
     await setSessionCookie(session);
   }
-
   return session;
+}
+
+/** Fast session for most requests; set SESSION_ALWAYS_REFRESH_DB=true to always hit DB. */
+export async function getSession(): Promise<SessionUser | null> {
+  const fromToken = await getSessionFromCookie();
+  if (!fromToken) return null;
+
+  if (process.env.SESSION_ALWAYS_REFRESH_DB === "true") {
+    return refreshSessionFromDb(fromToken);
+  }
+
+  return fromToken;
 }
 
 export async function setSessionCookie(user: SessionUser) {

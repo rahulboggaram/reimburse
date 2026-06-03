@@ -32,10 +32,12 @@ export async function createOtpChallenge(phone: string) {
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-  await prisma.otpChallenge.deleteMany({ where: { phone } });
-  await prisma.otpChallenge.create({
-    data: { phone, code, expiresAt },
-  });
+  await prisma.$transaction([
+    prisma.otpChallenge.deleteMany({ where: { phone } }),
+    prisma.otpChallenge.create({
+      data: { phone, code, expiresAt },
+    }),
+  ]);
 
   if (isOtpMockMode()) {
     console.log(`[Reimburse OTP] ${phone} → ${code}`);

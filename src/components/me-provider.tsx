@@ -61,8 +61,12 @@ export function MeProvider(props: {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    if (props.initialUser) {
+      setLoading(false);
+      return;
+    }
 
+    let cancelled = false;
     refreshMe().finally(() => {
       if (!cancelled) setLoading(false);
     });
@@ -70,7 +74,7 @@ export function MeProvider(props: {
     return () => {
       cancelled = true;
     };
-  }, [refreshMe]);
+  }, [refreshMe, props.initialUser]);
 
   const value = useMemo(
     () => ({ user, loading, refreshMe }),

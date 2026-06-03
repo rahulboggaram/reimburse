@@ -15,7 +15,7 @@ async function fetchJsonOwn(
   ownerId: string,
 ): Promise<SerializedClaim[]> {
   const res = await fetch(url, {
-    cache: "no-store",
+    cache: "default",
     credentials: "include",
   });
   if (!res.ok) return [];

@@ -139,7 +139,7 @@ export function ClaimDetailModal(props: {
         .catch(() => {});
     }
 
-    const interval = window.setInterval(pollPayoutStatus, 8000);
+    const interval = window.setInterval(pollPayoutStatus, 20_000);
     return () => window.clearInterval(interval);
   }, [
     props.open,

@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
-import { refreshPayoutFromRazorpay } from "@/lib/payouts";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
 import { canAccessManagerPortal } from "@/lib/session";
 
@@ -36,19 +35,8 @@ export async function GET(
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  try {
-    await refreshPayoutFromRazorpay(id);
-  } catch (error) {
-    console.error("refresh payout on claim read failed", { claimId: id, error });
-  }
-
-  const fresh = await prisma.reimbursement.findUnique({
-    where: { id },
-    include: claimInclude,
-  });
-
-  return Response.json(serializeClaim(fresh ?? claim), {
-    headers: { "Cache-Control": "private, no-store" },
+  return Response.json(serializeClaim(claim), {
+    headers: { "Cache-Control": "private, max-age=10" },
   });
 }
 

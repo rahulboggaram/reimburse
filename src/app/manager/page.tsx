@@ -71,15 +71,20 @@ function queueSegments(role: string | undefined) {
     : QUEUE_SEGMENTS;
 }
 
-function readTabCache(tab: QueueTab) {
-  return readClientCache<SerializedClaim[]>(cacheKey(tab));
+type TabPayload = {
+  claims: SerializedClaim[];
+  counts: ActionCounts | null;
+};
+
+function readTabCache(tab: QueueTab): TabPayload | null {
+  return readClientCache<TabPayload>(cacheKey(tab));
 }
 
 export default function ManagerPendingPage() {
   const { user } = useMe();
   const [tab, setTab] = useState<QueueTab>("waiting");
   const [claims, setClaims] = useState<SerializedClaim[]>(
-    () => readTabCache("waiting") ?? [],
+    () => readTabCache("waiting")?.claims ?? [],
   );
   const [loading, setLoading] = useState(() => !readTabCache("waiting"));
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
@@ -88,32 +93,39 @@ export default function ManagerPendingPage() {
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
-  const refreshCounts = useCallback(async () => {
-    if (user?.role !== "ADMIN" && user?.role !== "APPROVER") {
-      setCounts(null);
-      return;
-    }
-    try {
-      const response = await fetch("/api/claims/action-counts");
-      const data = await readJson<ActionCounts>(response);
-      setCounts(data);
-    } catch {
-      setCounts(null);
-    }
-  }, [user?.role]);
+  const wantsCounts =
+    user?.role === "ADMIN" || user?.role === "APPROVER";
 
-  const fetchTab = useCallback(async (activeTab: QueueTab) => {
-    const response = await fetch(`/api/claims/pending?tab=${activeTab}`);
-    return readJson<SerializedClaim[]>(response);
+  const fetchTab = useCallback(
+    async (activeTab: QueueTab): Promise<TabPayload> => {
+      const countsQuery = wantsCounts ? "&counts=1" : "";
+      const response = await fetch(
+        `/api/claims/pending?tab=${activeTab}${countsQuery}`,
+      );
+      const data = await readJson<
+        SerializedClaim[] | { claims: SerializedClaim[]; counts: ActionCounts }
+      >(response);
+      if (Array.isArray(data)) {
+        return { claims: data, counts: null };
+      }
+      return { claims: data.claims, counts: data.counts };
+    },
+    [wantsCounts],
+  );
+
+  const applyTabPayload = useCallback((payload: TabPayload) => {
+    setClaims(payload.claims);
+    if (payload.counts) setCounts(payload.counts);
   }, []);
 
   const loadTab = useCallback(
     async (activeTab: QueueTab, fresh = false) => {
       if (fresh) invalidateClientCache(cacheKey(activeTab));
-      const data = await fetchClientCache(cacheKey(activeTab), () =>
-        fetchTab(activeTab),
+      return fetchClientCache(
+        cacheKey(activeTab),
+        () => fetchTab(activeTab),
+        90_000,
       );
-      return data;
     },
     [fetchTab],
   );
@@ -122,18 +134,24 @@ export default function ManagerPendingPage() {
     invalidateClientCache("claims-pending");
     setLoading(true);
     const data = await loadTab(tab, true);
-    setClaims(data);
+    applyTabPayload(data);
     setLoading(false);
-    void Promise.all(TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)));
-    void refreshCounts();
-  }, [loadTab, tab, refreshCounts]);
+    void Promise.all(
+      TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)),
+    );
+  }, [loadTab, tab, applyTabPayload]);
 
   function handleTabChange(next: QueueTab) {
     if (next === tab) return;
     setTab(next);
     setSelected(null);
     const cached = readTabCache(next);
-    setClaims(cached ?? []);
+    if (cached) {
+      setClaims(cached.claims);
+      if (cached.counts) setCounts(cached.counts);
+    } else {
+      setClaims([]);
+    }
     setLoading(!cached);
   }
 
@@ -142,7 +160,7 @@ export default function ManagerPendingPage() {
 
     const cached = readTabCache(tab);
     if (cached) {
-      setClaims(cached);
+      applyTabPayload(cached);
       setLoading(false);
     } else {
       setLoading(true);
@@ -150,7 +168,7 @@ export default function ManagerPendingPage() {
 
     void loadTab(tab).then((data) => {
       if (!cancelled) {
-        setClaims(data);
+        applyTabPayload(data);
         setLoading(false);
       }
     });
@@ -158,19 +176,14 @@ export default function ManagerPendingPage() {
     return () => {
       cancelled = true;
     };
-  }, [tab, loadTab]);
+  }, [tab, loadTab, applyTabPayload]);
 
   useEffect(() => {
-    void Promise.all(
-      TABS.filter((t) => t !== tab).map((t) =>
-        fetchClientCache(cacheKey(t), () => fetchTab(t)),
-      ),
-    );
-  }, [fetchTab, tab]);
-
-  useEffect(() => {
-    void refreshCounts();
-  }, [refreshCounts]);
+    if (!wantsCounts) return;
+    const other = TABS.find((t) => t !== tab);
+    if (!other || readTabCache(other)) return;
+    void fetchClientCache(cacheKey(other), () => fetchTab(other));
+  }, [fetchTab, tab, wantsCounts]);
 
   async function runBulk(
     endpoint: string,

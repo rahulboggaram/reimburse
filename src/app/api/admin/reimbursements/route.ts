@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
-import {
-  claimNeedsPayoutSync,
-  refreshPayoutsFromRazorpay,
-} from "@/lib/payouts";
+import { claimNeedsPayoutSync, queuePayoutSync } from "@/lib/payouts";
 
 export async function GET(request: Request) {
   const session = await requireAdminAccess();
@@ -19,19 +16,9 @@ export async function GET(request: Request) {
     include: claimListInclude,
   });
 
-  const syncIds = claims.filter(claimNeedsPayoutSync).map((c) => c.id);
-  if (syncIds.length > 0) {
-    await refreshPayoutsFromRazorpay(syncIds);
-  }
+  queuePayoutSync(claims.filter(claimNeedsPayoutSync).map((c) => c.id));
 
-  const fresh =
-    syncIds.length > 0
-      ? await prisma.reimbursement.findMany({
-          where: employeeId ? { employeeId } : undefined,
-          orderBy: { createdAt: "desc" },
-          include: claimListInclude,
-        })
-      : claims;
-
-  return Response.json(fresh.map(serializeClaimListItem));
+  return Response.json(claims.map(serializeClaimListItem), {
+    headers: { "Cache-Control": "private, max-age=15" },
+  });
 }

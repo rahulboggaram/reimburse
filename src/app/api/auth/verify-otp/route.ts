@@ -34,12 +34,12 @@ export async function POST(request: Request) {
     const sessionUser = userToSession(user);
     await setSessionCookie(sessionUser);
 
-    await logPlatformActivity({
+    void logPlatformActivity({
       type: "USER_LOGIN",
       actorId: user.id,
       targetUserId: user.id,
       summary: `${displayName(user.name, user.phone)} logged in`,
-    });
+    }).catch((err) => console.error("login activity log failed", err));
 
     return Response.json({
       ok: true,

@@ -4,6 +4,10 @@ import { requireManagerAccess } from "@/lib/auth-api";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import {
+  countAdminPendingApproval,
+  countPaymentWaiting,
+} from "@/lib/bulk-claim-actions";
+import {
   approverPaymentSentWhere,
   approverPaymentWaitingWhere,
 } from "@/lib/claim-payment-queue";
@@ -61,13 +65,31 @@ export async function GET(request: Request) {
         ? { decidedAt: "desc" as const }
         : { createdAt: "desc" as const };
 
-  const claims = await prisma.reimbursement.findMany({
-    where,
-    orderBy,
-    include: claimListInclude,
-  });
+  const includeCounts = new URL(request.url).searchParams.get("counts") === "1";
 
-  return Response.json(claims.map(serializeClaimListItem), {
-    headers: { "Cache-Control": "private, no-store" },
+  const [claims, paymentWaiting, adminPending] = await Promise.all([
+    prisma.reimbursement.findMany({
+      where,
+      orderBy,
+      include: claimListInclude,
+    }),
+    includeCounts &&
+    (session.role === "ADMIN" || session.role === "APPROVER")
+      ? countPaymentWaiting(session)
+      : Promise.resolve(0),
+    includeCounts && session.role === "ADMIN"
+      ? countAdminPendingApproval()
+      : Promise.resolve(0),
+  ]);
+
+  const body = includeCounts
+    ? {
+        claims: claims.map(serializeClaimListItem),
+        counts: { paymentWaiting, adminPending },
+      }
+    : claims.map(serializeClaimListItem);
+
+  return Response.json(body, {
+    headers: { "Cache-Control": "private, max-age=20" },
   });
 }

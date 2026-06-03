@@ -91,8 +91,7 @@ export function LoginFlow() {
       });
       const data = await readJson<{ redirectTo: string }>(response);
       invalidateClientCache();
-      router.push(data.redirectTo);
-      router.refresh();
+      router.replace(data.redirectTo);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Incorrect or expired code.",
