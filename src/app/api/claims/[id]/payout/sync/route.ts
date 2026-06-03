@@ -11,19 +11,27 @@ export async function POST(
   const session = await requireSession();
   if (session instanceof Response) return session;
 
-  if (session.role !== "ADMIN" && session.role !== "APPROVER") {
-    return Response.json({ error: "You do not have access." }, { status: 403 });
-  }
-
   const existing = await prisma.reimbursement.findUnique({
     where: { id },
-    select: { id: true, razorpayPayoutId: true, paymentApproverId: true },
+    select: {
+      id: true,
+      employeeId: true,
+      razorpayPayoutId: true,
+      paymentApproverId: true,
+    },
   });
   if (!existing) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
-  if (session.role === "APPROVER" && existing.paymentApproverId !== session.id) {
-    return Response.json({ error: "Claim not found" }, { status: 404 });
+
+  const isOwner = existing.employeeId === session.id;
+  const isAdmin = session.role === "ADMIN";
+  const isPaymentApprover =
+    session.role === "APPROVER" &&
+    existing.paymentApproverId === session.id;
+
+  if (!isOwner && !isAdmin && !isPaymentApprover) {
+    return Response.json({ error: "You do not have access." }, { status: 403 });
   }
   if (!existing.razorpayPayoutId) {
     return Response.json(

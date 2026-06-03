@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
+import { refreshPayoutFromRazorpay } from "@/lib/payouts";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
 import { canAccessManagerPortal } from "@/lib/session";
 
@@ -22,15 +23,29 @@ export async function GET(
   }
 
   const isOwner = claim.employeeId === session.id;
+  const isAdmin = session.role === "ADMIN";
   const isAssignedApprover =
     canAccessManagerPortal(session) &&
     (claim.approverId === session.id || claim.paymentApproverId === session.id);
 
-  if (!isOwner && !isAssignedApprover) {
+  if (!isOwner && !isAssignedApprover && !isAdmin) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  return Response.json(serializeClaim(claim));
+  try {
+    await refreshPayoutFromRazorpay(id);
+  } catch (error) {
+    console.error("refresh payout on claim read failed", { claimId: id, error });
+  }
+
+  const fresh = await prisma.reimbursement.findUnique({
+    where: { id },
+    include: claimInclude,
+  });
+
+  return Response.json(serializeClaim(fresh ?? claim), {
+    headers: { "Cache-Control": "private, no-store" },
+  });
 }
 
 export async function DELETE(

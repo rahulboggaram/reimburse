@@ -153,17 +153,52 @@ export async function applyPayoutResult(input: {
   return claim;
 }
 
-/** Refresh payout status from Razorpay when still queued or processing. */
-export async function refreshPayoutIfInProgress(claimId: string) {
+type PayoutSyncRow = {
+  razorpayPayoutId: string | null;
+  paidAt: Date | null;
+  status: string;
+  payoutStatus: string | null;
+};
+
+export function claimNeedsPayoutSync(claim: PayoutSyncRow): boolean {
+  if (!claim.razorpayPayoutId) return false;
+  if (claim.status === "PAID" && claim.paidAt) return false;
+  if (isPayoutSuccessful(claim.payoutStatus ?? "")) {
+    return claim.status !== "PAID" || !claim.paidAt;
+  }
+  if (!claim.payoutStatus) return true;
+  return !isPayoutFailed(claim.payoutStatus);
+}
+
+/** Pull latest payout status from Razorpay when the app is not fully up to date. */
+export async function refreshPayoutFromRazorpay(claimId: string) {
   const claim = await prisma.reimbursement.findUnique({
     where: { id: claimId },
-    select: { razorpayPayoutId: true, payoutStatus: true },
+    select: {
+      razorpayPayoutId: true,
+      paidAt: true,
+      status: true,
+      payoutStatus: true,
+    },
   });
-  if (!claim?.razorpayPayoutId) return null;
-  if (!claim.payoutStatus || !isPayoutInProgress(claim.payoutStatus)) {
-    return null;
-  }
+  if (!claim || !claimNeedsPayoutSync(claim)) return null;
   return syncPayoutForClaim(claimId);
+}
+
+/** @deprecated Use refreshPayoutFromRazorpay */
+export async function refreshPayoutIfInProgress(claimId: string) {
+  return refreshPayoutFromRazorpay(claimId);
+}
+
+export async function refreshPayoutsFromRazorpay(claimIds: string[]) {
+  const unique = [...new Set(claimIds)];
+  await Promise.all(
+    unique.map((id) =>
+      refreshPayoutFromRazorpay(id).catch((error) => {
+        console.error("payout sync failed", { claimId: id, error });
+      }),
+    ),
+  );
 }
 
 export async function syncPayoutFromWebhook(payout: RazorpayPayoutResponse) {

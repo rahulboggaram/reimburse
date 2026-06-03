@@ -73,11 +73,11 @@ export function claimDisplayStatus(
     if (payoutFailed(claim.payoutStatus)) {
       return claim.payoutStatus ?? "failed";
     }
-    if (payoutInProgress(claim.payoutStatus)) {
-      return "paying";
-    }
     if (claim.payoutStatus === "processed") {
       return "PAID";
+    }
+    if (payoutInProgress(claim.payoutStatus)) {
+      return "paying";
     }
     return "paying";
   }

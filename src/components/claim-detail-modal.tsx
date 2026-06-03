@@ -143,6 +143,37 @@ export function ClaimDetailModal(props: {
     };
   }, [props.open, props.claim]);
 
+  useEffect(() => {
+    if (!props.open || !props.claim) return;
+
+    const current = detailClaim ?? props.claim;
+    const payoutUnsettled =
+      Boolean(current.razorpayPayoutId) &&
+      current.status !== "PAID" &&
+      !current.paidAt;
+    if (!payoutUnsettled) return;
+
+    function pollPayoutStatus() {
+      fetch(`/api/claims/${current.id}`, { cache: "no-store" })
+        .then((res) => readJson<SerializedClaim>(res))
+        .then((data) => {
+          cacheClaimDetail(data);
+          setDetailClaim(data);
+        })
+        .catch(() => {});
+    }
+
+    const interval = window.setInterval(pollPayoutStatus, 8000);
+    return () => window.clearInterval(interval);
+  }, [
+    props.open,
+    props.claim,
+    detailClaim?.id,
+    detailClaim?.paidAt,
+    detailClaim?.status,
+    detailClaim?.razorpayPayoutId,
+  ]);
+
   if (!props.claim) return null;
 
   const claim = detailClaim ?? props.claim;
@@ -197,10 +228,12 @@ export function ClaimDetailModal(props: {
     claim.status === "APPROVED" &&
     payoutFailed(claim.payoutStatus);
 
-  const canSyncPayout =
-    (props.variant === "admin" || props.variant === "approver") &&
+  const payoutUnsettled =
     Boolean(claim.razorpayPayoutId) &&
+    claim.status !== "PAID" &&
     !claim.paidAt;
+
+  const canSyncPayout = payoutUnsettled;
 
   const showPayoutInfo =
     claim.razorpayPayoutId ||
@@ -439,11 +472,10 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {(props.variant === "admin" || props.variant === "approver") &&
-        claim.status === "APPROVED" &&
-        payoutInProgress(claim.payoutStatus) ? (
+        {payoutUnsettled && payoutInProgress(claim.payoutStatus) ? (
           <p className="border-t border-zinc-100 pt-8 text-sm text-blue-700">
-            Payout is in progress. This usually completes within a few minutes.
+            Payment is processing in RazorpayX. Status updates automatically every
+            few seconds, or tap Refresh Payment Status.
           </p>
         ) : null}
       </div>
