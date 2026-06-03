@@ -336,9 +336,9 @@ export function EmployeeProfileForm(props: {
               </div>
               <div>
                 <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
-                <ProfileFieldValue className="font-mono text-sm uppercase tracking-wide text-zinc-800">
+                <ProfileFieldValue className="break-all font-tabular-nums uppercase">
                   {savedIfscCode || (
-                    <span className="font-normal text-zinc-500 normal-case tracking-normal">
+                    <span className="font-normal text-zinc-500 normal-case">
                       Not added yet
                     </span>
                   )}
