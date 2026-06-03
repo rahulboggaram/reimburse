@@ -1,6 +1,10 @@
 "use client";
 
 import type { SerializedClaim } from "@/lib/claim-types";
+import {
+  isAdminSelfServiceClaim,
+  payoutInProgress,
+} from "@/lib/claim-display-status";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
@@ -37,18 +41,125 @@ function paymentApproverLabel(claim: SerializedClaim) {
   return personLabel(claim.paymentApprover?.name, "payment approver");
 }
 
-function financialApprovalSubtext(claim: SerializedClaim) {
+function payoutComplete(claim: SerializedClaim) {
+  return claim.status === "PAID" || Boolean(claim.paidAt);
+}
+
+function payoutStarted(claim: SerializedClaim) {
+  return Boolean(
+    claim.payoutInitiatedAt || claim.paidAt || claim.razorpayPayoutId,
+  );
+}
+
+function adminApprovalStep(claim: SerializedClaim): TimelineStep {
+  const at = claim.decidedAt ?? claim.createdAt;
+  return {
+    key: "approval-done",
+    title: "Approved",
+    subtext: `Auto-approved · ${formatDisplayDateTime(at)}`,
+    visual: "done",
+  };
+}
+
+function branchApprovalStep(claim: SerializedClaim): TimelineStep {
+  const manager = branchManagerLabel(claim);
+  return {
+    key: "approval-done",
+    title: "Approved",
+    subtext: claim.decidedAt
+      ? `by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+      : `by ${manager}`,
+    visual: "done",
+  };
+}
+
+function adminPaymentSteps(claim: SerializedClaim): TimelineStep[] {
+  if (payoutComplete(claim)) {
+    const at = claim.paidAt ?? claim.payoutInitiatedAt ?? claim.updatedAt;
+    return [
+      {
+        key: "paid",
+        title: "Paid",
+        subtext: `${formatDisplayDateTime(at)}`,
+        visual: "done",
+      },
+    ];
+  }
+
+  if (payoutStarted(claim) && payoutInProgress(claim.payoutStatus)) {
+    return [
+      {
+        key: "payment-processing",
+        title: "Payment processing",
+        subtext: claim.payoutInitiatedAt
+          ? formatDisplayDateTime(claim.payoutInitiatedAt)
+          : undefined,
+        visual: "awaiting",
+      },
+    ];
+  }
+
+  return [
+    {
+      key: "payment-waiting",
+      title: "Awaiting payment",
+      subtext: "Sending to your bank account",
+      visual: "awaiting",
+    },
+  ];
+}
+
+function approverPaymentSteps(claim: SerializedClaim): TimelineStep[] {
   const who = paymentApproverLabel(claim);
-  const at = claim.payoutInitiatedAt ?? claim.paidAt;
-  if (at) return `by ${who} · ${formatDisplayDateTime(at)}`;
-  return `by ${who}`;
+  const initiatedAt = claim.payoutInitiatedAt ?? claim.paidAt;
+
+  if (!payoutStarted(claim)) {
+    return [
+      {
+        key: "finance-waiting",
+        title: "Awaiting financial approval",
+        subtext: `by ${who}`,
+        visual: "awaiting",
+      },
+    ];
+  }
+
+  const financeDone: TimelineStep = {
+    key: "finance-done",
+    title: "Financial approval",
+    subtext: initiatedAt
+      ? `by ${who} · ${formatDisplayDateTime(initiatedAt)}`
+      : `by ${who}`,
+    visual: "done",
+  };
+
+  if (payoutComplete(claim)) {
+    return [financeDone];
+  }
+
+  if (payoutInProgress(claim.payoutStatus)) {
+    return [
+      financeDone,
+      {
+        key: "payment-processing",
+        title: "Payment processing",
+        subtext: claim.payoutInitiatedAt
+          ? formatDisplayDateTime(claim.payoutInitiatedAt)
+          : "Sent to RazorpayX",
+        visual: "awaiting",
+      },
+    ];
+  }
+
+  return [financeDone];
 }
 
 function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   const uploaded = uploadedStep(claim);
-  const manager = branchManagerLabel(claim);
+  const adminSelf = isAdminSelfServiceClaim(claim);
 
   if (claim.status === "REJECTED") {
+    const manager = branchManagerLabel(claim);
     return [
       uploaded,
       {
@@ -63,6 +174,7 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   }
 
   if (claim.status === "PENDING") {
+    const manager = branchManagerLabel(claim);
     return [
       uploaded,
       {
@@ -80,36 +192,15 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
     ];
   }
 
-  const approvalDone: TimelineStep = {
-    key: "approval-done",
-    title: "Approved",
-    subtext: claim.decidedAt
-      ? `by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
-      : `by ${manager}`,
-    visual: "done",
-  };
+  const approvalDone = adminSelf
+    ? adminApprovalStep(claim)
+    : branchApprovalStep(claim);
 
-  const financeDone: TimelineStep = {
-    key: "finance-done",
-    title: "Financial approval",
-    subtext: financialApprovalSubtext(claim),
-    visual: "done",
-  };
+  const paymentSteps = adminSelf
+    ? adminPaymentSteps(claim)
+    : approverPaymentSteps(claim);
 
-  if (claim.payoutInitiatedAt || claim.paidAt || claim.razorpayPayoutId) {
-    return [uploaded, approvalDone, financeDone];
-  }
-
-  return [
-    uploaded,
-    approvalDone,
-    {
-      key: "finance-waiting",
-      title: "Awaiting financial approval",
-      subtext: `by ${paymentApproverLabel(claim)}`,
-      visual: "awaiting",
-    },
-  ];
+  return [uploaded, approvalDone, ...paymentSteps];
 }
 
 const AWAITING_COLOR = "text-amber-600";

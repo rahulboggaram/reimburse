@@ -11,12 +11,28 @@ function payoutFailed(status: string | null | undefined) {
   );
 }
 
+/** Admin submits and pays themselves — no payment-approver queue. */
+export function isAdminSelfServiceClaim(claim: {
+  employeeId: string;
+  approverId: string;
+  paymentApproverId: string;
+}): boolean {
+  return (
+    claim.employeeId === claim.approverId &&
+    claim.employeeId === claim.paymentApproverId
+  );
+}
+
 function awaitingPaymentApprover(claim: {
+  employeeId: string;
+  approverId: string;
+  paymentApproverId: string;
   status: string;
   paidAt?: string | null;
   razorpayPayoutId?: string | null;
   payoutStatus?: string | null;
 }) {
+  if (isAdminSelfServiceClaim(claim)) return false;
   return (
     claim.status === "APPROVED" &&
     !claim.paidAt &&
@@ -26,6 +42,9 @@ function awaitingPaymentApprover(claim: {
 
 export function claimDisplayStatus(
   claim: {
+    employeeId?: string;
+    approverId?: string;
+    paymentApproverId?: string;
     status: string;
     paidAt?: string | null;
     razorpayPayoutId?: string | null;
@@ -37,7 +56,16 @@ export function claimDisplayStatus(
     return "PAID";
   }
 
-  if (awaitingPaymentApprover(claim)) {
+  const routingIds =
+    claim.employeeId && claim.approverId && claim.paymentApproverId
+      ? {
+          employeeId: claim.employeeId,
+          approverId: claim.approverId,
+          paymentApproverId: claim.paymentApproverId,
+        }
+      : null;
+
+  if (routingIds && awaitingPaymentApprover({ ...claim, ...routingIds })) {
     return "QUEUED";
   }
 
@@ -51,6 +79,14 @@ export function claimDisplayStatus(
     if (claim.payoutStatus === "processed") {
       return "PAID";
     }
+    return "paying";
+  }
+
+  if (
+    routingIds &&
+    isAdminSelfServiceClaim(routingIds) &&
+    claim.status === "APPROVED"
+  ) {
     return "paying";
   }
 
