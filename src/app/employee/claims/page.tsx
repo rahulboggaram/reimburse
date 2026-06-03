@@ -19,6 +19,7 @@ import {
   invalidateClientCache,
   readClientCache,
 } from "@/lib/client-cache";
+import { canViewOwnReimbursements } from "@/lib/access-roles";
 import { claimsMineCacheKey } from "@/lib/claims-cache";
 
 function MyClaimsLoadingSkeleton() {
@@ -42,14 +43,18 @@ export default function MyClaimsPage() {
     if (meLoading) return;
     if (!user) return;
 
-    if (user.role !== "EMPLOYEE") {
-      router.replace(user.role === "ADMIN" ? "/admin/claims" : "/manager");
+    if (user.role === "EMPLOYEE" && !user.profileComplete) {
+      router.replace("/employee/onboarding");
+      return;
+    }
+    if (!canViewOwnReimbursements(user)) {
+      router.replace("/login");
     }
   }, [meLoading, user, router]);
 
   const loadClaims = useCallback(
     async (fresh = false) => {
-      if (!user || user.role !== "EMPLOYEE") return;
+      if (!user || !canViewOwnReimbursements(user)) return;
 
       const key = claimsMineCacheKey(user.id);
       if (fresh) invalidateClientCache(key);
@@ -70,7 +75,7 @@ export default function MyClaimsPage() {
   );
 
   useEffect(() => {
-    if (meLoading || !user || user.role !== "EMPLOYEE") return;
+    if (meLoading || !user || !canViewOwnReimbursements(user)) return;
 
     let cancelled = false;
     const key = claimsMineCacheKey(user.id);
@@ -99,7 +104,7 @@ export default function MyClaimsPage() {
     setSelected(null);
   }, [user?.id]);
 
-  if (meLoading || !user || user.role !== "EMPLOYEE") {
+  if (meLoading || !user || !canViewOwnReimbursements(user)) {
     return (
       <div className="space-y-4">
         <PageHeading title="My Reimbursements" />

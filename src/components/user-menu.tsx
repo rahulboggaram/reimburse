@@ -7,6 +7,7 @@ import { useMe } from "@/components/me-provider";
 import type { MeUser } from "@/components/me-provider";
 import { invalidateClientCache } from "@/lib/client-cache";
 import { userDisplayLabel } from "@/lib/user-profile";
+import { canViewOwnReimbursements } from "@/lib/access-roles";
 import type { SessionUser } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -188,7 +189,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
 
   const employeeLinks = (
     <>
-      {resolvedUser.role === "EMPLOYEE" ? (
+      {canViewOwnReimbursements(resolvedUser) ? (
         <MenuLink
           href="/employee/claims"
           onNavigate={closeMenu}

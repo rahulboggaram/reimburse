@@ -16,6 +16,7 @@ import {
 } from "@/lib/client-cache";
 import { claimsRejectedCacheKey } from "@/lib/claims-cache";
 import type { SerializedClaim } from "@/lib/claim-types";
+import { canViewOwnReimbursements } from "@/lib/access-roles";
 import { toTitleCase } from "@/lib/user-profile";
 
 function rejectorLabel(claim: SerializedClaim) {
@@ -32,7 +33,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
 
   const loadRejected = useCallback(
     async (fresh = false) => {
-      if (!user || user.role !== "EMPLOYEE") {
+      if (!user || !canViewOwnReimbursements(user)) {
         setClaims([]);
         return;
       }
@@ -56,7 +57,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
 
   useEffect(() => {
     if (meLoading) return;
-    if (!user || user.role !== "EMPLOYEE") {
+    if (!user || !canViewOwnReimbursements(user)) {
       setClaims([]);
       setLoading(false);
       return;
@@ -107,7 +108,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
 
   if (rejected.length === 0) return null;
 
-  if (!user || user.role !== "EMPLOYEE") return null;
+  if (!user || !canViewOwnReimbursements(user)) return null;
 
   return (
     <section className="mb-6 space-y-3" aria-labelledby="rejected-claims-heading">

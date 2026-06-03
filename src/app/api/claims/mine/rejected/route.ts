@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { requireEmployeeWithProfile } from "@/lib/auth-api";
+import { requireOwnClaimsAccess } from "@/lib/auth-api";
 import {
   assertClaimsBelongToEmployee,
   claimsForEmployeeWhere,
@@ -8,7 +8,7 @@ import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
 /** Rejected reimbursements for the signed-in employee only. */
 export async function GET() {
-  const session = await requireEmployeeWithProfile();
+  const session = await requireOwnClaimsAccess();
   if (session instanceof Response) return session;
 
   const claims = await prisma.reimbursement.findMany({

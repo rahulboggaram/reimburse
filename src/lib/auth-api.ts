@@ -42,6 +42,13 @@ export async function requireEmployeeWithProfile(): Promise<
   return session;
 }
 
+/** List or manage the signed-in user's own reimbursements (any submitter role). */
+export async function requireOwnClaimsAccess(): Promise<
+  SessionUser | Response
+> {
+  return requireCanSubmitReimbursement();
+}
+
 export async function requireCanSubmitReimbursement(): Promise<
   SessionUser | Response
 > {
