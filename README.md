@@ -30,56 +30,51 @@ npm run dev
 - **Admin**: list employees, assign **Approver** toggle (only after they complete profile)
 - **RazorpayX payouts**: pay approved claims from Admin → All claims
 
-## Live OTP — do this before live Razorpay
+## Live OTP — WhatsApp (before live Razorpay)
 
-Set on **Vercel → Production**:
+Production uses **WhatsApp Cloud API** for login codes. Do **not** set MSG91 or Twilio vars unless you add SMS later.
 
-```env
-OTP_MOCK="false"
-NEXT_PUBLIC_OTP_MOCK="false"
-NEXT_PUBLIC_OTP_DOMAIN="reimburse-jade.vercel.app"
-```
+### 1. Meta (verified Business account)
 
-### Option A — WhatsApp OTP (good if you have a verified Business account)
+1. [Meta Business Suite](https://business.facebook.com/) → **WhatsApp** → **API Setup** (Cloud API).
+2. **Message templates** → Create template:
+   - Category: **Authentication**
+   - Type: **Copy code** (OTP button)
+   - Wait until status is **Approved**
+3. Note **template name** (e.g. `reimburse_login_otp`) and **language** (e.g. `en_US`).
+4. From API Setup, copy:
+   - **Phone number ID**
+   - **Permanent access token** (permission: `whatsapp_business_messaging`)
 
-No Indian SMS DLT. User must have **WhatsApp on the same mobile number** they use to log in.
-
-1. [Meta Business Suite](https://business.facebook.com/) → WhatsApp → **API Setup** (Cloud API).
-2. Create an **Authentication** message template (category AUTHENTICATION, copy-code button). Note the **template name** and **language code** (e.g. `en_US`) after approval.
-3. Copy **Phone number ID** and a permanent **access token** with `whatsapp_business_messaging`.
-4. Add env vars (WhatsApp is used automatically when these are set):
-
-```env
-WHATSAPP_ACCESS_TOKEN="EAA..."
-WHATSAPP_PHONE_NUMBER_ID="123456789012345"
-WHATSAPP_OTP_TEMPLATE_NAME="your_auth_template_name"
-WHATSAPP_OTP_TEMPLATE_LANGUAGE="en_US"
-```
-
-If your template has no copy button, set `WHATSAPP_OTP_TEMPLATE_HAS_BUTTON="false"`.
-
-5. Redeploy. Login should say **“Code sent on WhatsApp”** and deliver the 6-digit code in WhatsApp.
-
-Pricing is per Meta’s [conversation rates](https://developers.facebook.com/docs/whatsapp/pricing/) (authentication category; often competitive vs SMS in India, not free).
-
-### Option B — MSG91 SMS (India + DLT)
+### 2. Vercel → Production environment variables
 
 ```env
-MSG91_AUTH_KEY="your-authkey"
-MSG91_TEMPLATE_ID="your-dlt-otp-template-id"
+OTP_MOCK=false
+NEXT_PUBLIC_OTP_MOCK=false
+NEXT_PUBLIC_OTP_DOMAIN=reimburse-jade.vercel.app
+
+WHATSAPP_ACCESS_TOKEN=EAA...your_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_OTP_TEMPLATE_NAME=your_approved_template_name
+WHATSAPP_OTP_TEMPLATE_LANGUAGE=en_US
 ```
 
-(Do not set WhatsApp vars if you want MSG91.)
+Optional: `WHATSAPP_OTP_TEMPLATE_HAS_BUTTON=false` if your template has no copy button.
 
-### Option C — Twilio SMS
+Leave **`RAZORPAYX_MOCK=true`** until WhatsApp login works.
 
-```env
-TWILIO_ACCOUNT_SID=""
-TWILIO_AUTH_TOKEN=""
-TWILIO_FROM_NUMBER="+1..."
-```
+Remove or leave empty: `MSG91_*`, `TWILIO_*` (so only WhatsApp is used).
 
-Keep **`RAZORPAYX_MOCK="true"`** until OTP works, then enable live Razorpay below.
+### 3. Deploy and test
+
+1. Redeploy Production (or wait for auto-deploy from `main`).
+2. Hard-refresh https://reimburse-jade.vercel.app
+3. Log in with a **registered** phone that has **WhatsApp on that same number**.
+4. You should see **“Code sent on WhatsApp”** and receive the 6-digit code in WhatsApp.
+
+### Alternatives (not used by default)
+
+MSG91 or Twilio SMS — see `.env.example` if you need SMS fallback later.
 
 ## RazorpayX setup (real payouts)
 
