@@ -195,28 +195,38 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
   const showMyReimbursements =
     canViewOwnReimbursements(resolvedUser) || canAccessManagerPortal(role);
 
-  const employeeLinks = (
-    <>
-      {showMyReimbursements ? (
-        <MenuLink
-          href="/employee/claims"
-          onNavigate={closeMenu}
-          active={
-            pathname.startsWith("/employee/claims") ||
-            pathname.startsWith("/employee/refile")
-          }
-        >
-          My Reimbursements
-        </MenuLink>
-      ) : null}
-      <MenuLink
-        href="/employee/profile"
-        onNavigate={closeMenu}
-        active={pathname.startsWith("/employee/profile")}
-      >
-        Profile
-      </MenuLink>
-    </>
+  const myReimbursementsLink = showMyReimbursements ? (
+    <MenuLink
+      href="/employee/claims"
+      onNavigate={closeMenu}
+      active={
+        pathname.startsWith("/employee/claims") ||
+        pathname.startsWith("/employee/refile")
+      }
+    >
+      My Reimbursements
+    </MenuLink>
+  ) : null;
+
+  const profileLink = (
+    <MenuLink
+      href="/employee/profile"
+      onNavigate={closeMenu}
+      active={pathname.startsWith("/employee/profile")}
+    >
+      Profile
+    </MenuLink>
+  );
+
+  const logoutButton = (
+    <button
+      type="button"
+      role="menuitem"
+      className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50"
+      onClick={logout}
+    >
+      Log Out
+    </button>
   );
 
   return (
@@ -232,18 +242,30 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
           role="menu"
           className="absolute top-[calc(100%+6px)] right-0 z-30 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
         >
-          {approvalsLink}
-          {employeeLinks}
-
           {canAdmin ? (
             <>
-              <MenuDivider />
+              {approvalsLink}
+              {myReimbursementsLink}
               <MenuLink
                 href="/admin/people"
                 onNavigate={closeMenu}
                 active={pathname.startsWith("/admin/people")}
               >
                 People
+              </MenuLink>
+              <MenuLink
+                href="/admin/branches"
+                onNavigate={closeMenu}
+                active={pathname.startsWith("/admin/branches")}
+              >
+                Branches
+              </MenuLink>
+              <MenuLink
+                href="/admin/categories"
+                onNavigate={closeMenu}
+                active={pathname.startsWith("/admin/categories")}
+              >
+                Categories
               </MenuLink>
               <MenuLink
                 href="/admin/claims"
@@ -266,32 +288,18 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
               >
                 Reports
               </MenuLink>
-              <MenuLink
-                href="/admin/branches"
-                onNavigate={closeMenu}
-                active={pathname.startsWith("/admin/branches")}
-              >
-                Branches
-              </MenuLink>
-              <MenuLink
-                href="/admin/categories"
-                onNavigate={closeMenu}
-                active={pathname.startsWith("/admin/categories")}
-              >
-                Categories
-              </MenuLink>
+              <MenuDivider />
+              {logoutButton}
             </>
-          ) : null}
-
-          <MenuDivider />
-          <button
-            type="button"
-            role="menuitem"
-            className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50"
-            onClick={logout}
-          >
-            Log Out
-          </button>
+          ) : (
+            <>
+              {approvalsLink}
+              {myReimbursementsLink}
+              {profileLink}
+              <MenuDivider />
+              {logoutButton}
+            </>
+          )}
         </div>
       ) : null}
     </div>
