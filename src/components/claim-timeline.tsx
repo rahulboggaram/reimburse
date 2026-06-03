@@ -203,7 +203,8 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   return [uploaded, approvalDone, ...paymentSteps];
 }
 
-const AWAITING_COLOR = "text-amber-600";
+/** Matches Queued status badges (bg-blue-50 / text-blue-600). */
+const AWAITING_COLOR = "text-blue-600";
 const UPCOMING_COLOR = "text-zinc-400";
 
 function titleStyles(visual: VisualState) {
@@ -284,7 +285,7 @@ function TimelineDot(props: { visual: VisualState }) {
     return (
       <span
         aria-hidden
-        className={cn(base, "border-2 border-amber-600 bg-amber-600")}
+        className={cn(base, "border-2 border-blue-600 bg-blue-600")}
       />
     );
   }

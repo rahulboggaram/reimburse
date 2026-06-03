@@ -1,19 +1,22 @@
 import { cn } from "@/lib/utils";
 
 const labels: Record<string, string> = {
+  AWAITING: "Awaiting",
   QUEUED: "Queued",
 };
 
 /** Light tint background + saturated text for readable compact badges. */
-const pendingStyle = "bg-amber-50 text-amber-600";
 const successStyle = "bg-emerald-50 text-emerald-600";
 const errorStyle = "bg-red-50 text-red-600";
+/** In-progress / waiting states (Queued, Awaiting, paying). */
 const progressStyle = "bg-blue-50 text-blue-600";
 const neutralStyle = "bg-zinc-100 text-zinc-600";
 
 const styles: Record<string, string> = {
-  PENDING: pendingStyle,
-  pending: pendingStyle,
+  PENDING: progressStyle,
+  pending: progressStyle,
+  AWAITING: progressStyle,
+  awaiting: progressStyle,
   QUEUED: progressStyle,
   queued: progressStyle,
   APPROVED: successStyle,

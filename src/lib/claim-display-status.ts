@@ -66,7 +66,11 @@ export function claimDisplayStatus(
       : null;
 
   if (routingIds && awaitingPaymentApprover({ ...claim, ...routingIds })) {
-    return "QUEUED";
+    return "AWAITING";
+  }
+
+  if (claim.status === "PENDING") {
+    return "AWAITING";
   }
 
   if (claim.status === "APPROVED" && claim.razorpayPayoutId) {
