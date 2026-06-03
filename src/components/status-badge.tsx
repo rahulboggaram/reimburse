@@ -25,7 +25,6 @@ const styles: Record<string, string> = {
   reversed: errorStyle,
   cancelled: errorStyle,
   paying: progressStyle,
-  queued: progressStyle,
   processing: progressStyle,
   "not started": neutralStyle,
   not_started: neutralStyle,
