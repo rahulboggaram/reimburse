@@ -14,7 +14,6 @@ import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { toTitleCase } from "@/lib/user-profile";
-import { cn } from "@/lib/utils";
 import { readJson } from "@/lib/api";
 import {
   canInitiateClaimPayment,
@@ -317,7 +316,7 @@ export function ClaimDetailModal(props: {
 
         {(props.variant === "approver" || props.variant === "admin") &&
         claim.status === "PENDING" ? (
-          <div className={cn("space-y-4 border-t border-zinc-100 pt-8")}>
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="rejection-reason">Rejection reason (if rejecting)</Label>
               <Textarea
