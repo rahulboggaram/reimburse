@@ -48,7 +48,7 @@ export default function RefileClaimPage() {
       <Card>
         <p className="text-sm text-zinc-600">This claim cannot be refiled.</p>
         <TextLink href="/employee/claims" className="mt-3">
-          Back to my claims
+          Back to my reimbursements
         </TextLink>
       </Card>
     );

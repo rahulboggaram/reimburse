@@ -174,8 +174,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     resolvedUser.role === "ADMIN" ||
     resolvedUser.role === "BRANCH_MANAGER" ||
     resolvedUser.role === "APPROVER";
-  const isBranchManager = resolvedUser.role === "BRANCH_MANAGER";
-
   const approvalsLink = canApprove ? (
     <MenuLink
       href="/manager"
@@ -196,7 +194,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
           pathname.startsWith("/employee/refile")
         }
       >
-        My Claims
+        My Reimbursements
       </MenuLink>
       <MenuLink
         href="/employee/profile"
@@ -221,17 +219,8 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
           role="menu"
           className="absolute top-[calc(100%+6px)] right-0 z-30 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
         >
-          {isBranchManager ? (
-            <>
-              {approvalsLink}
-              {employeeLinks}
-            </>
-          ) : (
-            <>
-              {employeeLinks}
-              {approvalsLink}
-            </>
-          )}
+          {approvalsLink}
+          {employeeLinks}
 
           {canAdmin ? (
             <>
