@@ -59,7 +59,7 @@ export default function ManagerPendingPage() {
   return (
     <>
       <PageHeading
-        title="Your queue"
+        title="Approvals"
         description="Tap a row to review and take action"
         className="mb-4"
       />
