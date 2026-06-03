@@ -5,6 +5,7 @@ import {
   ApprovalsTableHeader,
   ApprovalsTableRow,
 } from "@/components/approvals-table";
+import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import { Card } from "@/components/ui/card";
 import { SegmentControl } from "@/components/segment-control";
@@ -31,10 +32,12 @@ function emptyMessage(tab: QueueTab) {
 }
 
 export default function ManagerPendingPage() {
+  const { user } = useMe();
   const [tab, setTab] = useState<QueueTab>("waiting");
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
+  const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
   const loadClaims = useCallback(async (activeTab: QueueTab) => {
     const data = await fetchClientCache(cacheKey(activeTab), async () => {
@@ -80,12 +83,13 @@ export default function ManagerPendingPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden p-0">
-          <ApprovalsTableHeader />
+          <ApprovalsTableHeader showStatus={showStatus} />
           <div>
             {claims.map((claim) => (
               <ApprovalsTableRow
                 key={claim.id}
                 claim={claim}
+                showStatus={showStatus}
                 onOpen={() => setSelected(claim)}
               />
             ))}

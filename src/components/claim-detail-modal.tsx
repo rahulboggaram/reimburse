@@ -101,6 +101,10 @@ export function ClaimDetailModal(props: {
   if (!props.claim) return null;
 
   const claim = detailClaim ?? props.claim;
+  const hideStatusBadge =
+    user?.role === "BRANCH_MANAGER" &&
+    props.variant === "approver" &&
+    claim.status === "APPROVED";
 
   async function payClaim() {
     setError(null);
@@ -211,7 +215,9 @@ export function ClaimDetailModal(props: {
               </p>
             ) : null}
           </div>
-          <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
+          {hideStatusBadge ? null : (
+            <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
+          )}
         </div>
 
         {showPayoutInfo ? (
