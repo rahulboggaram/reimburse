@@ -83,13 +83,17 @@ export default function ManagerPendingPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden p-0">
-          <ApprovalsTableHeader showStatus={showStatus} />
+          <ApprovalsTableHeader
+            showStatus={showStatus}
+            showCategory={tab === "approved"}
+          />
           <div>
             {claims.map((claim) => (
               <ApprovalsTableRow
                 key={claim.id}
                 claim={claim}
                 showStatus={showStatus}
+                showCategory={tab === "approved"}
                 onOpen={() => setSelected(claim)}
               />
             ))}

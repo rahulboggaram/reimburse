@@ -7,6 +7,28 @@ export const claimsTableGridWithStatus =
 export const claimsTableGridNoStatus =
   "grid w-full grid-cols-[repeat(3,minmax(0,1fr))_1.25rem] items-center gap-x-4";
 
+/** Approved tab: category + employee + date + amount */
+export const claimsTableGridWithCategory =
+  "grid w-full grid-cols-[repeat(4,minmax(0,1fr))_1.25rem] items-center gap-x-4";
+
+/** Approved tab with status column */
+export const claimsTableGridWithCategoryAndStatus =
+  "grid w-full grid-cols-[repeat(5,minmax(0,1fr))_1.25rem] items-center gap-x-4";
+
+export function approvalsTableGrid(options: {
+  showCategory?: boolean;
+  showStatus?: boolean;
+}) {
+  if (options.showCategory) {
+    return options.showStatus !== false
+      ? claimsTableGridWithCategoryAndStatus
+      : claimsTableGridWithCategory;
+  }
+  return options.showStatus !== false
+    ? claimsTableGridWithStatus
+    : claimsTableGridNoStatus;
+}
+
 export function claimsTableHeaderClass(grid: string) {
   return cn(
     grid,
