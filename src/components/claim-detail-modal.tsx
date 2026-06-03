@@ -299,7 +299,7 @@ export function ClaimDetailModal(props: {
 
         {claim.rejectionReason ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
-            <p className="text-xs font-medium text-red-800">Rejection reason</p>
+            <p className="text-xs font-medium text-zinc-500">Rejection reason</p>
             <p className="mt-1 text-sm text-red-800">{claim.rejectionReason}</p>
           </div>
         ) : null}
@@ -321,9 +321,11 @@ export function ClaimDetailModal(props: {
               <Label htmlFor="rejection-reason">Rejection reason (if rejecting)</Label>
               <Textarea
                 id="rejection-reason"
+                rows={1}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="e.g. Missing receipt"
+                className="min-h-11 resize-none"
               />
             </div>
             {error ? (
