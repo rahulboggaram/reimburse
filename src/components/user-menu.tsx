@@ -288,6 +288,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
               >
                 Reports
               </MenuLink>
+              {profileLink}
               <MenuDivider />
               {logoutButton}
             </>
