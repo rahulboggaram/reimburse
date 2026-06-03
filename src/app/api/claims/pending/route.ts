@@ -3,10 +3,6 @@ import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
-import {
-  claimNeedsPayoutSync,
-  refreshPayoutsFromRazorpay,
-} from "@/lib/payouts";
 
 type QueueTab = "waiting" | "approved";
 
@@ -112,21 +108,7 @@ export async function GET(request: Request) {
     include: claimListInclude,
   });
 
-  const syncIds = claims.filter(claimNeedsPayoutSync).map((c) => c.id);
-  if (syncIds.length > 0) {
-    await refreshPayoutsFromRazorpay(syncIds);
-  }
-
-  const fresh =
-    syncIds.length > 0
-      ? await prisma.reimbursement.findMany({
-          where,
-          orderBy,
-          include: claimListInclude,
-        })
-      : claims;
-
-  return Response.json(fresh.map(serializeClaimListItem), {
+  return Response.json(claims.map(serializeClaimListItem), {
     headers: { "Cache-Control": "private, no-store" },
   });
 }
