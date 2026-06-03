@@ -148,8 +148,8 @@ function subtextStyles(visual: VisualState) {
   }
 }
 
-const DOT_SIZE = "size-5";
-const DOT_CENTER = "left-[0.625rem]";
+const DOT_SIZE = "size-6";
+const DOT_CENTER = "left-3";
 
 function connectorStyles(visual: VisualState) {
   return visual === "done" ? "bg-zinc-900" : "bg-zinc-200";
