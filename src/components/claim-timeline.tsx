@@ -1,7 +1,6 @@
 "use client";
 
 import type { SerializedClaim } from "@/lib/claim-types";
-import { payoutInProgress } from "@/lib/claim-display-status";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
@@ -34,6 +33,17 @@ function branchManagerLabel(claim: SerializedClaim) {
   return personLabel(claim.approver?.name, "branch manager");
 }
 
+function paymentApproverLabel(claim: SerializedClaim) {
+  return personLabel(claim.paymentApprover?.name, "payment approver");
+}
+
+function financialApprovalSubtext(claim: SerializedClaim) {
+  const who = paymentApproverLabel(claim);
+  const at = claim.payoutInitiatedAt ?? claim.paidAt;
+  if (at) return `by ${who} · ${formatDisplayDateTime(at)}`;
+  return `by ${who}`;
+}
+
 function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   const uploaded = uploadedStep(claim);
   const manager = branchManagerLabel(claim);
@@ -64,7 +74,7 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       {
         key: "finance-next",
         title: "Financial approval",
-        subtext: "Up next",
+        subtext: `by ${paymentApproverLabel(claim)} · Up next`,
         visual: "upcoming",
       },
     ];
@@ -79,32 +89,15 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
     visual: "done",
   };
 
-  if (claim.paidAt) {
-    return [
-      uploaded,
-      approvalDone,
-      {
-        key: "finance-done",
-        title: "Financial approval",
-        subtext: formatDisplayDateTime(claim.paidAt),
-        visual: "done",
-      },
-    ];
-  }
+  const financeDone: TimelineStep = {
+    key: "finance-done",
+    title: "Financial approval",
+    subtext: financialApprovalSubtext(claim),
+    visual: "done",
+  };
 
-  if (payoutInProgress(claim.payoutStatus)) {
-    return [
-      uploaded,
-      approvalDone,
-      {
-        key: "finance-progress",
-        title: "Awaiting financial approval",
-        subtext: claim.payoutInitiatedAt
-          ? `payment in progress · ${formatDisplayDateTime(claim.payoutInitiatedAt)}`
-          : "payment in progress",
-        visual: "awaiting",
-      },
-    ];
+  if (claim.payoutInitiatedAt || claim.paidAt || claim.razorpayPayoutId) {
+    return [uploaded, approvalDone, financeDone];
   }
 
   return [
@@ -113,7 +106,7 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
     {
       key: "finance-waiting",
       title: "Awaiting financial approval",
-      subtext: "pending payment",
+      subtext: `by ${paymentApproverLabel(claim)}`,
       visual: "awaiting",
     },
   ];

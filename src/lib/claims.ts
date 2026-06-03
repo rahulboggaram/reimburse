@@ -2,12 +2,14 @@ import type { Prisma } from "@prisma/client";
 
 export const claimInclude = {
   approver: { select: { id: true, name: true, phone: true } },
+  paymentApprover: { select: { id: true, name: true, phone: true } },
   branch: { select: { id: true, name: true, active: true } },
   receipts: { orderBy: { createdAt: "asc" as const } },
 } satisfies Prisma.ReimbursementInclude;
 
 export const claimListInclude = {
   approver: { select: { id: true, name: true, phone: true } },
+  paymentApprover: { select: { id: true, name: true, phone: true } },
   branch: { select: { id: true, name: true, active: true } },
   _count: { select: { receipts: true } },
 } satisfies Prisma.ReimbursementInclude;
@@ -46,6 +48,8 @@ function serializeClaimCore(
     paidAt: claim.paidAt?.toISOString() ?? null,
     approverId: claim.approverId,
     approver: claim.approver,
+    paymentApproverId: claim.paymentApproverId,
+    paymentApprover: claim.paymentApprover,
     refiledFromId: claim.refiledFromId,
     receipts,
     receiptCount,
