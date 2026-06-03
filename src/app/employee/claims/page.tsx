@@ -13,14 +13,8 @@ import { RejectedClaimsSection } from "@/components/rejected-claims-section";
 import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
-import { readJson } from "@/lib/api";
-import {
-  fetchClientCache,
-  invalidateClientCache,
-  readClientCache,
-} from "@/lib/client-cache";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
-import { claimsMineCacheKey } from "@/lib/claims-cache";
+import { fetchMyClaims } from "@/lib/fetch-own-claims";
 
 function MyClaimsLoadingSkeleton() {
   return (
@@ -56,19 +50,9 @@ export default function MyClaimsPage() {
     async (fresh = false) => {
       if (!user || !canViewOwnReimbursements(user)) return;
 
-      const key = claimsMineCacheKey(user.id);
-      if (fresh) invalidateClientCache(key);
-
-      const rows = await fetchClientCache(key, async () => {
-        const res = await fetch("/api/claims/mine", {
-          cache: "no-store",
-          credentials: "include",
-        });
-        if (!res.ok) return [];
-        const data = await readJson<SerializedClaim[]>(res);
-        return data.filter((claim) => claim.employeeId === user.id);
-      });
-
+      const ownerId = user.id;
+      const rows = await fetchMyClaims(ownerId, { fresh });
+      if (user.id !== ownerId) return;
       setClaims(rows);
     },
     [user],
@@ -77,32 +61,28 @@ export default function MyClaimsPage() {
   useEffect(() => {
     if (meLoading || !user || !canViewOwnReimbursements(user)) return;
 
+    const ownerId = user.id;
     let cancelled = false;
-    const key = claimsMineCacheKey(user.id);
-    const cached = readClientCache<SerializedClaim[]>(key);
-    if (cached) {
-      setClaims(cached.filter((claim) => claim.employeeId === user.id));
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
 
-    loadClaims()
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    setClaims([]);
+    setSelected(null);
+    setLoading(true);
+
+    fetchMyClaims(ownerId)
+      .then((rows) => {
+        if (!cancelled) setClaims(rows);
       })
       .catch(() => {
         if (!cancelled) setClaims([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [meLoading, user?.id, user?.role, loadClaims]);
-
-  useEffect(() => {
-    setSelected(null);
-  }, [user?.id]);
+  }, [meLoading, user?.id, user?.role, user?.profileComplete]);
 
   if (meLoading || !user || !canViewOwnReimbursements(user)) {
     return (

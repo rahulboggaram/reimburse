@@ -7,14 +7,8 @@ import { ClaimListRow } from "@/components/claim-list-row";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { Card } from "@/components/ui/card";
 import { formatDisplayDate } from "@/lib/dates";
-import { readJson } from "@/lib/api";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
-import {
-  fetchClientCache,
-  invalidateClientCache,
-  readClientCache,
-} from "@/lib/client-cache";
-import { claimsRejectedCacheKey } from "@/lib/claims-cache";
+import { fetchMyRejectedClaims } from "@/lib/fetch-own-claims";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
 import { toTitleCase } from "@/lib/user-profile";
@@ -38,18 +32,9 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
         return;
       }
 
-      const key = claimsRejectedCacheKey(user.id);
-      if (fresh) invalidateClientCache(key);
-
-      const rows = await fetchClientCache(key, async () => {
-        const res = await fetch("/api/claims/mine/rejected", {
-          cache: "no-store",
-          credentials: "include",
-        });
-        if (!res.ok) return [];
-        return readJson<SerializedClaim[]>(res);
-      });
-
+      const ownerId = user.id;
+      const rows = await fetchMyRejectedClaims(ownerId, { fresh });
+      if (user.id !== ownerId) return;
       setClaims(rows);
     },
     [user],
@@ -63,28 +48,27 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
       return;
     }
 
+    const ownerId = user.id;
     let cancelled = false;
-    const key = claimsRejectedCacheKey(user.id);
-    const cached = readClientCache<SerializedClaim[]>(key);
-    if (cached) {
-      setClaims(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
 
-    loadRejected()
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    setClaims([]);
+    setLoading(true);
+
+    fetchMyRejectedClaims(ownerId)
+      .then((rows) => {
+        if (!cancelled) setClaims(rows);
       })
       .catch(() => {
         if (!cancelled) setClaims([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [meLoading, user?.id, user?.role, loadRejected]);
+  }, [meLoading, user?.id, user?.role, user?.profileComplete]);
 
   async function handleDeleted() {
     await loadRejected(true);
@@ -94,7 +78,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
   const rejected = claims.filter(
     (claim) =>
       claim.status === "REJECTED" &&
-      (!user?.id || claim.employeeId === user.id),
+      claim.employeeId === user?.id,
   );
 
   if (loading) {
