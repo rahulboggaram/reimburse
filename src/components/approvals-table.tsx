@@ -13,26 +13,17 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimDisplayStatus } from "@/lib/claim-display-status";
-import {
-  formatDisplayDateNoYear,
-  formatDisplayDateTimeNoYear,
-} from "@/lib/dates";
+import { formatDisplayDateNoYear } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
-export function ApprovalsTableHeader(props: {
-  showStatus?: boolean;
-  showApprovalTime?: boolean;
-}) {
+export function ApprovalsTableHeader(props: { showStatus?: boolean }) {
   const showStatus = props.showStatus !== false;
-  const showApprovalTime = props.showApprovalTime === true;
   const grid = showStatus ? claimsTableGridWithStatus : claimsTableGridNoStatus;
 
   return (
     <div className={claimsTableHeaderClass(grid)}>
       <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
-      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
-        {showApprovalTime ? "Approved" : "Date"}
-      </span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
         Amount
       </span>
@@ -46,19 +37,12 @@ export function ApprovalsTableRow(props: {
   claim: SerializedClaim;
   onOpen: () => void;
   showStatus?: boolean;
-  showApprovalTime?: boolean;
 }) {
   const { claim } = props;
   const { user } = useMe();
   const showStatus = props.showStatus !== false;
-  const showApprovalTime = props.showApprovalTime === true;
   const status = claimDisplayStatus(claim, user?.role);
   const grid = showStatus ? claimsTableGridWithStatus : claimsTableGridNoStatus;
-  const dateLabel = showApprovalTime
-    ? claim.decidedAt
-      ? formatDisplayDateTimeNoYear(claim.decidedAt)
-      : "—"
-    : formatDisplayDateNoYear(claim.expenseDate);
 
   return (
     <button
@@ -77,11 +61,10 @@ export function ApprovalsTableRow(props: {
       <span
         className={cn(
           claimsTableColCenter,
-          "text-xs leading-snug text-zinc-600 tabular-nums sm:text-sm",
-          !showApprovalTime && "whitespace-nowrap",
+          "text-sm whitespace-nowrap text-zinc-600 tabular-nums",
         )}
       >
-        {dateLabel}
+        {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
       <span
         className={cn(

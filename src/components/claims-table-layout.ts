@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
  * in both My Claims and Approvals.
  */
 export const claimsTableGridWithStatus =
-  "grid w-full grid-cols-[minmax(0,1fr)_6rem_5.5rem_6rem_1.25rem] items-center gap-x-2 sm:gap-x-3";
+  "grid w-full grid-cols-[minmax(0,1fr)_4rem_5.5rem_6rem_1.25rem] items-center gap-x-2 sm:gap-x-3";
 
 export const claimsTableGridNoStatus =
-  "grid w-full grid-cols-[minmax(0,1fr)_6rem_5.5rem_1.25rem] items-center gap-x-2 sm:gap-x-3";
+  "grid w-full grid-cols-[minmax(0,1fr)_4rem_5.5rem_1.25rem] items-center gap-x-2 sm:gap-x-3";
 
 export function claimsTableHeaderClass(grid: string) {
   return cn(
