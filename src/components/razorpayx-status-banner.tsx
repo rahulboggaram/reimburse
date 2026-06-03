@@ -17,6 +17,11 @@ type RecentPayout = {
 type RazorpayStatus = {
   configured: boolean;
   mock: boolean;
+  mockEnv: "on" | "off" | "unset" | "invalid";
+  deployment: string;
+  hasKeyId: boolean;
+  hasKeySecret: boolean;
+  hasAccountNumber: boolean;
   mode: string;
   keyEnvironment: "test" | "live" | "unknown";
   missingEnv: string[];
@@ -24,7 +29,10 @@ type RazorpayStatus = {
   recentPayouts: RecentPayout[];
 };
 
-function RecentPayoutsList(props: { payouts: RecentPayout[] }) {
+function RecentPayoutsList(props: {
+  payouts: RecentPayout[];
+  razorpayConnected?: boolean;
+}) {
   if (props.payouts.length === 0) {
     return (
       <p className="mt-2 text-sm">
@@ -43,7 +51,11 @@ function RecentPayoutsList(props: { payouts: RecentPayout[] }) {
           {payout.amount.toLocaleString("en-IN")} ·{" "}
           <span className="font-mono text-xs">{payout.payoutId}</span>
           {payout.isSimulated ? (
-            <span className="ml-1 text-amber-800">(demo only — not in Razorpay)</span>
+            <span className="ml-1 text-amber-800">
+              {props.razorpayConnected
+                ? "(paid earlier in demo — not in Razorpay)"
+                : "(demo only — not in Razorpay)"}
+            </span>
           ) : (
             <span className="ml-1 text-zinc-600">
               ({payout.payoutStatus ?? "unknown"})
@@ -62,7 +74,7 @@ export function RazorpayXStatusBanner() {
   const [status, setStatus] = useState<RazorpayStatus | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/razorpayx/status")
+    fetch("/api/admin/razorpayx/status", { cache: "no-store" })
       .then((res) => readJson<RazorpayStatus>(res))
       .then(setStatus)
       .catch(() => setStatus(null));
@@ -71,6 +83,11 @@ export function RazorpayXStatusBanner() {
   if (!status) return null;
 
   if (status.mock) {
+    const keyBits = [
+      status.hasKeyId ? "Key ID ✓" : "Key ID ✗",
+      status.hasKeySecret ? "Secret ✓" : "Secret ✗",
+      status.hasAccountNumber ? "Account # ✓" : "Account # ✗",
+    ];
     return (
       <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
         <p>
@@ -78,10 +95,31 @@ export function RazorpayXStatusBanner() {
           inside Reimburse and will{" "}
           <span className="font-medium">not</span> appear in RazorpayX.
         </p>
-        <p className="mt-2">
-          On Vercel, set{" "}
-          <code className="text-xs">RAZORPAYX_MOCK=false</code>, add your test
-          keys, then redeploy.
+        <p className="mt-2 text-xs text-amber-900/90">
+          Server ({status.deployment}): RAZORPAYX_MOCK=
+          <span className="font-mono font-medium">{status.mockEnv}</span> ·{" "}
+          {keyBits.join(" · ")}
+        </p>
+        <ul className="mt-2 list-inside list-disc space-y-1 text-sm">
+          <li>
+            Vercel → Settings → Environment Variables → set{" "}
+            <code className="text-xs">RAZORPAYX_MOCK</code> to{" "}
+            <code className="text-xs">false</code> for{" "}
+            <span className="font-medium">Production</span>
+          </li>
+          <li>
+            Add all three: Key ID, Secret, and Customer Identifier (account
+            number)
+          </li>
+          <li>
+            <span className="font-medium">Redeploy</span> Production after saving
+            (env changes do not apply until redeploy)
+          </li>
+          <li>Hard-refresh this page (Cmd+Shift+R)</li>
+        </ul>
+        <p className="mt-2 text-xs text-amber-900/90">
+          Older payouts below stay labeled &ldquo;demo only&rdquo; — only new
+          payments after setup use Razorpay.
         </p>
         <RecentPayoutsList payouts={status.recentPayouts} />
       </div>
@@ -130,7 +168,20 @@ export function RazorpayXStatusBanner() {
           (Developer Controls → Share IP Addresses), or use Vercel Static IPs.
         </p>
       ) : null}
-      <RecentPayoutsList payouts={status.recentPayouts} />
+      {status.recentPayouts.some((p) => p.isSimulated) ? (
+        <p className="mt-2 text-xs text-blue-900/90">
+          Payouts listed below with{" "}
+          <span className="font-medium">pout_mock_</span> were made before Razorpay
+          was connected. They stay in Reimburse only. Pay an approved claim now to
+          create a real test payout in Razorpay (ID starts with{" "}
+          <span className="font-medium">pout_</span>, not{" "}
+          <span className="font-medium">pout_mock_</span>).
+        </p>
+      ) : null}
+      <RecentPayoutsList
+        payouts={status.recentPayouts}
+        razorpayConnected
+      />
     </div>
   );
 }

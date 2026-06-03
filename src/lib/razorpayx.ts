@@ -36,11 +36,27 @@ function envFlag(name: string): boolean {
   return value === "true" || value === "1" || value === "yes";
 }
 
+/** What the server reads from RAZORPAYX_MOCK (for admin diagnostics). */
+export function getRazorpayMockEnv():
+  | "on"
+  | "off"
+  | "unset"
+  | "invalid" {
+  const raw = (process.env.RAZORPAYX_MOCK ?? "").trim();
+  if (!raw) return "unset";
+  const lower = raw.toLowerCase();
+  if (lower === "true" || lower === "1" || lower === "yes") return "on";
+  if (lower === "false" || lower === "0" || lower === "no") return "off";
+  return "invalid";
+}
+
 export function getRazorpayConfig(): RazorpayConfig {
-  const mock = envFlag("RAZORPAYX_MOCK");
   const keyId = (process.env.RAZORPAYX_KEY_ID ?? "").trim();
   const keySecret = (process.env.RAZORPAYX_KEY_SECRET ?? "").trim();
   const accountNumber = (process.env.RAZORPAYX_ACCOUNT_NUMBER ?? "").trim();
+  const hasKeys = Boolean(keyId && keySecret && accountNumber);
+  // If test/live keys exist, always use Razorpay — even when MOCK was left "true" on Vercel.
+  const mock = envFlag("RAZORPAYX_MOCK") && !hasKeys;
   const payoutMode =
     process.env.RAZORPAYX_PAYOUT_MODE === "NEFT" ||
     process.env.RAZORPAYX_PAYOUT_MODE === "RTGS"

@@ -5,5 +5,7 @@ export async function GET() {
   const session = await requireAdminAccess();
   if (session instanceof Response) return session;
 
-  return Response.json(await razorpayStatusForAdmin());
+  return Response.json(await razorpayStatusForAdmin(), {
+    headers: { "Cache-Control": "private, no-store" },
+  });
 }
