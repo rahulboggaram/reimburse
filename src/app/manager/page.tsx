@@ -36,9 +36,13 @@ function emptyMessage(tab: QueueTab, role: string | undefined) {
       ? "No reimbursements waiting for payment approval."
       : "No claims waiting for your approval.";
   }
-  return role === "APPROVER"
-    ? "No reimbursements sent to RazorpayX yet."
-    : "No approved claims in this list yet.";
+  if (role === "APPROVER") {
+    return "No reimbursements sent to RazorpayX yet.";
+  }
+  if (role === "ADMIN") {
+    return "No claims you approved yet.";
+  }
+  return "No approved claims in this list yet.";
 }
 
 function queueSegments(role: string | undefined) {

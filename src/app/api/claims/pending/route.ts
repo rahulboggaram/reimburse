@@ -76,9 +76,12 @@ function queueWhere(
 
   if (session.role === "ADMIN") {
     if (tab === "waiting") {
-      return { status: "PENDING" };
+      return { status: "PENDING", approverId: session.id };
     }
-    return { status: { in: ["APPROVED", "PAID"] } };
+    return {
+      approverId: session.id,
+      status: { in: ["APPROVED", "PAID"] },
+    };
   }
 
   return tab === "waiting"
