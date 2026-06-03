@@ -10,8 +10,7 @@ type VisualState = "done" | "awaiting" | "upcoming" | "rejected";
 
 type TimelineStep = {
   key: string;
-  title: string;
-  subtitle?: string;
+  line: string;
   visual: VisualState;
 };
 
@@ -24,8 +23,7 @@ function uploadedStep(claim: SerializedClaim): TimelineStep {
   const who = personLabel(claim.employeeName, "Employee");
   return {
     key: "uploaded",
-    title: "Uploaded by",
-    subtitle: `${who} · ${formatDisplayDateTime(claim.createdAt)}`,
+    line: `Uploaded by ${who} · ${formatDisplayDateTime(claim.createdAt)}`,
     visual: "done",
   };
 }
@@ -43,10 +41,9 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       uploaded,
       {
         key: "rejected",
-        title: "Rejected",
-        subtitle: claim.decidedAt
-          ? `${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
-          : `by ${manager}`,
+        line: claim.decidedAt
+          ? `Rejected by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+          : `Rejected by ${manager}`,
         visual: "rejected",
       },
     ];
@@ -57,14 +54,12 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       uploaded,
       {
         key: "approval-waiting",
-        title: "Awaiting approval",
-        subtitle: `from ${manager}`,
+        line: `Awaiting approval from ${manager}`,
         visual: "awaiting",
       },
       {
         key: "finance-next",
-        title: "Financial approval",
-        subtitle: "Up next",
+        line: "Financial approval · up next",
         visual: "upcoming",
       },
     ];
@@ -72,10 +67,9 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
 
   const approvalDone: TimelineStep = {
     key: "approval-done",
-    title: "Approved",
-    subtitle: claim.decidedAt
-      ? `by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
-      : `by ${manager}`,
+    line: claim.decidedAt
+      ? `Approved by ${manager} · ${formatDisplayDateTime(claim.decidedAt)}`
+      : `Approved by ${manager}`,
     visual: "done",
   };
 
@@ -85,8 +79,7 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       approvalDone,
       {
         key: "finance-done",
-        title: "Financial approval",
-        subtitle: formatDisplayDateTime(claim.paidAt),
+        line: `Financial approval · ${formatDisplayDateTime(claim.paidAt)}`,
         visual: "done",
       },
     ];
@@ -98,10 +91,9 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       approvalDone,
       {
         key: "finance-progress",
-        title: "Awaiting financial approval",
-        subtitle: claim.payoutInitiatedAt
-          ? `Payment in progress · ${formatDisplayDateTime(claim.payoutInitiatedAt)}`
-          : "Payment in progress",
+        line: claim.payoutInitiatedAt
+          ? `Awaiting financial approval · payment in progress · ${formatDisplayDateTime(claim.payoutInitiatedAt)}`
+          : "Awaiting financial approval · payment in progress",
         visual: "awaiting",
       },
     ];
@@ -112,32 +104,18 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
     approvalDone,
     {
       key: "finance-waiting",
-      title: "Awaiting financial approval",
-      subtitle: "Pending payment",
+      line: "Awaiting financial approval · pending payment",
       visual: "awaiting",
     },
   ];
 }
 
-function titleStyles(visual: VisualState) {
+function lineStyles(visual: VisualState) {
   switch (visual) {
     case "done":
       return "text-zinc-900";
     case "awaiting":
       return "text-amber-700";
-    case "upcoming":
-      return "text-zinc-400";
-    case "rejected":
-      return "text-red-800";
-  }
-}
-
-function subtitleStyles(visual: VisualState) {
-  switch (visual) {
-    case "done":
-      return "text-zinc-600";
-    case "awaiting":
-      return "text-amber-700/90";
     case "upcoming":
       return "text-zinc-400";
     case "rejected":
@@ -158,7 +136,7 @@ function dotStyles(visual: VisualState) {
   }
 }
 
-function lineStyles(visual: VisualState) {
+function connectorStyles(visual: VisualState) {
   return visual === "upcoming" ? "bg-zinc-200" : "bg-zinc-300";
 }
 
@@ -172,43 +150,31 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
           const isLast = index === steps.length - 1;
 
           return (
-            <li key={step.key} className="relative flex gap-3 pb-6 last:pb-0">
+            <li key={step.key} className="relative flex gap-3 pb-5 last:pb-0">
               {!isLast ? (
                 <span
                   aria-hidden
                   className={cn(
-                    "absolute top-3 left-[0.4375rem] h-[calc(100%-0.75rem)] w-0.5 -translate-x-1/2",
-                    lineStyles(step.visual),
+                    "absolute top-2.5 left-[0.4375rem] h-[calc(100%-0.5rem)] w-0.5 -translate-x-1/2",
+                    connectorStyles(step.visual),
                   )}
                 />
               ) : null}
               <span
                 aria-hidden
                 className={cn(
-                  "relative z-10 mt-0.5 size-2.5 shrink-0 rounded-full border-2",
+                  "relative z-10 mt-1 size-2 shrink-0 rounded-full border-2",
                   dotStyles(step.visual),
                 )}
               />
-              <div className="min-w-0 flex-1 pt-px">
-                <p
-                  className={cn(
-                    "text-sm font-semibold",
-                    titleStyles(step.visual),
-                  )}
-                >
-                  {step.title}
-                </p>
-                {step.subtitle ? (
-                  <p
-                    className={cn(
-                      "mt-0.5 text-sm tabular-nums",
-                      subtitleStyles(step.visual),
-                    )}
-                  >
-                    {step.subtitle}
-                  </p>
-                ) : null}
-              </div>
+              <p
+                className={cn(
+                  "min-w-0 flex-1 pt-0.5 text-sm leading-snug tabular-nums",
+                  lineStyles(step.visual),
+                )}
+              >
+                {step.line}
+              </p>
             </li>
           );
         })}
