@@ -236,7 +236,7 @@ export function ClaimDetailModal(props: {
           </div>
 
           <div className="mt-8 space-y-1">
-            <p className="text-sm font-medium text-zinc-800">{claim.category}</p>
+            <p className="text-xs font-medium text-zinc-500">{claim.category}</p>
             <p className="text-sm leading-relaxed text-zinc-600">
               {claim.description}
             </p>
