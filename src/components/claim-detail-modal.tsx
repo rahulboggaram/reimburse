@@ -247,7 +247,7 @@ export function ClaimDetailModal(props: {
       onClose={props.onClose}
       subtitle={modalSubtitle}
       headerLeading={
-        <p className="text-lg font-bold font-tabular-nums text-zinc-900">
+        <p className="text-3xl font-bold leading-tight font-tabular-nums tracking-tight text-zinc-900">
           ₹{claim.amount.toLocaleString("en-IN")}
         </p>
       }
