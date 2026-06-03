@@ -20,6 +20,7 @@ import {
   fetchClientCache,
   invalidateClientCache,
 } from "@/lib/client-cache";
+import { isBranchOptionalForRole } from "@/lib/claim-branch-roles";
 import { prepareReceiptFilesForUpload } from "@/lib/compress-receipt-image";
 
 type SubmitPhase = "idle" | "preparing" | "uploading";
@@ -75,6 +76,8 @@ export function ReimbursementForm(props: {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const { user: meUser } = useMe();
+  const branchOptional =
+    meUser?.role != null && isBranchOptionalForRole(meUser.role);
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export function ReimbursementForm(props: {
       }
     }
 
-    if (!branchId.trim()) {
+    if (!branchOptional && !branchId.trim()) {
       errors.branchId = "Select a branch.";
     }
 
@@ -148,7 +151,9 @@ export function ReimbursementForm(props: {
 
       const formData = new FormData();
       formData.set("amount", String(parsedAmount));
-      formData.set("branchId", branchId.trim());
+      if (branchId.trim()) {
+        formData.set("branchId", branchId.trim());
+      }
       formData.set("category", category);
       formData.set("description", description.trim());
       for (const file of preparedReceipts) {
@@ -293,7 +298,15 @@ export function ReimbursementForm(props: {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="branch">Branch</Label>
+          <Label htmlFor="branch">
+            Branch{branchOptional ? " (optional)" : ""}
+          </Label>
+          {branchOptional ? (
+            <p className="text-xs text-zinc-500">
+              Your claim goes to admin for approval — you can skip branch if
+              you prefer.
+            </p>
+          ) : null}
           {loadingBranches ? (
             <p className="text-sm text-zinc-500">Loading branches…</p>
           ) : branches.length === 0 ? (
@@ -303,7 +316,7 @@ export function ReimbursementForm(props: {
           ) : (
             <Select
               id="branch"
-              required
+              required={!branchOptional}
               aria-invalid={Boolean(fieldErrors.branchId)}
               value={branchId}
               onChange={(e) => {
@@ -311,8 +324,8 @@ export function ReimbursementForm(props: {
                 setFieldErrors((prev) => ({ ...prev, branchId: undefined }));
               }}
             >
-              <option value="" disabled>
-                Select branch
+              <option value="" disabled={!branchOptional}>
+                {branchOptional ? "No branch selected" : "Select branch"}
               </option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
@@ -380,8 +393,8 @@ export function ReimbursementForm(props: {
           submit, payment is sent to your bank account right away.
         </p>
         <p className="text-sm font-medium text-zinc-900">
-          Please check the amount, category, branch, and receipts carefully
-          before continuing.
+          Please check the amount, category, receipts, and other details
+          carefully before continuing.
         </p>
         <div className="flex flex-col gap-2 pt-2">
           <Button

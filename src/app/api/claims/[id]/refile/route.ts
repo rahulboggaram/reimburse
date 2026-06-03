@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
+import { resolveClaimBranchId } from "@/lib/claim-branch";
 import { resolveClaimRouting } from "@/lib/claim-routing";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { replaceClaimReceipts } from "@/lib/attach-receipts";
@@ -33,19 +34,20 @@ export async function PATCH(
     );
   }
 
-  const [branch, category, routingResult] = await Promise.all([
-    prisma.branch.findFirst({
-      where: { id: body.branchId, active: true },
-    }),
+  const branchResult = await resolveClaimBranchId(session.role, body.branchId);
+  if ("error" in branchResult) {
+    return Response.json({ error: branchResult.error }, { status: 400 });
+  }
+
+  const [category, routingResult] = await Promise.all([
     prisma.expenseCategory.findFirst({
       where: { name: body.category, active: true },
     }),
-    resolveClaimRouting({ id: session.id, role: session.role }, body.branchId),
+    resolveClaimRouting(
+      { id: session.id, role: session.role },
+      branchResult.branchId,
+    ),
   ]);
-
-  if (!branch) {
-    return Response.json({ error: "Invalid branch" }, { status: 400 });
-  }
   if (!category) {
     return Response.json({ error: "Invalid category" }, { status: 400 });
   }
@@ -59,7 +61,7 @@ export async function PATCH(
     data: {
       employeeName: session.name ?? existing.employeeName,
       amount: body.amount,
-      branchId: branch.id,
+      branchId: branchResult.branchId,
       category: body.category,
       description: body.description,
       approverId: routing.approverId,

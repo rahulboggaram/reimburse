@@ -33,7 +33,7 @@ export const adminCreateEmployeeSchema = z.object({
 
 export const createReimbursementSchema = z.object({
   amount: z.number().positive().max(10_000_000),
-  branchId: z.string().min(1),
+  branchId: z.string().trim(),
   category: z.string().trim().min(1).max(80),
   description: z.string().trim().min(3).max(2000),
 });
