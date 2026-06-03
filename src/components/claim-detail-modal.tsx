@@ -211,6 +211,8 @@ export function ClaimDetailModal(props: {
   const canSyncPayout = payoutUnsettled;
 
   const receiptsTotal = claimReceiptCount(claim);
+  const showBranchInSummary =
+    props.variant === "employee" || user?.role === "BRANCH_MANAGER";
 
   async function decide(status: "APPROVED" | "REJECTED") {
     setError(null);
@@ -257,10 +259,23 @@ export function ClaimDetailModal(props: {
       <div className="space-y-8">
         <div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-zinc-500">{claim.category}</p>
-            <p className="text-sm leading-relaxed text-zinc-600">
-              {claim.description}
-            </p>
+            {showBranchInSummary ? (
+              <>
+                <p className="text-sm leading-relaxed text-zinc-900">
+                  {claim.category}: {claim.description}
+                </p>
+                <p className="text-sm text-zinc-600">{claim.branch.name}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-medium text-zinc-500">
+                  {claim.category}
+                </p>
+                <p className="text-sm leading-relaxed text-zinc-600">
+                  {claim.description}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
