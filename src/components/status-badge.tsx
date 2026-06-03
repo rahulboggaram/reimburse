@@ -25,7 +25,11 @@ const styles: Record<string, string> = {
   "not_started": "bg-zinc-100 text-zinc-700",
 };
 
-export function StatusBadge(props: { status: string }) {
+export function StatusBadge(props: {
+  status: string;
+  className?: string;
+  compact?: boolean;
+}) {
   const raw = props.status ?? "";
   const key = raw.includes("_") ? raw.toLowerCase() : raw;
   const label =
@@ -34,13 +38,18 @@ export function StatusBadge(props: { status: string }) {
 
   return (
     <span
+      title={label}
       className={cn(
-        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ring-black/5",
+        "inline-flex max-w-full rounded-full font-semibold ring-1 ring-inset ring-black/5",
+        props.compact
+          ? "truncate px-2 py-0.5 text-[10px] leading-tight"
+          : "px-2.5 py-0.5 text-xs",
         useCapitalize && "capitalize",
         styles[key] ?? styles[raw] ?? styles[label] ?? "bg-zinc-100 text-zinc-700",
+        props.className,
       )}
     >
-      {label}
+      <span className="truncate">{label}</span>
     </span>
   );
 }
