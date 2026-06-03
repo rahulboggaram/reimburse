@@ -112,10 +112,7 @@ export function ClaimTimeline(props: { claim: SerializedClaim }) {
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        Timeline
-      </p>
-      <ol className="mt-4 space-y-0">
+      <ol className="space-y-0">
         {steps.map((step, index) => {
           const isLast = index === steps.length - 1;
           const showDate = step.date && step.state !== "pending";
