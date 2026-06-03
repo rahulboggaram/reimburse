@@ -111,6 +111,16 @@ export async function middleware(request: NextRequest) {
     } else if (pathname === "/employee/onboarding") {
       return NextResponse.redirect(new URL("/employee", request.url));
     }
+    if (
+      pathname.startsWith("/employee/claims") ||
+      pathname.startsWith("/employee/refile")
+    ) {
+      if (claims.role !== "EMPLOYEE") {
+        const dest =
+          claims.role === "ADMIN" ? "/admin/claims" : "/manager";
+        return NextResponse.redirect(new URL(dest, request.url));
+      }
+    }
   }
 
   if (pathname.startsWith("/manager")) {

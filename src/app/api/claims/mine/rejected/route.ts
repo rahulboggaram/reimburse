@@ -1,19 +1,25 @@
 import { prisma } from "@/lib/db";
-import { requireCanSubmitReimbursement } from "@/lib/auth-api";
+import { requireEmployeeWithProfile } from "@/lib/auth-api";
+import {
+  assertClaimsBelongToEmployee,
+  claimsForEmployeeWhere,
+} from "@/lib/claim-access";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 
-/** Rejected reimbursements created by the signed-in user only. */
+/** Rejected reimbursements for the signed-in employee only. */
 export async function GET() {
-  const session = await requireCanSubmitReimbursement();
+  const session = await requireEmployeeWithProfile();
   if (session instanceof Response) return session;
 
   const claims = await prisma.reimbursement.findMany({
-    where: { employeeId: session.id, status: "REJECTED" },
+    where: { ...claimsForEmployeeWhere(session.id), status: "REJECTED" },
     orderBy: { decidedAt: "desc" },
     include: claimListInclude,
   });
 
-  return Response.json(claims.map(serializeClaimListItem), {
+  const owned = assertClaimsBelongToEmployee(claims, session.id);
+
+  return Response.json(owned.map(serializeClaimListItem), {
     headers: { "Cache-Control": "private, no-cache" },
   });
 }

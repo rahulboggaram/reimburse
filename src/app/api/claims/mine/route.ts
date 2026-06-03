@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { requireCanSubmitReimbursement } from "@/lib/auth-api";
+import { requireEmployeeWithProfile } from "@/lib/auth-api";
+import { assertClaimsBelongToEmployee, claimsForEmployeeWhere } from "@/lib/claim-access";
 import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 import {
   claimNeedsPayoutSync,
@@ -7,11 +8,11 @@ import {
 } from "@/lib/payouts";
 
 export async function GET() {
-  const session = await requireCanSubmitReimbursement();
+  const session = await requireEmployeeWithProfile();
   if (session instanceof Response) return session;
 
   const claims = await prisma.reimbursement.findMany({
-    where: { employeeId: session.id },
+    where: claimsForEmployeeWhere(session.id),
     orderBy: { createdAt: "desc" },
     include: claimListInclude,
   });
@@ -24,13 +25,15 @@ export async function GET() {
   const fresh =
     syncIds.length > 0
       ? await prisma.reimbursement.findMany({
-          where: { employeeId: session.id },
+          where: claimsForEmployeeWhere(session.id),
           orderBy: { createdAt: "desc" },
           include: claimListInclude,
         })
       : claims;
 
-  return Response.json(fresh.map(serializeClaimListItem), {
+  const owned = assertClaimsBelongToEmployee(fresh, session.id);
+
+  return Response.json(owned.map(serializeClaimListItem), {
     headers: { "Cache-Control": "private, no-cache" },
   });
 }

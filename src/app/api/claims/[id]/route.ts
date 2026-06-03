@@ -28,6 +28,10 @@ export async function GET(
     canAccessManagerPortal(session) &&
     (claim.approverId === session.id || claim.paymentApproverId === session.id);
 
+  if (session.role === "EMPLOYEE" && !isOwner) {
+    return Response.json({ error: "Claim not found" }, { status: 404 });
+  }
+
   if (!isOwner && !isAssignedApprover && !isAdmin) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }

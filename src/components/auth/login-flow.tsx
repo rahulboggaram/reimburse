@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ReimburseBrand } from "@/components/wapas-brand";
 import { TextLinkButton } from "@/components/text-link";
 import { readJson } from "@/lib/api";
+import { invalidateClientCache } from "@/lib/client-cache";
 
 const MOCK_OTP = "123456";
 
@@ -85,6 +86,7 @@ export function LoginFlow() {
         }),
       });
       const data = await readJson<{ redirectTo: string }>(response);
+      invalidateClientCache();
       router.push(data.redirectTo);
       router.refresh();
     } catch (err) {

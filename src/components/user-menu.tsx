@@ -188,16 +188,18 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
 
   const employeeLinks = (
     <>
-      <MenuLink
-        href="/employee/claims"
-        onNavigate={closeMenu}
-        active={
-          pathname.startsWith("/employee/claims") ||
-          pathname.startsWith("/employee/refile")
-        }
-      >
-        My Reimbursements
-      </MenuLink>
+      {resolvedUser.role === "EMPLOYEE" ? (
+        <MenuLink
+          href="/employee/claims"
+          onNavigate={closeMenu}
+          active={
+            pathname.startsWith("/employee/claims") ||
+            pathname.startsWith("/employee/refile")
+          }
+        >
+          My Reimbursements
+        </MenuLink>
+      ) : null}
       <MenuLink
         href="/employee/profile"
         onNavigate={closeMenu}

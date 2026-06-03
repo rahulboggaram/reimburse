@@ -31,7 +31,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   const loadRejected = useCallback(async () => {
-    if (!user) {
+    if (!user || user.role !== "EMPLOYEE") {
       setClaims([]);
       return;
     }
@@ -46,7 +46,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
 
   useEffect(() => {
     if (meLoading) return;
-    if (!user) {
+    if (!user || user.role !== "EMPLOYEE") {
       setClaims([]);
       setLoading(false);
       return;
@@ -80,7 +80,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
 
   if (rejected.length === 0) return null;
 
-  if (!user) return null;
+  if (!user || user.role !== "EMPLOYEE") return null;
 
   return (
     <section className="mb-6 space-y-3" aria-labelledby="rejected-claims-heading">
