@@ -25,9 +25,14 @@ function cacheKey(tab: QueueTab) {
   return `claims-pending-${tab}`;
 }
 
-function emptyMessage(tab: QueueTab) {
-  return tab === "waiting"
-    ? "No claims waiting for your approval."
+function emptyMessage(tab: QueueTab, role: string | undefined) {
+  if (tab === "waiting") {
+    return role === "APPROVER"
+      ? "No failed payouts to retry."
+      : "No claims waiting for your approval.";
+  }
+  return role === "APPROVER"
+    ? "No approved reimbursements in this list yet."
     : "No approved claims in this list yet.";
 }
 
@@ -79,7 +84,7 @@ export default function ManagerPendingPage() {
         <p className="text-sm text-zinc-500">Loading…</p>
       ) : claims.length === 0 ? (
         <Card>
-          <p className="text-sm text-zinc-600">{emptyMessage(tab)}</p>
+          <p className="text-sm text-zinc-600">{emptyMessage(tab, user?.role)}</p>
         </Card>
       ) : (
         <Card className="overflow-hidden p-0">
