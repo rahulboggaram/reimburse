@@ -199,26 +199,26 @@ export function ClaimDetailModal(props: {
         ) : null}
 
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-2xl font-semibold font-tabular-nums text-zinc-900">
-              ₹{claim.amount.toLocaleString("en-IN")}
-            </p>
-            {props.variant === "admin" || props.variant === "approver" ? (
-              <p className="mt-1 text-sm font-medium text-zinc-700">
-                {claim.employeeName}
-                {props.employeePhone ? (
-                  <span className="font-normal text-zinc-500">
-                    {" "}
-                    · {formatPhoneDisplay(props.employeePhone)}
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
-          </div>
+          <p className="text-2xl font-semibold font-tabular-nums text-zinc-900">
+            ₹{claim.amount.toLocaleString("en-IN")}
+          </p>
           {hideStatusBadge ? null : (
             <StatusBadge status={claimDisplayStatus(claim, user?.role)} />
           )}
         </div>
+
+        {props.variant === "admin" || props.variant === "approver" ? (
+          <DetailRow
+            label="Employee"
+            value={
+              props.employeePhone
+                ? `${claim.employeeName} · ${formatPhoneDisplay(props.employeePhone)}`
+                : claim.employeeName
+            }
+          />
+        ) : null}
+
+        <DetailRow label="Description" value={claim.description} />
 
         {showPayoutInfo ? (
           <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
@@ -265,26 +265,6 @@ export function ClaimDetailModal(props: {
 
         <ClaimTimeline claim={claim} />
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <DetailRow
-            label={
-              claim.status === "PENDING" && props.variant === "admin"
-                ? "Awaiting approval from"
-                : "Branch approver"
-            }
-            value={claim.approver.name ?? "—"}
-          />
-          <DetailRow
-            label="Receipts"
-            value={`${receiptsTotal} attached`}
-          />
-        </div>
-
-        <div>
-          <p className="text-xs font-medium text-zinc-500">Description</p>
-          <p className="mt-1 text-sm text-zinc-900">{claim.description}</p>
-        </div>
-
         {claim.rejectionReason ? (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
             <p className="text-xs font-medium text-red-800">Rejection reason</p>
@@ -293,7 +273,12 @@ export function ClaimDetailModal(props: {
         ) : null}
 
         {!loadingDetail ? (
-          <ReceiptGallery receipts={claim.receipts} title="Receipt Photos" />
+          <ReceiptGallery
+            receipts={claim.receipts}
+            receiptCount={receiptsTotal}
+            title="Receipt photos"
+            compact
+          />
         ) : null}
 
         {props.variant === "employee" && claim.status === "REJECTED" ? (

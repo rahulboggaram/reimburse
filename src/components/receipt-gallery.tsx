@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
@@ -8,50 +11,167 @@ type Receipt = {
   mimeType: string;
 };
 
-export function ReceiptGallery(props: {
-  receipts: Receipt[];
-  title?: string;
+function ReceiptLightbox(props: {
+  receipt: Receipt;
+  onClose: () => void;
 }) {
-  if (props.receipts.length === 0) return null;
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") props.onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [props]);
 
   return (
-    <div className="space-y-2">
-      {props.title ? (
-        <p className="text-xs font-medium text-zinc-500">{props.title}</p>
-      ) : null}
-      <ul className="grid grid-cols-2 gap-2">
-        {props.receipts.map((receipt) => (
-          <li key={receipt.id}>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={props.onClose}
+          aria-label="Close"
+          className="rounded-lg p-2 text-white/90 hover:bg-white/10"
+        >
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="size-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18 18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        {props.receipt.mimeType.startsWith("image/") ? (
+          // eslint-disable-next-line @next/next/no-img-element -- receipt preview
+          <img
+            src={props.receipt.url}
+            alt={props.receipt.fileName ?? "Receipt"}
+            className="max-h-full max-w-full rounded-lg object-contain"
+          />
+        ) : (
+          <div className="max-w-sm rounded-xl bg-white px-6 py-8 text-center">
+            <p className="text-sm font-medium text-zinc-900">
+              {props.receipt.fileName ?? "PDF receipt"}
+            </p>
             <a
-              href={receipt.url}
+              href={props.receipt.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition-shadow hover:shadow-md"
+              className={cn("mt-3 inline-block text-sm", textLinkClassName)}
             >
-              {receipt.mimeType.startsWith("image/") ? (
-                // eslint-disable-next-line @next/next/no-img-element -- user uploads
-                <img
-                  src={receipt.url}
-                  alt={receipt.fileName ?? "Receipt"}
-                  className="aspect-[4/3] w-full object-cover"
-                />
-              ) : (
-                <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 px-2 text-center">
-                  <span className="text-2xl" aria-hidden>
+              Open PDF
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ReceiptGallery(props: {
+  receipts: Receipt[];
+  receiptCount?: number;
+  title?: string;
+  compact?: boolean;
+}) {
+  const [expanded, setExpanded] = useState<Receipt | null>(null);
+  const count = props.receiptCount ?? props.receipts.length;
+
+  if (count === 0 && props.receipts.length === 0) return null;
+
+  const heading = props.title ?? "Receipt photos";
+
+  if (!props.compact) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-zinc-500">
+          {heading}
+          {count > 0 ? ` (${count})` : ""}
+        </p>
+        <ul className="grid grid-cols-2 gap-2">
+          {props.receipts.map((receipt) => (
+            <li key={receipt.id}>
+              <a
+                href={receipt.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition-shadow hover:shadow-md"
+              >
+                {receipt.mimeType.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={receipt.url}
+                    alt={receipt.fileName ?? "Receipt"}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 px-2 text-center">
+                    <span className="text-2xl" aria-hidden>
+                      📄
+                    </span>
+                    <span className="line-clamp-2 text-xs font-medium text-zinc-700">
+                      {receipt.fileName ?? "PDF receipt"}
+                    </span>
+                  </div>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-zinc-500">
+          {heading}
+          {count > 0 ? ` (${count})` : ""}
+        </p>
+        <ul className="flex flex-wrap gap-3">
+          {props.receipts.map((receipt) => (
+            <li key={receipt.id} className="flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setExpanded(receipt)}
+                className="size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
+              >
+                {receipt.mimeType.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={receipt.url}
+                    alt={receipt.fileName ?? "Receipt"}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <span className="flex size-full items-center justify-center text-lg">
                     📄
                   </span>
-                  <span className="line-clamp-2 text-xs font-medium text-zinc-700">
-                    {receipt.fileName ?? "PDF receipt"}
-                  </span>
-                  <span className={cn("text-xs", textLinkClassName)}>
-                    Open file
-                  </span>
-                </div>
-              )}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpanded(receipt)}
+                className={cn("text-xs font-medium", textLinkClassName)}
+              >
+                View
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {expanded ? (
+        <ReceiptLightbox receipt={expanded} onClose={() => setExpanded(null)} />
+      ) : null}
+    </>
   );
 }

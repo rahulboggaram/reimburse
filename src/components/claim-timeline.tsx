@@ -3,7 +3,13 @@
 import type { SerializedClaim } from "@/lib/claim-types";
 import { payoutInProgress } from "@/lib/claim-display-status";
 import { formatDisplayDateTime } from "@/lib/dates";
+import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
+
+function branchManagerLabel(claim: SerializedClaim) {
+  const name = claim.approver?.name?.trim();
+  return name ? toTitleCase(name) : "branch manager";
+}
 
 type StepState = "complete" | "pending" | "current" | "rejected";
 
@@ -33,9 +39,15 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
   }
 
   if (claim.status === "PENDING") {
+    const manager = branchManagerLabel(claim);
     return [
       uploaded,
-      { title: "Approval", date: null, state: "pending", hint: "Awaiting branch approval" },
+      {
+        title: "Approval",
+        date: null,
+        state: "pending",
+        hint: `Awaiting branch approval from ${manager}`,
+      },
       {
         title: "Financial approval",
         date: null,
