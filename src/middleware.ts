@@ -7,6 +7,7 @@ import {
   canAccessEmployeePortal,
   canAccessManagerPortal,
 } from "@/lib/access-roles";
+import { getAppHomePathForRole } from "@/lib/home-path";
 
 const COOKIE_NAME = "wapas_session";
 
@@ -54,7 +55,21 @@ async function getTokenClaims(request: NextRequest): Promise<TokenClaims> {
 function homeForClaims(claims: TokenClaims): string {
   if (!claims.role) return "/login";
   if (!claims.profileComplete) return "/employee/onboarding";
-  return "/employee";
+  return getAppHomePathForRole(claims.role);
+}
+
+function isProfileSetupPath(pathname: string): boolean {
+  if (
+    pathname === "/employee/onboarding" ||
+    pathname === "/employee/profile"
+  ) {
+    return true;
+  }
+  if (pathname.startsWith("/api/profile")) return true;
+  if (pathname === "/api/auth/me" || pathname.startsWith("/api/auth/logout")) {
+    return true;
+  }
+  return false;
 }
 
 export async function middleware(request: NextRequest) {
@@ -92,24 +107,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
+  if (!claims.profileComplete && !isProfileSetupPath(pathname)) {
+    if (pathname.startsWith("/api/")) {
+      return Response.json(
+        {
+          error: "Add your name and bank details to continue.",
+          redirectTo: "/employee/onboarding",
+        },
+        { status: 403 },
+      );
+    }
+    return NextResponse.redirect(new URL("/employee/onboarding", request.url));
+  }
+
+  if (claims.profileComplete && pathname === "/employee/onboarding") {
+    return NextResponse.redirect(new URL(homeForClaims(claims), request.url));
+  }
+
   if (pathname.startsWith("/employee")) {
     if (!canAccessEmployeePortal(claims.role)) {
       return NextResponse.redirect(new URL("/login", request.url));
-    }
-    if (claims.role === "EMPLOYEE") {
-      const profilePaths =
-        pathname === "/employee/onboarding" ||
-        pathname === "/employee/profile";
-      if (!claims.profileComplete && !profilePaths) {
-        return NextResponse.redirect(
-          new URL("/employee/onboarding", request.url),
-        );
-      }
-      if (claims.profileComplete && pathname === "/employee/onboarding") {
-        return NextResponse.redirect(new URL("/employee", request.url));
-      }
-    } else if (pathname === "/employee/onboarding") {
-      return NextResponse.redirect(new URL("/employee", request.url));
     }
   }
 

@@ -35,10 +35,7 @@ export function canAccessEmployeePortal(_role: UserRole): boolean {
 
 /** Who may open My Reimbursements and list their own claims. */
 export function canViewOwnReimbursements(user: {
-  role: string;
   profileComplete: boolean;
 }): boolean {
-  const role = user.role as UserRole;
-  if (role === "EMPLOYEE") return user.profileComplete;
-  return canAccessManagerPortal(role) || role === "ADMIN";
+  return user.profileComplete;
 }

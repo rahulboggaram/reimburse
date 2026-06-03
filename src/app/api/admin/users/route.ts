@@ -3,7 +3,7 @@ import { requireAdminAccess } from "@/lib/auth-api";
 import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import { normalizePhone, formatPhoneDisplay } from "@/lib/phone";
 import { adminCreateEmployeeSchema } from "@/lib/validators";
-import { isEmployeeProfileComplete } from "@/lib/user-profile";
+import { isProfileComplete } from "@/lib/user-profile";
 
 export async function GET() {
   const session = await requireAdminAccess();
@@ -38,7 +38,7 @@ export async function GET() {
       branchName: user.branch?.name ?? null,
       branchActive: user.branch?.active ?? null,
       active: user.active,
-      signedUp: isEmployeeProfileComplete(user),
+      signedUp: isProfileComplete(user),
       claimCount: user._count.claimsSubmitted,
       createdAt: user.createdAt.toISOString(),
     })),

@@ -25,7 +25,7 @@ npm run dev
 
 - **No email** on reimbursement form
 - **20 expense categories** (Electricity, Travel, Food, …)
-- **First-time signup**: full name, IFSC, bank account
+- **First login (every role)**: full name, IFSC, and bank account required before using the app
 - **Bank details** editable anytime under “Bank details”
 - **Admin**: list employees, assign **Approver** toggle (only after they complete profile)
 - **RazorpayX payouts**: pay approved claims from Admin → All claims

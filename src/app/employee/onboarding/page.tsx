@@ -5,7 +5,7 @@ export default function EmployeeOnboardingPage() {
     <EmployeeProfileForm
       variant="onboarding"
       title="Complete your profile"
-      description="Add your name and bank details so reimbursements can be paid to you."
+      description="Before you can use Wapas, add your full name and bank account details. Reimbursements are paid to this account."
       submitLabel="Continue"
     />
   );

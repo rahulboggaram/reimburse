@@ -176,6 +176,41 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     );
   }
 
+  if (!resolvedUser.profileComplete) {
+    return (
+      <div ref={menuRef} className="relative shrink-0">
+        <AccountMenuTrigger
+          label={label}
+          open={open}
+          onClick={() => setOpen((value) => !value)}
+        />
+        {open ? (
+          <div
+            role="menu"
+            className="absolute top-[calc(100%+6px)] right-0 z-30 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
+          >
+            <MenuLink
+              href="/employee/onboarding"
+              onNavigate={closeMenu}
+              active={pathname.startsWith("/employee/onboarding")}
+            >
+              Complete profile
+            </MenuLink>
+            <MenuDivider />
+            <button
+              type="button"
+              role="menuitem"
+              className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50"
+              onClick={logout}
+            >
+              Log Out
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   const canAdmin = resolvedUser.role === "ADMIN";
   const canApprove =
     resolvedUser.role === "ADMIN" ||

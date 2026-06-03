@@ -37,7 +37,7 @@ export default function MyClaimsPage() {
     if (meLoading) return;
     if (!user) return;
 
-    if (user.role === "EMPLOYEE" && !user.profileComplete) {
+    if (!user.profileComplete) {
       router.replace("/employee/onboarding");
       return;
     }

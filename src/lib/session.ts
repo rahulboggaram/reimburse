@@ -7,7 +7,8 @@ import {
   canAccessEmployeePortal as roleCanAccessEmployeePortal,
   canAccessManagerPortal as roleCanAccessManagerPortal,
 } from "@/lib/access-roles";
-import { isEmployeeProfileComplete } from "@/lib/user-profile";
+import { getAppHomePathForRole } from "@/lib/home-path";
+import { isProfileComplete } from "@/lib/user-profile";
 
 export type SessionUser = {
   id: string;
@@ -33,8 +34,7 @@ export function userToSession(user: User): SessionUser {
     phone: user.phone,
     name: user.name,
     role: user.role,
-    profileComplete:
-      user.role !== "EMPLOYEE" || isEmployeeProfileComplete(user),
+    profileComplete: isProfileComplete(user),
   };
 }
 
@@ -141,13 +141,12 @@ export function sessionCanAccessEmployeePortal(session: SessionUser): boolean {
 }
 
 export function redirectPathAfterLogin(user: User): string {
-  if (!isEmployeeProfileComplete(user)) return "/employee/onboarding";
-  return "/employee";
+  if (!isProfileComplete(user)) return "/employee/onboarding";
+  return getAppHomePathForRole(user.role);
 }
 
 export function canSubmitReimbursement(session: SessionUser): boolean {
-  if (session.role === "EMPLOYEE") return session.profileComplete;
-  return true;
+  return session.profileComplete;
 }
 
 // Re-export for auth-api compatibility

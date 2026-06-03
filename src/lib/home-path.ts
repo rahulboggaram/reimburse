@@ -1,3 +1,16 @@
+import type { UserRole } from "@prisma/client";
+import {
+  canAccessAdminPortal,
+  canAccessManagerPortal,
+} from "@/lib/access-roles";
+
+export function getAppHomePathForRole(role: UserRole | string): string {
+  const r = role as UserRole;
+  if (canAccessAdminPortal(r)) return "/admin/people";
+  if (canAccessManagerPortal(r)) return "/manager";
+  return "/employee";
+}
+
 export function getAppHomePath(
   user: {
     role: string;
@@ -5,8 +18,6 @@ export function getAppHomePath(
   } | null,
 ) {
   if (!user) return "/login";
-  if (user.role === "EMPLOYEE" && user.profileComplete === false) {
-    return "/employee/onboarding";
-  }
-  return "/employee";
+  if (user.profileComplete === false) return "/employee/onboarding";
+  return getAppHomePathForRole(user.role);
 }

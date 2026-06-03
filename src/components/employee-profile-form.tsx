@@ -280,6 +280,12 @@ export function EmployeeProfileForm(props: {
       </Card>
 
       <Card className={cn(profileCardClass, "p-5")}>
+        {isOnboarding ? (
+          <p className="mb-4 text-sm text-zinc-600">
+            Bank details are required for every team member so payouts can reach
+            the right account.
+          </p>
+        ) : null}
         {bankEditing ? (
           <div className="space-y-4">
             <div className="space-y-1.5">

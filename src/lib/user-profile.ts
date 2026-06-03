@@ -4,13 +4,17 @@ export type ProfileFields = {
   bankAccountNumber: string | null;
 };
 
-export function isEmployeeProfileComplete(user: ProfileFields): boolean {
+/** Name + bank details required before using the app (all roles). */
+export function isProfileComplete(user: ProfileFields): boolean {
   return Boolean(
     user.name?.trim() &&
       user.ifscCode?.trim() &&
       user.bankAccountNumber?.trim(),
   );
 }
+
+/** @deprecated Use {@link isProfileComplete} */
+export const isEmployeeProfileComplete = isProfileComplete;
 
 /** e.g. "ananya patel" → "Ananya Patel" */
 export function toTitleCase(value: string): string {
