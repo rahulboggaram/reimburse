@@ -30,51 +30,117 @@ npm run dev
 - **Admin**: list employees, assign **Approver** toggle (only after they complete profile)
 - **RazorpayX payouts**: pay approved claims from Admin → All claims
 
-## Live OTP — WhatsApp (before live Razorpay)
+## Live OTP — WhatsApp (from scratch)
 
-Production uses **WhatsApp Cloud API** for login codes. Do **not** set MSG91 or Twilio vars unless you add SMS later.
+Reimburse sends login codes with the **WhatsApp Cloud API** and template **`reimburse_login_otp`** (Authentication + Copy code). Do **not** set `MSG91_*` or `TWILIO_*` unless you add SMS later.
 
-### 1. Meta (verified Business account)
+**While you set up Meta**, keep on Vercel: `OTP_MOCK=true` and `NEXT_PUBLIC_OTP_MOCK=true` so the app still accepts demo OTP **`123456`**.
 
-1. [Meta Business Suite](https://business.facebook.com/) → **WhatsApp** → **API Setup** (Cloud API).
-2. **Message templates** → Create template:
-   - Category: **Authentication**
-   - Type: **Copy code** (OTP button)
-   - Wait until status is **Approved**
-3. Note **template name** (e.g. `reimburse_login_otp`) and **language** (e.g. `en_US`).
-4. From API Setup, copy:
-   - **Phone number ID**
-   - **Permanent access token** (permission: `whatsapp_business_messaging`)
+### What you need at the end
 
-### 2. Vercel → Production environment variables
+| Piece | Example / note |
+|-------|----------------|
+| Meta app | **Reimburse** (developers.facebook.com) |
+| Sender number | **Yellow Metal** `+91 80903 80909` (not the US “Test number”) |
+| Phone number ID | From API Setup when Yellow Metal is selected |
+| Access token | System user token with `whatsapp_business_messaging` |
+| Template | `reimburse_login_otp`, language `en` or `en_US` |
+
+### Step 1 — Template (you likely already have this)
+
+1. [WhatsApp Manager](https://business.facebook.com/wa/manage/message-templates/) → template **`reimburse_login_otp`**
+2. Category **Authentication**, **Copy code** button, status **Active**
+
+### Step 2 — Developer app
+
+1. [developers.facebook.com/apps](https://developers.facebook.com/apps/) → open **Reimburse**
+2. Left: **Use cases** → **Connect with customers through WhatsApp** → **Customize**
+3. Open **Configuration** → connect **WhatsApp Business account** = Yellow Metal Loans → **Save**
+4. Open **API Setup**
+
+### Step 3 — Sender number (ignore US test number)
+
+1. **From** → select **Yellow Metal — +91 80903 80909** (not “Test number”)
+2. Copy **Phone number ID** for this line only
+3. If status is **Pending**, register once (Step 4)
+
+### Step 4 — Register +91 for API (Pending → ready)
+
+You need the **6-digit two-step verification PIN** for that WhatsApp Business number (you set it; Meta does not SMS it). Max **10** register attempts per 72 hours.
+
+```bash
+export WA_TOKEN="EAA...paste token"
+export WA_PHONE_ID="paste Phone number ID for Yellow Metal"
+export WA_PIN="123456"
+
+curl -X POST "https://graph.facebook.com/v25.0/${WA_PHONE_ID}/register" \
+  -H "Authorization: Bearer ${WA_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"${WA_PIN}\"}"
+```
+
+Success: `{"success":true}`. Doc: [Register a business phone number](https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration/).
+
+Check status:
+
+```bash
+curl -s "https://graph.facebook.com/v25.0/${WA_PHONE_ID}?fields=display_phone_number,status,code_verification_status" \
+  -H "Authorization: Bearer ${WA_TOKEN}"
+```
+
+### Step 5 — Permanent token (fixes “does not exist / permissions”)
+
+Temporary API Setup tokens often fail on the real +91 line.
+
+1. [business.facebook.com/settings](https://business.facebook.com/settings) → **System users** → Add
+2. **Assign assets** → **WhatsApp accounts** → Yellow Metal → full access
+3. **Generate token** → app **Reimburse** → permissions **`whatsapp_business_messaging`** + **`whatsapp_business_management`**
+4. Copy token → use for Meta test + Vercel
+
+### Step 6 — Test on Meta before Vercel
+
+On **API Setup** (Yellow Metal selected):
+
+1. **To** → add test mobiles as `91XXXXXXXXXX` (no `+`)
+2. Send Meta’s test message to your phone
+3. If that works, configure Vercel
+
+### Step 7 — Vercel Production env
 
 ```env
 OTP_MOCK=false
 NEXT_PUBLIC_OTP_MOCK=false
 NEXT_PUBLIC_OTP_DOMAIN=reimburse-jade.vercel.app
 
-WHATSAPP_ACCESS_TOKEN=EAA...your_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
-WHATSAPP_OTP_TEMPLATE_NAME=your_approved_template_name
-WHATSAPP_OTP_TEMPLATE_LANGUAGE=en_US
+WHATSAPP_ACCESS_TOKEN=EAA...system user token
+WHATSAPP_PHONE_NUMBER_ID=Phone number ID for Yellow Metal only
+WHATSAPP_OTP_TEMPLATE_NAME=reimburse_login_otp
+WHATSAPP_OTP_TEMPLATE_LANGUAGE=en
+WHATSAPP_OTP_TEMPLATE_HAS_BUTTON=true
+WHATSAPP_API_VERSION=v25.0
 ```
 
-Optional: `WHATSAPP_OTP_TEMPLATE_HAS_BUTTON=false` if your template has no copy button.
+Leave **`RAZORPAYX_MOCK=true`** until login works. **Redeploy** after saving.
 
-Leave **`RAZORPAYX_MOCK=true`** until WhatsApp login works.
+### Step 8 — Test Reimburse
 
-Remove or leave empty: `MSG91_*`, `TWILIO_*` (so only WhatsApp is used).
+1. https://reimburse-jade.vercel.app/login
+2. Phone must exist in Reimburse **and** (if app is In development) Meta **test recipient** list
+3. UI: **“Code sent on WhatsApp”** + message from Yellow Metal
 
-### 3. Deploy and test
+### Common mistakes
 
-1. Redeploy Production (or wait for auto-deploy from `main`).
-2. Hard-refresh https://reimburse-jade.vercel.app
-3. Log in with a **registered** phone that has **WhatsApp on that same number**.
-4. You should see **“Code sent on WhatsApp”** and receive the 6-digit code in WhatsApp.
+| Mistake | Fix |
+|---------|-----|
+| Used US **Test number** ID | Use Yellow Metal **Phone number ID** only |
+| `YOUR_PHONE_NUMBER_ID` in curl | Paste real IDs and token |
+| `cexport` / empty `$WA_TOKEN` | Use `export WA_TOKEN="EAA..."` |
+| Number **Pending** | Run **register** with correct PIN |
+| Token error 190 / object missing | System user token + link WABA in Configuration |
 
-### Alternatives (not used by default)
+### Alternatives
 
-MSG91 or Twilio SMS — see `.env.example` if you need SMS fallback later.
+MSG91 or Twilio SMS — see `.env.example`.
 
 ## RazorpayX setup (real payouts)
 
