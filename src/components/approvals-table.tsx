@@ -2,6 +2,7 @@
 
 import { useMe } from "@/components/me-provider";
 import {
+  claimsTableColCenter,
   claimsTableGridNoStatus,
   claimsTableGridWithStatus,
   claimsTableHeaderClass,
@@ -20,9 +21,13 @@ export function ApprovalsTableHeader(props: { showStatus?: boolean }) {
   return (
     <div className={claimsTableHeaderClass(grid)}>
       <span className="min-w-0 truncate">Employee</span>
-      <span className="whitespace-nowrap">Date</span>
-      <span className="text-right whitespace-nowrap">Amount</span>
-      {showStatus ? <span className="min-w-0">Status</span> : null}
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
+        Amount
+      </span>
+      {showStatus ? (
+        <span className={claimsTableColCenter}>Status</span>
+      ) : null}
       <span className="flex justify-center" aria-hidden />
     </div>
   );

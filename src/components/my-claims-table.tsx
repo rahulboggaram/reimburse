@@ -2,6 +2,7 @@
 
 import { useMe } from "@/components/me-provider";
 import {
+  claimsTableColCenter,
   claimsTableGridWithStatus,
   claimsTableHeaderClass,
   claimsTableRowClass,
@@ -10,14 +11,17 @@ import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDateNoYear } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 
 export function MyClaimsTableHeader() {
   return (
     <div className={claimsTableHeaderClass(claimsTableGridWithStatus)}>
       <span className="min-w-0 truncate">Category</span>
-      <span className="whitespace-nowrap">Date</span>
-      <span className="text-right whitespace-nowrap">Amount</span>
-      <span className="min-w-0">Status</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
+        Amount
+      </span>
+      <span className={claimsTableColCenter}>Status</span>
       <span className="flex justify-center" aria-hidden />
     </div>
   );
@@ -40,13 +44,23 @@ export function MyClaimsTableRow(props: {
       <span className="min-w-0 truncate text-left text-sm font-medium text-zinc-900">
         {claim.category}
       </span>
-      <span className="text-left text-sm whitespace-nowrap text-zinc-600 tabular-nums">
+      <span
+        className={cn(
+          claimsTableColCenter,
+          "text-sm whitespace-nowrap text-zinc-600 tabular-nums",
+        )}
+      >
         {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
-      <span className="text-right text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums">
+      <span
+        className={cn(
+          claimsTableColCenter,
+          "text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums",
+        )}
+      >
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
-      <span className="flex min-w-0 items-center">
+      <span className={claimsTableColCenter}>
         <StatusBadge status={status} compact />
       </span>
       <span
