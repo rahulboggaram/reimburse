@@ -1,14 +1,11 @@
 import { cn } from "@/lib/utils";
 
-/**
- * Fixed column widths so date / amount / status stay centered under their headers
- * in both My Claims and Approvals.
- */
+/** Equal-width data columns + narrow chevron; shared gap between columns. */
 export const claimsTableGridWithStatus =
-  "grid w-full grid-cols-[minmax(0,1fr)_4rem_5.5rem_6rem_1.25rem] items-center gap-x-2 sm:gap-x-3";
+  "grid w-full grid-cols-[repeat(4,minmax(0,1fr))_1.25rem] items-center gap-x-4";
 
 export const claimsTableGridNoStatus =
-  "grid w-full grid-cols-[minmax(0,1fr)_4rem_5.5rem_1.25rem] items-center gap-x-2 sm:gap-x-3";
+  "grid w-full grid-cols-[repeat(3,minmax(0,1fr))_1.25rem] items-center gap-x-4";
 
 export function claimsTableHeaderClass(grid: string) {
   return cn(
@@ -24,10 +21,10 @@ export function claimsTableRowClass(grid: string) {
   );
 }
 
-export const claimsTableColStart = "min-w-0 justify-self-start text-left";
+export const claimsTableColStart = "min-w-0 justify-self-stretch text-left";
 
 export const claimsTableColCenter =
-  "min-w-0 w-full justify-self-center text-center";
+  "flex min-w-0 w-full items-center justify-center justify-self-stretch text-center";
 
 export const claimsTableColChevron =
   "flex w-full items-center justify-center justify-self-center text-base leading-none text-zinc-400";
