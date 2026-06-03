@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
-const roleBadgeStyle = "bg-zinc-900 text-white ring-1 ring-zinc-800";
+const roleBadgeStyle =
+  "bg-zinc-50 text-zinc-900 ring-1 ring-zinc-200 shadow-sm";
 
 export function RoleBadge(props: { role: string }) {
   const label = props.role.trim() || "Employee";
