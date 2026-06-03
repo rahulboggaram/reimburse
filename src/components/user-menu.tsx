@@ -188,15 +188,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
 
   const employeeLinks = (
     <>
-      {resolvedUser.role !== "EMPLOYEE" ? (
-        <MenuLink
-          href="/employee"
-          onNavigate={closeMenu}
-          active={pathname === "/employee"}
-        >
-          New Claim
-        </MenuLink>
-      ) : null}
       <MenuLink
         href="/employee/claims"
         onNavigate={closeMenu}
