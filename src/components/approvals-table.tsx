@@ -35,7 +35,7 @@ export function ApprovalsSelectionBar(props: {
     <div className="mb-3 flex justify-end">
       <button
         type="button"
-        className="text-sm font-medium text-zinc-700 underline"
+        className="text-sm font-medium text-blue-600 hover:text-blue-800"
         onClick={props.onToggleAll}
       >
         {props.allSelected ? "Clear all" : "Select all"}
