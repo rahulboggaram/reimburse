@@ -212,7 +212,7 @@ export default function AdminPeoplePage() {
       </Card>
 
       <Card className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <h2 className="min-w-0 text-lg font-semibold text-zinc-900">All Employees</h2>
           <Select
             id="filter-people"
