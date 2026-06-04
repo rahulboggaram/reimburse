@@ -13,7 +13,7 @@ export async function GET() {
       ? countPaymentWaiting(session)
       : Promise.resolve(0),
     session.role === "ADMIN"
-      ? countAdminPendingApproval()
+      ? countAdminPendingApproval(session.branchId)
       : Promise.resolve(0),
   ]);
 

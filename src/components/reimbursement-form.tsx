@@ -18,7 +18,6 @@ import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
 import { invalidateClientCache } from "@/lib/client-cache";
 import { fetchFormBootstrap, readFormBootstrapCache } from "@/lib/admin-fetch";
-import { isBranchOptionalForRole } from "@/lib/claim-branch-roles";
 import { prepareReceiptFilesForUpload } from "@/lib/compress-receipt-image";
 
 type SubmitPhase = "idle" | "preparing" | "uploading";
@@ -62,6 +61,7 @@ export function ReimbursementForm(props: {
   const cachedBootstrap = readFormBootstrapCache<{
     branches: Branch[];
     categories: ExpenseCategory[];
+    userBranchId?: string | null;
   }>();
   const [branches, setBranches] = useState<Branch[]>(
     () => cachedBootstrap?.branches ?? [],
@@ -79,22 +79,32 @@ export function ReimbursementForm(props: {
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
   const [amount, setAmount] = useState(props.initial?.amount ?? "");
-  const [branchId, setBranchId] = useState(props.initial?.branchId ?? "");
+  const [branchId, setBranchId] = useState(
+    () =>
+      props.initial?.branchId ??
+      cachedBootstrap?.userBranchId ??
+      "",
+  );
   const [category, setCategory] = useState(props.initial?.category ?? "");
   const [description, setDescription] = useState(props.initial?.description ?? "");
   const [receipts, setReceipts] = useState<ReceiptFileItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const { user: meUser } = useMe();
-  const branchOptional =
-    meUser?.role != null && isBranchOptionalForRole(meUser.role);
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
 
   useEffect(() => {
-    void fetchFormBootstrap<{ branches: Branch[]; categories: ExpenseCategory[] }>()
+    void fetchFormBootstrap<{
+      branches: Branch[];
+      categories: ExpenseCategory[];
+      userBranchId: string | null;
+    }>()
       .then((data) => {
         setBranches(data.branches);
         setCategories(data.categories);
+        if (!props.initial?.branchId && !branchId && data.userBranchId) {
+          setBranchId(data.userBranchId);
+        }
       })
       .catch(() => setError("Could not load form options."))
       .finally(() => {
@@ -122,7 +132,7 @@ export function ReimbursementForm(props: {
       }
     }
 
-    if (!branchOptional && !branchId.trim()) {
+    if (!branchId.trim()) {
       errors.branchId = "Select a branch.";
     }
 
@@ -156,9 +166,7 @@ export function ReimbursementForm(props: {
 
       const formData = new FormData();
       formData.set("amount", String(parsedAmount));
-      if (branchId.trim()) {
-        formData.set("branchId", branchId.trim());
-      }
+      formData.set("branchId", branchId.trim());
       formData.set("category", category);
       formData.set("description", description.trim());
       for (const file of preparedReceipts) {
@@ -303,13 +311,12 @@ export function ReimbursementForm(props: {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="branch">
-            Branch{branchOptional ? " (optional)" : ""}
-          </Label>
-          {branchOptional && meUser?.role !== "ADMIN" ? (
+          <Label htmlFor="branch">Branch</Label>
+          {meUser?.role === "ADMIN" || meUser?.role === "APPROVER" ? (
             <p className="text-xs text-zinc-500">
-              Your claim goes to admin for approval — you can skip branch if
-              you prefer.
+              Select which branch this reimbursement is for. It should match
+              your assigned branch unless you are entering on behalf of another
+              location.
             </p>
           ) : null}
           {loadingBranches ? (
@@ -321,7 +328,7 @@ export function ReimbursementForm(props: {
           ) : (
             <Select
               id="branch"
-              required={!branchOptional}
+              required
               aria-invalid={Boolean(fieldErrors.branchId)}
               value={branchId}
               onChange={(e) => {
@@ -329,8 +336,8 @@ export function ReimbursementForm(props: {
                 setFieldErrors((prev) => ({ ...prev, branchId: undefined }));
               }}
             >
-              <option value="" disabled={!branchOptional}>
-                {branchOptional ? "No branch selected" : "Select branch"}
+              <option value="" disabled>
+                Select branch
               </option>
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>

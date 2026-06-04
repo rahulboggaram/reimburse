@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
+import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 export type EmployeeRecord = {
@@ -86,7 +87,7 @@ export function EmployeeDetailModal(props: {
     setBranchId(employee.branchId ?? "");
   }, [employee.id, employee.role, employee.branchId]);
 
-  const needsBranch = role === "EMPLOYEE" || role === "BRANCH_MANAGER";
+  const needsBranch = userRoleRequiresBranch(role);
 
   return (
     <Modal
@@ -120,11 +121,9 @@ export function EmployeeDetailModal(props: {
                 const nextRole = e.target.value as UserRole;
                 setRole(nextRole);
 
-                // Admins and payment approvers don't need a branch assignment.
-                const nextBranchId =
-                  nextRole === "ADMIN" || nextRole === "APPROVER" ? null : branchId || null;
-
-                if (nextBranchId === null) setBranchId("");
+                const nextNeedsBranch = userRoleRequiresBranch(nextRole);
+                const nextBranchId = nextNeedsBranch ? branchId || null : null;
+                if (!nextNeedsBranch) setBranchId("");
 
                 props.onUpdate({
                   id: employee.id,
@@ -166,7 +165,8 @@ export function EmployeeDetailModal(props: {
                 ))}
               </Select>
               <p className="text-xs text-zinc-600">
-                Required for employees and branch managers.
+                Required for this role — claims and approvals are scoped to this
+                branch.
               </p>
             </div>
           ) : null}

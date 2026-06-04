@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
+import { setSessionCookie, userToSession } from "@/lib/session";
 import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import { formatRole } from "@/lib/access-roles";
+import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { adminUpdateEmployeeSchema } from "@/lib/validators";
 
 export async function PATCH(
@@ -30,12 +32,12 @@ export async function PATCH(
   }
 
   const nextBranchId = body.data.branchId ?? null;
-  if (
-    (body.data.role === "EMPLOYEE" || body.data.role === "BRANCH_MANAGER") &&
-    !nextBranchId
-  ) {
+  if (userRoleRequiresBranch(body.data.role) && !nextBranchId) {
     return Response.json(
-      { error: "Branch is required for employees and branch managers." },
+      {
+        error:
+          "Branch is required for employees, branch managers, admins, and payment approvers.",
+      },
       { status: 400 },
     );
   }
@@ -61,6 +63,10 @@ export async function PATCH(
       targetUserId: user.id,
       summary: `${actorLabel} updated ${targetLabel}'s ${parts.join(" and ")}`,
     });
+  }
+
+  if (id === session.id) {
+    await setSessionCookie(userToSession(user));
   }
 
   return Response.json(user);

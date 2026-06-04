@@ -99,9 +99,6 @@ async function main() {
   const demoBranchId = chintamani?.id ?? null;
 
   for (const user of users) {
-    const shouldAttachBranch =
-      demoBranchId && (user.role === UserRole.EMPLOYEE || user.role === UserRole.BRANCH_MANAGER);
-
     await prisma.user.upsert({
       where: { phone: user.phone },
       update: {
@@ -109,13 +106,13 @@ async function main() {
         role: user.role,
         ifscCode: user.ifscCode,
         bankAccountNumber: user.bankAccountNumber,
-        branchId: shouldAttachBranch ? demoBranchId : null,
+        branchId: demoBranchId,
         active: true,
       },
       create: {
         ...user,
         active: true,
-        branchId: shouldAttachBranch ? demoBranchId : null,
+        branchId: demoBranchId,
       },
     });
   }

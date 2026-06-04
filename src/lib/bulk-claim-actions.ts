@@ -35,18 +35,21 @@ export type BulkActionSummary = {
 export async function countPaymentWaiting(session: {
   id: string;
   role: string;
+  branchId?: string | null;
 }) {
   const where = paymentWaitingWhereForSession(session);
   if (!where) return 0;
   return prisma.reimbursement.count({ where });
 }
 
-export async function countAdminPendingApproval() {
-  return prisma.reimbursement.count({ where: adminApprovalQueueWhere() });
+export async function countAdminPendingApproval(branchId?: string | null) {
+  return prisma.reimbursement.count({
+    where: adminApprovalQueueWhere(branchId),
+  });
 }
 
 export async function bulkPayClaimIds(
-  session: { id: string; role: string },
+  session: { id: string; role: string; branchId?: string | null },
   claimIds: string[],
 ): Promise<BulkActionSummary | { error: string }> {
   if (claimIds.length === 0) {
@@ -134,13 +137,16 @@ export async function bulkPayPaymentQueue(session: {
 export async function bulkAdminApproveClaimIds(
   adminId: string,
   claimIds: string[],
+  branchId?: string | null,
 ): Promise<BulkActionSummary | { error: string }> {
   if (claimIds.length === 0) {
     return { error: "Select at least one reimbursement to approve." };
   }
 
   const claims = await prisma.reimbursement.findMany({
-    where: { AND: [adminApprovalQueueWhere(), { id: { in: claimIds } }] },
+    where: {
+      AND: [adminApprovalQueueWhere(branchId), { id: { in: claimIds } }],
+    },
     orderBy: { createdAt: "asc" },
     include: {
       employee: { select: { role: true, ...employeeForPayoutSelect } },
@@ -201,14 +207,16 @@ export async function bulkAdminApproveClaimIds(
 /** Approve every claim in the admin queue (legacy / tests). */
 export async function bulkAdminApproveQueue(
   adminId: string,
+  branchId?: string | null,
 ): Promise<BulkActionSummary> {
   const claims = await prisma.reimbursement.findMany({
-    where: adminApprovalQueueWhere(),
+    where: adminApprovalQueueWhere(branchId),
     select: { id: true },
   });
   const result = await bulkAdminApproveClaimIds(
     adminId,
     claims.map((c) => c.id),
+    branchId,
   );
   if ("error" in result) {
     return { total: 0, succeeded: 0, failed: 0, results: [] };

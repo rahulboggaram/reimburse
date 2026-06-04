@@ -15,6 +15,7 @@ export type SessionUser = {
   phone: string;
   name: string | null;
   role: UserRole;
+  branchId: string | null;
   profileComplete: boolean;
 };
 
@@ -34,6 +35,7 @@ export function userToSession(user: User): SessionUser {
     phone: user.phone,
     name: user.name,
     role: user.role,
+    branchId: user.branchId,
     profileComplete: isProfileComplete(user),
   };
 }
@@ -72,6 +74,8 @@ export async function readSessionToken(
       phone: payload.phone,
       name: typeof payload.name === "string" ? payload.name : null,
       role,
+      branchId:
+        typeof payload.branchId === "string" ? payload.branchId : null,
       profileComplete: payload.profileComplete === true,
     };
   } catch {
@@ -100,6 +104,7 @@ export async function refreshSessionFromDb(
       role: true,
       ifscCode: true,
       bankAccountNumber: true,
+      branchId: true,
       active: true,
     },
   });
@@ -109,7 +114,8 @@ export async function refreshSessionFromDb(
   if (
     session.role !== fromToken.role ||
     session.profileComplete !== fromToken.profileComplete ||
-    session.name !== fromToken.name
+    session.name !== fromToken.name ||
+    session.branchId !== fromToken.branchId
   ) {
     await setSessionCookie(session);
   }

@@ -10,10 +10,13 @@ type DecideClaim = {
 };
 
 /** Pending reimbursements that need an admin (e.g. payment approver submissions). */
-export function adminApprovalQueueWhere(): Prisma.ReimbursementWhereInput {
+export function adminApprovalQueueWhere(
+  branchId?: string | null,
+): Prisma.ReimbursementWhereInput {
   return {
     status: "PENDING",
     approver: { role: "ADMIN" },
+    ...(branchId ? { branchId } : {}),
   };
 }
 

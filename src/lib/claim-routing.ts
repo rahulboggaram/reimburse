@@ -1,4 +1,4 @@
-import type { ReimbursementStatus, User } from "@prisma/client";
+import type { ReimbursementStatus, User, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export type ClaimRouting = {
@@ -10,12 +10,27 @@ export type ClaimRouting = {
 
 type Submitter = Pick<User, "id" | "role">;
 
+async function findActiveUserForBranch(
+  role: UserRole,
+  branchId: string,
+  excludeId?: string,
+) {
+  return prisma.user.findFirst({
+    where: {
+      role,
+      active: true,
+      branchId,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 export async function resolveClaimRouting(
   submitter: Submitter,
   branchId: string,
 ): Promise<{ routing: ClaimRouting } | { error: string }> {
   if (submitter.role === "ADMIN") {
-    // Admin claims are self-approved and paid out directly — never routed to payment approver.
     return {
       routing: {
         approverId: submitter.id,
@@ -27,33 +42,23 @@ export async function resolveClaimRouting(
   }
 
   if (submitter.role === "APPROVER") {
-    const admin = await prisma.user.findFirst({
-      where: { role: "ADMIN", active: true },
-      orderBy: { createdAt: "asc" },
-    });
+    const admin = await findActiveUserForBranch("ADMIN", branchId);
     if (!admin) {
-      return { error: "No admin available to approve this claim." };
+      return {
+        error: "No admin is assigned to this branch yet.",
+      };
     }
 
-    const paymentApprover = await prisma.user.findFirst({
-      where: {
-        role: "APPROVER",
-        active: true,
-        id: { not: submitter.id },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    const fallbackApprover = await prisma.user.findFirst({
-      where: { role: "APPROVER", active: true },
-      orderBy: { createdAt: "asc" },
-    });
+    const paymentApprover = await findActiveUserForBranch(
+      "APPROVER",
+      branchId,
+      submitter.id,
+    );
 
     return {
       routing: {
         approverId: admin.id,
-        paymentApproverId:
-          paymentApprover?.id ?? fallbackApprover?.id ?? admin.id,
+        paymentApproverId: paymentApprover?.id ?? admin.id,
         status: "PENDING",
         decidedAt: null,
       },
@@ -61,21 +66,17 @@ export async function resolveClaimRouting(
   }
 
   const [branchManager, paymentApprover] = await Promise.all([
-    prisma.user.findFirst({
-      where: { role: "BRANCH_MANAGER", active: true, branchId },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.user.findFirst({
-      where: { role: "APPROVER", active: true },
-      orderBy: { createdAt: "asc" },
-    }),
+    findActiveUserForBranch("BRANCH_MANAGER", branchId),
+    findActiveUserForBranch("APPROVER", branchId),
   ]);
 
   if (!branchManager) {
     return { error: "No branch manager assigned for this branch yet." };
   }
   if (!paymentApprover) {
-    return { error: "No payment approver assigned yet." };
+    return {
+      error: "No payment approver assigned for this branch yet.",
+    };
   }
 
   return {

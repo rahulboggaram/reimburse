@@ -34,7 +34,7 @@ export async function PATCH(
     );
   }
 
-  const branchResult = await resolveClaimBranchId(session.role, body.branchId);
+  const branchResult = await resolveClaimBranchId(body.branchId);
   if ("error" in branchResult) {
     return Response.json({ error: branchResult.error }, { status: 400 });
   }

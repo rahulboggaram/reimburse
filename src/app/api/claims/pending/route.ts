@@ -16,7 +16,7 @@ import {
 type QueueTab = "waiting" | "approved";
 
 function queueWhere(
-  session: { id: string; role: string },
+  session: { id: string; role: string; branchId?: string | null },
   tab: QueueTab,
 ): Prisma.ReimbursementWhereInput {
   if (session.role === "BRANCH_MANAGER") {
@@ -31,14 +31,17 @@ function queueWhere(
 
   if (session.role === "APPROVER") {
     return tab === "waiting"
-      ? approverPaymentWaitingWhere(session.id)
-      : approverPaymentSentWhere(session.id);
+      ? approverPaymentWaitingWhere(session.id, session.branchId)
+      : approverPaymentSentWhere(session.id, session.branchId);
   }
 
   if (session.role === "ADMIN") {
     if (tab === "waiting") {
       return {
-        OR: [adminApprovalQueueWhere(), orgPaymentWaitingWhere()],
+        OR: [
+          adminApprovalQueueWhere(session.branchId),
+          orgPaymentWaitingWhere(session.branchId),
+        ],
       };
     }
     return {
@@ -81,7 +84,7 @@ export async function GET(request: Request) {
       ? countPaymentWaiting(session)
       : Promise.resolve(0),
     includeCounts && session.role === "ADMIN"
-      ? countAdminPendingApproval()
+      ? countAdminPendingApproval(session.branchId)
       : Promise.resolve(0),
   ]);
 

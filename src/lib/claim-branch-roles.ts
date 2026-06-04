@@ -1,5 +1,11 @@
-const OPTIONAL_BRANCH_ROLES = new Set(["ADMIN", "APPROVER"]);
+/** Roles that must have a branch assigned in People and on each reimbursement. */
+const BRANCH_ASSIGNED_ROLES = new Set([
+  "EMPLOYEE",
+  "BRANCH_MANAGER",
+  "ADMIN",
+  "APPROVER",
+]);
 
-export function isBranchOptionalForRole(role: string): boolean {
-  return OPTIONAL_BRANCH_ROLES.has(role);
+export function roleRequiresBranchAssignment(role: string): boolean {
+  return BRANCH_ASSIGNED_ROLES.has(role);
 }
