@@ -15,6 +15,8 @@ function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
   return "idle";
 }
 
+/* Classic (cream + blue): use border-[1.5px], border-zinc-300 idle, border-accent focused. */
+
 function normalShellClass(_state: FieldVisualState) {
   return "relative rounded-xl border-0 bg-white transition-colors duration-200";
 }
@@ -27,11 +29,10 @@ function labelClass(
   error?: boolean,
 ) {
   return cn(
-    "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate px-0.5 leading-none transition-all duration-200 ease-out",
-    "bg-white",
+    "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate leading-none transition-all duration-200 ease-out",
     floated
-      ? "top-0 -translate-y-1/2 text-xs font-medium"
-      : "top-1/2 -translate-y-1/2 text-base font-medium",
+      ? "top-3 translate-y-0 bg-transparent px-0 text-xs font-medium"
+      : "top-1/2 -translate-y-1/2 bg-transparent px-0 text-base font-medium",
     error && errorAccentText,
     !error && !floated && "text-zinc-500",
     !error && floated && state === "focused" && "text-accent",
@@ -50,6 +51,7 @@ const controlClass =
   "w-full min-w-0 border-0 bg-transparent p-0 outline-none";
 
 function FieldControl(props: {
+  floated?: boolean;
   multiline?: boolean;
   autoGrow?: boolean;
   children: React.ReactNode;
@@ -60,9 +62,15 @@ function FieldControl(props: {
         "flex w-full px-4",
         props.multiline &&
           (props.autoGrow
-            ? "min-h-field items-center"
+            ? cn(
+                "min-h-field",
+                props.floated ? "items-start pb-3 pt-5" : "items-center",
+              )
             : "min-h-textarea items-center py-3"),
-        !props.multiline && "h-field items-center",
+        !props.multiline &&
+          (props.floated
+            ? "h-field items-end pb-2.5 pt-5"
+            : "h-field items-center"),
       )}
     >
       {props.children}
@@ -181,7 +189,7 @@ export function FloatingInput(
       errorMessage={fieldError}
       required={required}
     >
-      <FieldControl>
+      <FieldControl floated={floated}>
         <input
           {...inputProps}
           id={id}
@@ -244,7 +252,7 @@ export function FloatingSelect(
       errorMessage={fieldError}
       required={required}
     >
-      <FieldControl>
+      <FieldControl floated={floated}>
         <Select
           {...selectProps}
           outlineColor={outlineColor}
@@ -321,7 +329,7 @@ export function FloatingTextarea(
       errorMessage={fieldError}
       required={required}
     >
-      <FieldControl multiline autoGrow={autoResize}>
+      <FieldControl floated={floated} multiline autoGrow={autoResize}>
         <textarea
           {...textareaProps}
           ref={ref}
