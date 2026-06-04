@@ -24,9 +24,9 @@ function normalShellClass(state: FieldVisualState) {
   );
 }
 
-function errorShellClass() {
+function errorFieldShellClass() {
   return cn(
-    "overflow-hidden rounded-2xl border-2 border-rose-800 bg-white shadow-sm shadow-zinc-200/30 transition-colors duration-200 focus-within:border-rose-800",
+    "relative rounded-xl border-2 border-rose-800 bg-white shadow-sm shadow-zinc-200/30 transition-colors duration-200",
   );
 }
 
@@ -105,8 +105,8 @@ function FieldWrap(props: {
 
   if (props.error) {
     return (
-      <div className={errorShellClass()}>
-        <div className="relative bg-white">
+      <div className="flex flex-col">
+        <div className={errorFieldShellClass()}>
           {labelNode}
           {props.children}
         </div>
