@@ -40,11 +40,8 @@ function labelClass(
   );
 }
 
-function valueClassForState(state: FieldVisualState) {
-  return cn(
-    "leading-normal text-zinc-900",
-    state === "filled" ? "text-lg font-semibold" : "text-base font-medium",
-  );
+function valueTextClass() {
+  return "leading-normal text-lg font-semibold text-zinc-900";
 }
 
 const controlClass =
@@ -205,7 +202,7 @@ export function FloatingInput(
           }}
           className={cn(
             controlClass,
-            showValue ? valueClassForState(state) : "text-transparent caret-zinc-900",
+            showValue ? valueTextClass() : "text-transparent caret-zinc-900",
             className,
           )}
         />
@@ -269,7 +266,7 @@ export function FloatingSelect(
           }}
           className={cn(
             "h-full min-h-0 w-full rounded-none border-0 bg-transparent py-0 pl-0 pr-8 shadow-none ring-0 focus-visible:ring-0",
-            showValue ? valueClassForState(state) : "text-transparent",
+            showValue ? valueTextClass() : "text-transparent",
             className,
           )}
         >
@@ -353,7 +350,7 @@ export function FloatingTextarea(
             controlClass,
             "resize-none leading-relaxed",
             autoResize && "min-h-0 overflow-hidden",
-            showValue ? valueClassForState(state) : "text-transparent caret-zinc-900",
+            showValue ? valueTextClass() : "text-transparent caret-zinc-900",
             className,
           )}
         />
