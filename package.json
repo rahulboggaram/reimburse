@@ -13,6 +13,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@fontsource/cal-sans": "^5.2.3",
     "@prisma/client": "^6.19.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
