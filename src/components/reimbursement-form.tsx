@@ -203,10 +203,7 @@ export function ReimbursementForm(props: {
 
     const errors = validate();
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      setError("Please fill in all required fields.");
-      return;
-    }
+    if (Object.keys(errors).length > 0) return;
 
     if (meUser?.role === "ADMIN") {
       setAdminConfirmOpen(true);
