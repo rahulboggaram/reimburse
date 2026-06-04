@@ -10,7 +10,7 @@ export function LoadingDots(props: { className?: string }) {
         <span
           key={index}
           className="size-1.5 shrink-0 rounded-full bg-current animate-loading-dot"
-          style={{ animationDelay: `${index * 0.16}s` }}
+          style={{ animationDelay: `${index * 0.4}s` }}
         />
       ))}
     </span>

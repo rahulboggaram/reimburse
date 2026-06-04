@@ -25,21 +25,20 @@ body {
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-@keyframes loading-dot {
+/* Dots blink bright one after another (left → right), then repeat */
+@keyframes loading-dot-blink {
   0%,
-  70%,
+  75%,
   100% {
-    opacity: 0.35;
-    transform: translateY(0);
+    opacity: 0.25;
   }
-  35% {
+  25% {
     opacity: 1;
-    transform: translateY(-3px);
   }
 }
 
 .animate-loading-dot {
-  animation: loading-dot 0.9s ease-in-out infinite;
+  animation: loading-dot-blink 1.2s ease-in-out infinite;
 }
 
 .font-brand {
