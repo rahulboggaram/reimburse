@@ -28,16 +28,11 @@ function stopRowClick(event: React.MouseEvent) {
 }
 
 export function ApprovalsSelectionBar(props: {
-  selectedCount: number;
-  totalCount: number;
   allSelected: boolean;
   onToggleAll: () => void;
 }) {
   return (
-    <div className="mb-3 flex justify-end items-center gap-3">
-      <span className="whitespace-nowrap text-sm text-zinc-500">
-        {props.selectedCount} of {props.totalCount} selected
-      </span>
+    <div className="mb-3 flex justify-end">
       <button
         type="button"
         className="text-sm font-medium text-zinc-700 underline"

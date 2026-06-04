@@ -349,8 +349,6 @@ export default function ManagerPendingPage() {
         <>
           {bulkSelectable ? (
             <ApprovalsSelectionBar
-              selectedCount={selectedCount}
-              totalCount={claims.length}
               allSelected={allSelected}
               onToggleAll={toggleSelectAll}
             />
