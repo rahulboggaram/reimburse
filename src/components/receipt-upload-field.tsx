@@ -17,7 +17,7 @@ type ReceiptUploadFieldProps = {
 };
 
 const fieldShellBase =
-  "box-border flex h-field flex-col items-center justify-center gap-1.5 rounded-xl border-0 bg-white px-3 transition-colors duration-200";
+  "box-border flex h-field flex-row items-center justify-center gap-2 rounded-xl border-0 bg-white px-3 transition-colors duration-200";
 
 function ReceiptActionButton(props: {
   label: string;
