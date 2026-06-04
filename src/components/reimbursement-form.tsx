@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -188,12 +189,12 @@ export function ReimbursementForm(props: {
     }
   }
 
-  const submitButtonLabel = (() => {
+  function renderSubmitLabel() {
     if (!submitting) return props.submitLabel;
-    if (submitPhase === "preparing") return "Preparing photos…";
-    if (submitPhase === "uploading") return "Submitting…";
-    return "Saving…";
-  })();
+    if (submitPhase === "preparing") return <LoadingText>Preparing photos</LoadingText>;
+    if (submitPhase === "uploading") return <LoadingText>Submitting</LoadingText>;
+    return <LoadingText>Saving</LoadingText>;
+  }
 
   const missingBranch = !loadingOptions && !userBranch;
 
@@ -332,6 +333,7 @@ export function ReimbursementForm(props: {
         type="submit"
         size="lg"
         className="w-full"
+        aria-busy={submitting}
         disabled={
           submitting ||
           loadingOptions ||
@@ -339,7 +341,7 @@ export function ReimbursementForm(props: {
           categories.length === 0
         }
       >
-        {submitButtonLabel}
+        {renderSubmitLabel()}
       </Button>
     </form>
 
@@ -368,7 +370,11 @@ export function ReimbursementForm(props: {
               await submitClaim();
             }}
           >
-            {submitting ? "Submitting…" : "Yes, submit and pay now"}
+            {submitting ? (
+              <LoadingText>Submitting</LoadingText>
+            ) : (
+              "Yes, submit and pay now"
+            )}
           </Button>
           <Button
             type="button"

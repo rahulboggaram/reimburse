@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,8 +139,14 @@ export function LoginFlow() {
                 onChange={(e) => setPhoneInput(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Sending…" : "Send OTP"}
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              aria-busy={loading}
+              disabled={loading}
+            >
+              {loading ? <LoadingText>Sending</LoadingText> : "Send OTP"}
             </Button>
           </form>
         ) : (
@@ -164,8 +171,14 @@ export function LoginFlow() {
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </div>
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Verifying…" : "Sign in"}
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              aria-busy={loading}
+              disabled={loading}
+            >
+              {loading ? <LoadingText>Verifying</LoadingText> : "Sign in"}
             </Button>
             <TextLinkButton
               className="w-full shrink"

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingText } from "@/components/ui/loading-dots";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJson } from "@/lib/api";
@@ -138,7 +139,7 @@ export function ChangePhoneSection(props: {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="submit" disabled={loading} className="sm:flex-1">
-                  {loading ? "Sending…" : "Send OTP"}
+                  {loading ? <LoadingText>Sending</LoadingText> : "Send OTP"}
                 </Button>
                 <Button
                   type="button"
@@ -177,7 +178,7 @@ export function ChangePhoneSection(props: {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="submit" disabled={loading} className="sm:flex-1">
-                  {loading ? "Updating…" : "Confirm new number"}
+                  {loading ? <LoadingText>Updating</LoadingText> : "Confirm new number"}
                 </Button>
                 <Button
                   type="button"

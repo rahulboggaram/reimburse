@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -241,7 +242,7 @@ export function EmployeeProfileForm(props: {
                     disabled={saving}
                     onClick={() => saveProfile({ redirect: false })}
                   >
-                    {saving ? "Saving…" : "Save"}
+                    {saving ? <LoadingText>Saving</LoadingText> : "Save"}
                   </Button>
                 </div>
               ) : null}
@@ -329,7 +330,7 @@ export function EmployeeProfileForm(props: {
                   disabled={saving}
                   onClick={() => saveProfile({ redirect: false })}
                 >
-                  {saving ? "Saving…" : "Save"}
+                  {saving ? <LoadingText>Saving</LoadingText> : "Save"}
                 </Button>
               </div>
             ) : null}
@@ -366,8 +367,14 @@ export function EmployeeProfileForm(props: {
       </Card>
 
       {isOnboarding ? (
-        <Button type="submit" size="lg" className="w-full" disabled={saving}>
-          {saving ? "Continuing…" : props.submitLabel}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          aria-busy={saving}
+          disabled={saving}
+        >
+          {saving ? <LoadingText>Continuing</LoadingText> : props.submitLabel}
         </Button>
       ) : null}
     </div>
