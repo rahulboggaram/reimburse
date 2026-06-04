@@ -6,8 +6,9 @@ Plain-language checklist. The app code is already built; you only need Meta + Ve
 
 | Piece | Where it lives |
 |-------|----------------|
-| Meta app **Reimburse** | developers.facebook.com |
-| Business **Yellow Metal** | WhatsApp sender +91 80903 80909 |
+| Meta Developer app **Yellow Metal** | developers.facebook.com (this is your WhatsApp API app) |
+| WhatsApp Business account | Same portfolio — sender +91 80903 80909 |
+| Website **Reimburse** | reimburse-jade.vercel.app (only needs env vars + token from Yellow Metal app) |
 | Template **reimburse_login_otp** | Authentication, Copy code, Active |
 | Reimburse on Vercel | Env vars + redeploy |
 
@@ -17,7 +18,7 @@ Plain-language checklist. The app code is already built; you only need Meta + Ve
 
 ### 1. Link the business account
 
-1. Open [developers.facebook.com/apps](https://developers.facebook.com/apps/) → **Reimburse**
+1. Open [developers.facebook.com/apps](https://developers.facebook.com/apps/) → **Yellow Metal**
 2. **Use cases** → **Connect with customers through WhatsApp** → **Customize**
 3. **Configuration** → **WhatsApp Business account** = **Yellow Metal Loans** → **Save**
 
@@ -34,7 +35,7 @@ Temporary tokens from API Setup often fail on the real +91 line.
 1. [Business settings → System users](https://business.facebook.com/settings/system-users)
 2. **Add** system user (e.g. `reimburse-otp`)
 3. **Assign assets** → **WhatsApp accounts** → Yellow Metal → **Full control**
-4. **Generate token** → app **Reimburse** → check:
+4. **Generate token** → app **Yellow Metal** → check:
    - `whatsapp_business_messaging`
    - `whatsapp_business_management`
 5. Copy the token (starts with `EAA…`) — you will paste it into Vercel once

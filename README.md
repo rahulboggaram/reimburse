@@ -40,8 +40,8 @@ Reimburse sends login codes with the **WhatsApp Cloud API** and template **`reim
 
 | Piece | Example / note |
 |-------|----------------|
-| Meta app | **Reimburse** (developers.facebook.com) |
-| Sender number | **Yellow Metal** `+91 80903 80909` (not the US “Test number”) |
+| Meta Developer app | **Yellow Metal** (developers.facebook.com — not the Reimburse website name) |
+| Sender number | **+91 80903 80909** on that WhatsApp account (not the US “Test number”) |
 | Phone number ID | From API Setup when Yellow Metal is selected |
 | Access token | System user token with `whatsapp_business_messaging` |
 | Template | `reimburse_login_otp`, language `en` or `en_US` |
@@ -53,7 +53,7 @@ Reimburse sends login codes with the **WhatsApp Cloud API** and template **`reim
 
 ### Step 2 — Developer app
 
-1. [developers.facebook.com/apps](https://developers.facebook.com/apps/) → open **Reimburse**
+1. [developers.facebook.com/apps](https://developers.facebook.com/apps/) → open **Yellow Metal**
 2. Left: **Use cases** → **Connect with customers through WhatsApp** → **Customize**
 3. Open **Configuration** → connect **WhatsApp Business account** = Yellow Metal Loans → **Save**
 4. Open **API Setup**
@@ -94,7 +94,7 @@ Temporary API Setup tokens often fail on the real +91 line.
 
 1. [business.facebook.com/settings](https://business.facebook.com/settings) → **System users** → Add
 2. **Assign assets** → **WhatsApp accounts** → Yellow Metal → full access
-3. **Generate token** → app **Reimburse** → permissions **`whatsapp_business_messaging`** + **`whatsapp_business_management`**
+3. **Generate token** → app **Yellow Metal** → permissions **`whatsapp_business_messaging`** + **`whatsapp_business_management`**
 4. Copy token → use for Meta test + Vercel
 
 ### Step 6 — Test on Meta before Vercel

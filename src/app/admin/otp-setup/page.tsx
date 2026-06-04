@@ -231,7 +231,7 @@ export default function AdminOtpSetupPage() {
                 >
                   Meta Developer apps
                 </a>{" "}
-                → Reimburse → WhatsApp → API Setup
+                → Yellow Metal → WhatsApp → API Setup
               </li>
               <li>
                 <a
@@ -261,8 +261,8 @@ export default function AdminOtpSetupPage() {
             <h2 className="font-semibold text-zinc-900">Meta checklist</h2>
             <ol className="list-decimal space-y-2 pl-5">
               <li>
-                Reimburse app → WhatsApp → Configuration → Yellow Metal business
-                account linked.
+                Yellow Metal Developer app → WhatsApp → Configuration → your
+                WhatsApp Business account linked (same business portfolio).
               </li>
               <li>
                 API Setup → <strong>From</strong> = Yellow Metal +91 (not US test
