@@ -125,7 +125,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
                 onOpen={() => setSelected(claim)}
               />
               {reason ? (
-                <Card className="border-red-200 bg-red-50/80 px-3 py-3 ring-0">
+                <Card className="bg-red-50/80 px-3 py-3">
                   <p className="text-sm text-red-900">
                     <span className="font-medium">Reason: </span>
                     {reason}

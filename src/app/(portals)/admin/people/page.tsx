@@ -277,7 +277,7 @@ export default function AdminPeoplePage() {
                   : "No inactive employees match your search."}
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white">
+              <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border-[1.5px] border-zinc-300 bg-white">
                 {filtered.map((employee) => (
                   <li key={employee.id}>
                     <EmployeeListRow

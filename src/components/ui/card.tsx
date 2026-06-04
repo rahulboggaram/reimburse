@@ -5,7 +5,7 @@ export function Card(props: React.ComponentProps<"div">) {
     <div
       {...props}
       className={cn(
-        "rounded-2xl border border-zinc-200 bg-transparent p-5",
+        "rounded-2xl border-[1.5px] border-zinc-300 bg-transparent p-5",
         props.className,
       )}
     />

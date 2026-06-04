@@ -63,7 +63,7 @@ export default function RefileClaimPage() {
   return (
     <>
       {claim.rejectionReason ? (
-        <Card className="mb-4 border-red-200 bg-red-50">
+        <Card className="mb-4 bg-red-50">
           <p className="text-sm text-red-800">
             <span className="font-medium">Rejected because:</span>{" "}
             {claim.rejectionReason}
