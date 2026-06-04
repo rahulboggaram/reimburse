@@ -23,12 +23,8 @@ function normalShellClass(state: FieldVisualState) {
   );
 }
 
-function errorFieldShellClass(hasMessage: boolean) {
-  return cn(
-    "relative bg-white transition-colors duration-200",
-    !hasMessage && "rounded-xl border-[1.5px] border-rose-800",
-  );
-}
+const errorFieldBorder =
+  "border-[1.5px] border-rose-800 bg-white transition-colors duration-200";
 
 function labelClass(
   state: FieldVisualState,
@@ -106,26 +102,30 @@ function FieldWrap(props: {
   if (props.error) {
     const hasMessage = Boolean(props.errorMessage);
 
-    if (hasMessage) {
-      return (
-        <div className="overflow-hidden rounded-xl border-[1.5px] border-rose-800">
-          <div className="relative bg-white">
-            {labelNode}
-            {props.children}
-          </div>
-          <div className={cn(errorBannerBg, "px-4 py-2.5")}>
+    return (
+      <div className="flex flex-col">
+        <div
+          className={cn(
+            "relative",
+            errorFieldBorder,
+            hasMessage ? "rounded-t-xl" : "rounded-xl",
+          )}
+        >
+          {labelNode}
+          {props.children}
+        </div>
+        {hasMessage ? (
+          <div
+            className={cn(
+              errorBannerBg,
+              "-mt-px rounded-b-xl px-4 py-2.5",
+            )}
+          >
             <p className={cn("text-sm", errorAccentText)} role="alert">
               {props.errorMessage}
             </p>
           </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className={errorFieldShellClass(false)}>
-        {labelNode}
-        {props.children}
+        ) : null}
       </div>
     );
   }

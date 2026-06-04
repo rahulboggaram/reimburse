@@ -158,7 +158,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
           </ReceiptActionButton>
         </div>
         {displayError ? (
-          <div className="rounded-b-xl bg-rose-50 px-4 py-2.5">
+          <div className="-mt-px rounded-b-xl bg-rose-50 px-4 py-2.5">
             <p className="text-sm text-rose-800" role="alert">
               {displayError}
             </p>
