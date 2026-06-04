@@ -1,7 +1,7 @@
 import { readJson } from "@/lib/api";
 import { fetchClientCache, readClientCache } from "@/lib/client-cache";
 import { fetchMyClaims } from "@/lib/fetch-own-claims";
-import { warmAdminNavCaches } from "@/lib/admin-fetch";
+import { fetchFormBootstrap, warmAdminNavCaches } from "@/lib/admin-fetch";
 import type { SerializedClaim } from "@/lib/claim-types";
 
 type ActionCounts = {
@@ -51,6 +51,7 @@ export function warmNavCaches(user: {
 }) {
   if (user.profileComplete) {
     void fetchMyClaims(user.id);
+    void fetchFormBootstrap();
   }
 
   if (

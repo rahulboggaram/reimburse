@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
-import { readJson } from "@/lib/api";
+import { fetchAdminActivity } from "@/lib/admin-fetch";
+import { useCachedQuery } from "@/lib/use-cached-query";
 
 type Activity = {
   id: string;
@@ -16,15 +16,10 @@ type Activity = {
 };
 
 export default function AdminActivityPage() {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/admin/activity")
-      .then((res) => readJson<Activity[]>(res))
-      .then(setActivities)
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, loading } = useCachedQuery<Activity[]>("admin-activity", () =>
+    fetchAdminActivity<Activity[]>(),
+  );
+  const activities = data ?? [];
 
   return (
     <>
@@ -34,7 +29,7 @@ export default function AdminActivityPage() {
         className="mb-4"
       />
 
-      {loading ? (
+      {loading && activities.length === 0 ? (
         <p className="text-sm text-zinc-500">Loading activity…</p>
       ) : activities.length === 0 ? (
         <p className="rounded-xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500">

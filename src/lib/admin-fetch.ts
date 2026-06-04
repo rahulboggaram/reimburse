@@ -6,6 +6,7 @@ export const ADMIN_CLAIMS_KEY = "admin-claims";
 export const ADMIN_BRANCHES_KEY = "admin-branches";
 export const ADMIN_CATEGORIES_KEY = "admin-categories";
 export const ADMIN_ACTIVITY_KEY = "admin-activity";
+export const FORM_BOOTSTRAP_KEY = "form-bootstrap";
 
 const TTL_MS = 5 * 60 * 1000;
 
@@ -80,10 +81,26 @@ export function invalidateAdminClaims() {
   invalidateClientCache(ADMIN_CLAIMS_KEY);
 }
 
+export function fetchFormBootstrap<T = unknown>() {
+  return fetchClientCache<T>(FORM_BOOTSTRAP_KEY, () =>
+    fetch("/api/app/bootstrap").then((r) => readJson<T>(r)),
+    TTL_MS,
+  );
+}
+
+export function readFormBootstrapCache<T>() {
+  return readClientCache<T>(FORM_BOOTSTRAP_KEY);
+}
+
+export function invalidateFormBootstrap() {
+  invalidateClientCache(FORM_BOOTSTRAP_KEY);
+}
+
 export function warmAdminNavCaches() {
   void fetchAdminUsers();
   void fetchAdminClaims();
   void fetchAdminBranches();
   void fetchAdminCategories();
   void fetchAdminActivity();
+  void fetchFormBootstrap();
 }

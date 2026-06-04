@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,7 +15,13 @@ import {
 import type { UserRole } from "@prisma/client";
 import { formatPhoneDisplay, normalizePhone } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
+import {
+  fetchAdminBranches,
+  fetchAdminUsers,
+  invalidateAdminUsers,
+} from "@/lib/admin-fetch";
 import { readJson } from "@/lib/api";
+import { useCachedQuery } from "@/lib/use-cached-query";
 
 type RoleFilter =
   | "all"
@@ -59,12 +65,22 @@ function matchesRoleFilter(employee: EmployeeRecord, filter: RoleFilter) {
   }
 }
 
+type BranchOption = { id: string; name: string; active: boolean };
+
 export default function AdminPeoplePage() {
-  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [branches, setBranches] = useState<
-    { id: string; name: string; active: boolean }[]
-  >([]);
+  const {
+    data: employeesData,
+    loading,
+    setData: setEmployees,
+  } = useCachedQuery<EmployeeRecord[]>("admin-users", () =>
+    fetchAdminUsers<EmployeeRecord[]>(),
+  );
+  const { data: branchesData } = useCachedQuery<BranchOption[]>(
+    "admin-branches",
+    () => fetchAdminBranches<BranchOption[]>(),
+  );
+  const employees = employeesData ?? [];
+  const branches = branchesData ?? [];
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +89,11 @@ export default function AdminPeoplePage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [selected, setSelected] = useState<EmployeeRecord | null>(null);
 
-  async function loadEmployees() {
+  async function loadEmployees(fresh = false) {
     setError(null);
     try {
-      const response = await fetch("/api/admin/users");
-      const data = await readJson<EmployeeRecord[]>(response);
+      if (fresh) invalidateAdminUsers();
+      const data = await fetchAdminUsers<EmployeeRecord[]>();
       setEmployees(data);
       setSelected((current) =>
         current ? (data.find((e) => e.id === current.id) ?? null) : null,
@@ -92,17 +108,6 @@ export default function AdminPeoplePage() {
       );
     }
   }
-
-  useEffect(() => {
-    loadEmployees().finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/admin/branches")
-      .then((res) => readJson<{ id: string; name: string; active: boolean }[]>(res))
-      .then((data) => setBranches(data))
-      .catch(() => {});
-  }, []);
 
   const activeEmployees = useMemo(
     () => employees.filter((e) => e.active),
@@ -140,7 +145,7 @@ export default function AdminPeoplePage() {
       await readJson(response);
       setPhone("");
       setTab("active");
-      await loadEmployees();
+      await loadEmployees(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add employee.");
     } finally {
@@ -158,12 +163,12 @@ export default function AdminPeoplePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: update.role, branchId: update.branchId }),
     });
-    await loadEmployees();
+    await loadEmployees(true);
   }
 
   async function removeEmployee(id: string) {
     await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-    await loadEmployees();
+    await loadEmployees(true);
     setTab("inactive");
   }
 

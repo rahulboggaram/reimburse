@@ -16,10 +16,8 @@ import {
 import { PageHeading } from "@/components/page-heading";
 import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
-import {
-  fetchClientCache,
-  invalidateClientCache,
-} from "@/lib/client-cache";
+import { invalidateClientCache } from "@/lib/client-cache";
+import { fetchFormBootstrap, readFormBootstrapCache } from "@/lib/admin-fetch";
 import { isBranchOptionalForRole } from "@/lib/claim-branch-roles";
 import { prepareReceiptFilesForUpload } from "@/lib/compress-receipt-image";
 
@@ -61,10 +59,22 @@ export function ReimbursementForm(props: {
 }) {
   const router = useRouter();
   const [, startNavigation] = useTransition();
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loadingBranches, setLoadingBranches] = useState(true);
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
+  const cachedBootstrap = readFormBootstrapCache<{
+    branches: Branch[];
+    categories: ExpenseCategory[];
+  }>();
+  const [branches, setBranches] = useState<Branch[]>(
+    () => cachedBootstrap?.branches ?? [],
+  );
+  const [loadingBranches, setLoadingBranches] = useState(
+    () => !cachedBootstrap,
+  );
+  const [categories, setCategories] = useState<ExpenseCategory[]>(
+    () => cachedBootstrap?.categories ?? [],
+  );
+  const [loadingCategories, setLoadingCategories] = useState(
+    () => !cachedBootstrap,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
@@ -81,12 +91,7 @@ export function ReimbursementForm(props: {
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
 
   useEffect(() => {
-    fetchClientCache("form-bootstrap", async () => {
-      const res = await fetch("/api/app/bootstrap");
-      return readJson<{ branches: Branch[]; categories: ExpenseCategory[] }>(
-        res,
-      );
-    })
+    void fetchFormBootstrap<{ branches: Branch[]; categories: ExpenseCategory[] }>()
       .then((data) => {
         setBranches(data.branches);
         setCategories(data.categories);

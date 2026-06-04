@@ -58,7 +58,6 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
     } else {
       setLoading(true);
     }
-    setHydrated(true);
 
     fetchMyRejectedClaims(ownerId)
       .then((rows) => {
@@ -87,7 +86,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
       claim.employeeId === user?.id,
   );
 
-  if (loading) {
+  if (loading && rejected.length === 0) {
     return (
       <div className="mb-6 space-y-3">
         <div className="h-5 w-40 animate-pulse rounded bg-zinc-200" />

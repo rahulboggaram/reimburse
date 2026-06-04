@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
+import {
+  fetchAdminCategories,
+  invalidateAdminCategories,
+  invalidateFormBootstrap,
+} from "@/lib/admin-fetch";
+import { useCachedQuery } from "@/lib/use-cached-query";
 
 type Category = {
   id: string;
@@ -17,27 +23,30 @@ type Category = {
 };
 
 export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: categoriesData,
+    loading,
+    setData: setCategories,
+  } = useCachedQuery<Category[]>("admin-categories", () =>
+    fetchAdminCategories<Category[]>(),
+  );
+  const categories = categoriesData ?? [];
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [tab, setTab] = useState<"active" | "inactive">("active");
 
-  function load() {
-    setLoading(true);
+  async function reload() {
     setError(null);
-    fetch("/api/admin/categories")
-      .then((r) => readJson<Category[]>(r))
-      .then(setCategories)
-      .catch(() => setError("Could not load categories."))
-      .finally(() => setLoading(false));
+    invalidateAdminCategories();
+    invalidateFormBootstrap();
+    try {
+      const list = await fetchAdminCategories<Category[]>();
+      setCategories(list);
+    } catch {
+      setError("Could not load categories.");
+    }
   }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
-  }, []);
 
   const activeCategories = useMemo(
     () => categories.filter((c) => c.active),
@@ -63,7 +72,7 @@ export default function AdminCategoriesPage() {
       });
       await readJson(res);
       setName("");
-      load();
+      await reload();
     } catch {
       setError("Could not create category. It may already exist.");
     } finally {
@@ -80,7 +89,7 @@ export default function AdminCategoriesPage() {
         body: JSON.stringify({ active: nextActive }),
       });
       await readJson(res);
-      load();
+      await reload();
     } catch {
       setError("Could not update category.");
     }
@@ -95,7 +104,7 @@ export default function AdminCategoriesPage() {
       if (!res.ok && res.status !== 204) {
         await readJson(res);
       }
-      load();
+      await reload();
     } catch {
       setError("Could not delete category. It may be used in a claim.");
     }
@@ -131,7 +140,7 @@ export default function AdminCategoriesPage() {
         </form>
       </Card>
 
-      {loading ? (
+      {loading && categories.length === 0 ? (
         <p className="text-sm text-zinc-500">Loading categories…</p>
       ) : (
         <div className="space-y-3">

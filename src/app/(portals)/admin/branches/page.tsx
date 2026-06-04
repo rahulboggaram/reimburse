@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readJson } from "@/lib/api";
+import {
+  fetchAdminBranches,
+  invalidateAdminBranches,
+  invalidateFormBootstrap,
+} from "@/lib/admin-fetch";
 import { PageHeading } from "@/components/page-heading";
-import { toTitleCase } from "@/lib/user-profile";
+import { useCachedQuery } from "@/lib/use-cached-query";
 
 type Branch = {
   id: string;
@@ -18,27 +23,30 @@ type Branch = {
 };
 
 export default function AdminBranchesPage() {
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    data: branchesData,
+    loading,
+    setData: setBranches,
+  } = useCachedQuery<Branch[]>("admin-branches", () =>
+    fetchAdminBranches<Branch[]>(),
+  );
+  const branches = branchesData ?? [];
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [tab, setTab] = useState<"active" | "inactive">("active");
 
-  function load() {
-    setLoading(true);
+  async function reload() {
     setError(null);
-    fetch("/api/admin/branches")
-      .then((r) => readJson<Branch[]>(r))
-      .then(setBranches)
-      .catch(() => setError("Could not load branches."))
-      .finally(() => setLoading(false));
+    invalidateAdminBranches();
+    invalidateFormBootstrap();
+    try {
+      const list = await fetchAdminBranches<Branch[]>();
+      setBranches(list);
+    } catch {
+      setError("Could not load branches.");
+    }
   }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
-  }, []);
 
   const activeBranches = useMemo(
     () => branches.filter((b) => b.active),
@@ -64,7 +72,7 @@ export default function AdminBranchesPage() {
       });
       await readJson(res);
       setName("");
-      load();
+      await reload();
     } catch {
       setError("Could not create branch. It may already exist.");
     } finally {
@@ -81,7 +89,7 @@ export default function AdminBranchesPage() {
         body: JSON.stringify({ active: nextActive }),
       });
       await readJson(res);
-      load();
+      await reload();
     } catch {
       setError("Could not update branch.");
     }
@@ -96,7 +104,7 @@ export default function AdminBranchesPage() {
       if (!res.ok && res.status !== 204) {
         await readJson(res);
       }
-      load();
+      await reload();
     } catch {
       setError("Could not delete branch. It may be used in a claim.");
     }
@@ -132,7 +140,7 @@ export default function AdminBranchesPage() {
         </form>
       </Card>
 
-      {loading ? (
+      {loading && branches.length === 0 ? (
         <p className="text-sm text-zinc-500">Loading branches…</p>
       ) : (
         <div className="space-y-3">

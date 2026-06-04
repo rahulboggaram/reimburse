@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ApprovalsTableHeader,
   ApprovalsTableRow,
@@ -12,8 +12,12 @@ import { Select } from "@/components/ui/select";
 import type { AdminClaim } from "@/lib/claim-types";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
-import { readJson } from "@/lib/api";
-import { fetchClientCache, invalidateClientCache } from "@/lib/client-cache";
+import {
+  fetchAdminClaims,
+  fetchAdminUsers,
+  invalidateAdminClaims,
+} from "@/lib/admin-fetch";
+import { useCachedQuery } from "@/lib/use-cached-query";
 
 type EmployeeOption = {
   id: string;
@@ -22,29 +26,21 @@ type EmployeeOption = {
 };
 
 export default function AdminClaimsPage() {
-  const [claims, setClaims] = useState<AdminClaim[]>([]);
-  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const { data: employeesData } = useCachedQuery<EmployeeOption[]>(
+    "admin-users",
+    () => fetchAdminUsers<EmployeeOption[]>(),
+  );
+  const {
+    data: claimsData,
+    loading,
+    setData: setClaims,
+  } = useCachedQuery<AdminClaim[]>("admin-claims", () =>
+    fetchAdminClaims<AdminClaim[]>(),
+  );
+  const employees = employeesData ?? [];
+  const claims = claimsData ?? [];
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AdminClaim | null>(null);
-
-  useEffect(() => {
-    Promise.all([
-      fetchClientCache("admin-users", () =>
-        fetch("/api/admin/users").then((r) => readJson<EmployeeOption[]>(r)),
-      ),
-      fetchClientCache("admin-claims", () =>
-        fetch("/api/admin/reimbursements").then((r) =>
-          readJson<AdminClaim[]>(r),
-        ),
-      ),
-    ])
-      .then(([employeeList, claimList]) => {
-        setEmployees(employeeList);
-        setClaims(claimList);
-      })
-      .finally(() => setLoading(false));
-  }, []);
 
   const filtered = useMemo(() => {
     const list = filterEmployeeId
@@ -75,7 +71,7 @@ export default function AdminClaimsPage() {
         </Select>
       </div>
 
-      {loading ? (
+      {loading && claims.length === 0 ? (
         <p className="text-sm text-zinc-500">Loading reimbursements…</p>
       ) : filtered.length === 0 ? (
         <Card>
@@ -104,12 +100,8 @@ export default function AdminClaimsPage() {
         onClose={() => setSelected(null)}
         variant="admin"
         onUpdated={async () => {
-          invalidateClientCache("admin-claims");
-          const list = await fetchClientCache("admin-claims", () =>
-            fetch("/api/admin/reimbursements").then((r) =>
-              readJson<AdminClaim[]>(r),
-            ),
-          );
+          invalidateAdminClaims();
+          const list = await fetchAdminClaims<AdminClaim[]>();
           setClaims(list);
           setSelected((current) =>
             current ? list.find((c) => c.id === current.id) ?? null : null,

@@ -200,9 +200,18 @@ export async function refreshPayoutsFromRazorpay(claimIds: string[]) {
   );
 }
 
+const payoutSyncCooldownMs = 60_000;
+const payoutSyncLastRun = new Map<string, number>();
+
 /** Refresh payout status in the background — never block list/login APIs on Razorpay. */
 export function queuePayoutSync(claimIds: string[]) {
-  const unique = [...new Set(claimIds)];
+  const now = Date.now();
+  const unique = [...new Set(claimIds)].filter((id) => {
+    const last = payoutSyncLastRun.get(id) ?? 0;
+    if (now - last < payoutSyncCooldownMs) return false;
+    payoutSyncLastRun.set(id, now);
+    return true;
+  });
   if (unique.length === 0) return;
   void refreshPayoutsFromRazorpay(unique);
 }
