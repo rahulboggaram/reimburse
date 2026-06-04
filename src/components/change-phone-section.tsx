@@ -133,7 +133,7 @@ export function ChangePhoneSection(props: {
                   required
                   value={newPhoneInput}
                   onChange={(e) => setNewPhoneInput(e.target.value)}
-                  placeholder="9876543210"
+                  placeholder="Mobile number"
                 />
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">

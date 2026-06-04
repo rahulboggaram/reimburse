@@ -123,7 +123,7 @@ export default function AdminBranchesPage() {
               id="branch-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Bangalore"
+              placeholder="Branch name"
             />
           </div>
           <Button type="submit" disabled={creating || !name.trim()}>

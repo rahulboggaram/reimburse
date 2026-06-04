@@ -295,7 +295,7 @@ export function ClaimDetailModal(props: {
                 rows={1}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="e.g. Missing receipt"
+                placeholder="Reason for rejection"
                 className="resize-none"
               />
             </div>

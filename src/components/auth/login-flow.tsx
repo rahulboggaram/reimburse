@@ -132,7 +132,7 @@ export function LoginFlow() {
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel"
-                placeholder="9999000001"
+                placeholder="Mobile number"
                 required
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}

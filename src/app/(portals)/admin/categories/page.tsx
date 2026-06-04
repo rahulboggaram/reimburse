@@ -123,7 +123,7 @@ export default function AdminCategoriesPage() {
               id="category-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Travel"
+              placeholder="Category name"
             />
           </div>
           <Button type="submit" disabled={creating || !name.trim()}>

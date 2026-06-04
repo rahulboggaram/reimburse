@@ -219,15 +219,18 @@ export function EmployeeProfileForm(props: {
         <ProfileCardBlock>
           {nameEditing ? (
             <div className="space-y-4">
-              <Input
-                id="full-name"
-                required
-                value={name}
-                onChange={(e) => setName(toTitleCase(e.target.value))}
-                placeholder="Ananya Patel"
-                autoComplete="name"
-                aria-label="Name"
-              />
+              <div className="space-y-1.5">
+                <Label htmlFor="full-name">Name</Label>
+                <p className="text-xs text-zinc-500">Fill in your name</p>
+                <Input
+                  id="full-name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(toTitleCase(e.target.value))}
+                  placeholder="Your name"
+                  autoComplete="name"
+                />
+              </div>
               {!isOnboarding ? (
                 <div className="flex items-center justify-end gap-4">
                   <TextLinkButton onClick={() => cancelEdit("name")}>
@@ -298,7 +301,7 @@ export function EmployeeProfileForm(props: {
                 onChange={(e) =>
                   setBankAccountNumber(e.target.value.replace(/\D/g, ""))
                 }
-                placeholder="50100123456789"
+                placeholder="Account number"
                 autoComplete="off"
               />
             </div>
@@ -309,7 +312,7 @@ export function EmployeeProfileForm(props: {
                 required
                 value={ifscCode}
                 onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                placeholder="HDFC0001234"
+                placeholder="IFSC code"
                 maxLength={11}
                 autoComplete="off"
               />

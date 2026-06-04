@@ -16,7 +16,7 @@ export function isProfileComplete(user: ProfileFields): boolean {
 /** @deprecated Use {@link isProfileComplete} */
 export const isEmployeeProfileComplete = isProfileComplete;
 
-/** e.g. "ananya patel" → "Ananya Patel" */
+/** Title-case each word in a display name. */
 export function toTitleCase(value: string): string {
   return value
     .toLowerCase()

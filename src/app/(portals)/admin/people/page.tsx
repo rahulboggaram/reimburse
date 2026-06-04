@@ -191,7 +191,7 @@ export default function AdminPeoplePage() {
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="98765 43210"
+              placeholder="Mobile number"
             />
           </div>
           {error ? (
