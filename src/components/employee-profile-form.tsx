@@ -181,7 +181,7 @@ export function EmployeeProfileForm(props: {
           <div className="h-8 w-36 animate-pulse rounded-lg bg-zinc-200" />
           <div className="h-9 w-28 shrink-0 animate-pulse rounded-full bg-zinc-200" />
         </div>
-        <Card className="divide-y divide-zinc-100 p-0">
+        <Card className="divide-y divide-zinc-200 p-0">
           <ProfileCardBlock>
             <div className="h-5 w-32 animate-pulse rounded bg-zinc-200" />
           </ProfileCardBlock>
@@ -213,7 +213,7 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className="divide-y divide-zinc-100 p-0">
+      <Card className="divide-y divide-zinc-200 p-0">
         <ProfileCardBlock>
           {nameEditing ? (
             <div className="space-y-4">
@@ -324,8 +324,8 @@ export function EmployeeProfileForm(props: {
           </div>
         ) : (
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1 space-y-6">
-              <div>
+            <div className="min-w-0 flex-1 divide-y divide-zinc-200">
+              <div className="pb-4">
                 <ProfileFieldLabel>Account number</ProfileFieldLabel>
                 <ProfileFieldValue className="break-all font-tabular-nums">
                   {savedBankAccountNumber || (
@@ -333,7 +333,7 @@ export function EmployeeProfileForm(props: {
                   )}
                 </ProfileFieldValue>
               </div>
-              <div>
+              <div className="pt-4">
                 <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
                 <ProfileFieldValue className="break-all font-tabular-nums uppercase">
                   {savedIfscCode || (
