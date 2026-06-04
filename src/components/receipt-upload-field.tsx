@@ -38,7 +38,7 @@ function ReceiptActionButton(props: {
       )}
     >
       <span
-        className="inline-flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800"
+        className="inline-flex items-center justify-center text-zinc-800"
         aria-hidden
       >
         {props.children}
