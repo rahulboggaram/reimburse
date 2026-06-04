@@ -95,12 +95,15 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  function confirmDisableCategory(categoryName: string) {
+    return window.confirm(
+      `Disabling a category hides it from new claims. Past reimbursements keep the category name they were filed with.\n\nDisable “${categoryName}”?`,
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <PageHeading
-        title="Categories"
-        description="Disabling a category hides it from new claims. Past reimbursements keep the category name they were filed with."
-      />
+      <PageHeading title="Categories" />
 
       {error ? (
         <p
