@@ -205,7 +205,7 @@ export default function AdminPeoplePage() {
               {error}
             </p>
           ) : null}
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" size="sm" disabled={saving}>
             {saving ? "Adding…" : "Add employee"}
           </Button>
         </form>

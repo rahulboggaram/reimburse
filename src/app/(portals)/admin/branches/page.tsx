@@ -122,7 +122,7 @@ export default function AdminBranchesPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <Button type="submit" disabled={creating || !name.trim()}>
+          <Button type="submit" size="sm" disabled={creating || !name.trim()}>
             {creating ? "Creating…" : "Add branch"}
           </Button>
         </form>
@@ -150,6 +150,7 @@ export default function AdminBranchesPage() {
                       </p>
                       <Button
                         type="button"
+                        size="sm"
                         variant="outline"
                         onClick={() => {
                           if (!confirmDisableBranch(branch.name)) return;
@@ -176,6 +177,7 @@ export default function AdminBranchesPage() {
                     </p>
                     <Button
                       type="button"
+                      size="sm"
                       variant="outline"
                       onClick={() => setBranchActive(branch.id, true)}
                     >

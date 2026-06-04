@@ -124,7 +124,7 @@ export default function AdminCategoriesPage() {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <Button type="submit" disabled={creating || !name.trim()}>
+          <Button type="submit" size="sm" disabled={creating || !name.trim()}>
             {creating ? "Creating…" : "Add category"}
           </Button>
         </form>
@@ -152,6 +152,7 @@ export default function AdminCategoriesPage() {
                       </p>
                       <Button
                         type="button"
+                        size="sm"
                         variant="outline"
                         onClick={() => {
                           if (!confirmDisableCategory(category.name)) return;
@@ -178,6 +179,7 @@ export default function AdminCategoriesPage() {
                     </p>
                     <Button
                       type="button"
+                      size="sm"
                       variant="outline"
                       onClick={() => setCategoryActive(category.id, true)}
                     >
