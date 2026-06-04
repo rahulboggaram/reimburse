@@ -238,15 +238,6 @@ export function ReimbursementForm(props: {
           </p>
         ) : null}
 
-        {userBranch ? (
-          <p className="text-sm text-zinc-600">
-            Branch:{" "}
-            <span className="font-medium text-zinc-900">{userBranch.name}</span>
-            {" "}
-            <span className="text-zinc-500">(from your profile)</span>
-          </p>
-        ) : null}
-
         {missingBranch ? (
           <p className="text-sm text-amber-800">
             No branch is assigned to your account yet. Ask your admin to set one
