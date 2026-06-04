@@ -17,7 +17,7 @@ type ReceiptUploadFieldProps = {
 };
 
 const fieldShellBase =
-  "box-border flex h-field flex-row items-center justify-center gap-2 rounded-xl border-0 bg-white px-3 transition-colors duration-200";
+  "box-border flex h-field flex-col items-center justify-center gap-1.5 rounded-xl border-0 bg-white px-3 transition-colors duration-200";
 
 function ReceiptActionButton(props: {
   label: string;
@@ -34,8 +34,12 @@ function ReceiptActionButton(props: {
         "hover:bg-zinc-50 active:bg-zinc-100 focus-visible:outline-none",
       )}
     >
-      <span className="text-zinc-800">{props.children}</span>
-      <span className="text-sm font-medium text-zinc-500">{props.label}</span>
+      <span className="inline-flex items-center justify-center text-zinc-800">
+        {props.children}
+      </span>
+      <span className="text-center text-sm font-medium leading-none text-zinc-500">
+        {props.label}
+      </span>
     </button>
   );
 }
