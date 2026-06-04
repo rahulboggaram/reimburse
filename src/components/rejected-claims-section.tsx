@@ -22,7 +22,7 @@ function rejectorLabel(claim: SerializedClaim) {
 export function RejectedClaimsSection(props: { onChanged?: () => void }) {
   const { user, loading: meLoading } = useMe();
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   const loadRejected = useCallback(
@@ -86,16 +86,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
       claim.employeeId === user?.id,
   );
 
-  if (loading && rejected.length === 0) {
-    return (
-      <div className="mb-6 space-y-3">
-        <div className="h-5 w-40 animate-pulse rounded bg-zinc-200" />
-        <div className="h-[4.5rem] animate-pulse rounded-2xl bg-white/60 ring-1 ring-zinc-200/80" />
-      </div>
-    );
-  }
-
-  if (rejected.length === 0) return null;
+  if (meLoading || loading || rejected.length === 0) return null;
 
   if (!user || !canViewOwnReimbursements(user)) return null;
 
