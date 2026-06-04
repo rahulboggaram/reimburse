@@ -5,6 +5,8 @@
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
   --color-app-bg: #f4f2ed;
+  --color-brand-gold: #9a7b0a;
+  --color-brand-gold-mid: #d4af37;
   /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
   --height-field: 3.5rem;
   --min-height-textarea: 7.5rem;
@@ -46,6 +48,18 @@ body {
   font-family: var(--font-brand);
   font-weight: 800;
   letter-spacing: -0.03em;
+}
+
+.wordmark-gold {
+  background-image: linear-gradient(
+    135deg,
+    #9a7b0a 0%,
+    #d4af37 45%,
+    #9a7b0a 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .scrollbar-hide {
