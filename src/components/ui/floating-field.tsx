@@ -24,14 +24,20 @@ function shellClass(state: FieldVisualState, error?: boolean) {
   );
 }
 
-function labelClass(state: FieldVisualState, floated: boolean) {
+function labelClass(
+  state: FieldVisualState,
+  floated: boolean,
+  error?: boolean,
+) {
   return cn(
     "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate bg-white px-0.5 leading-none transition-all duration-200 ease-out",
     floated
       ? "top-0 -translate-y-1/2 text-xs font-medium"
-      : "top-1/2 -translate-y-1/2 text-base font-medium text-zinc-500",
-    floated && state === "focused" && "text-blue-600",
-    floated && state === "filled" && "text-zinc-500",
+      : "top-1/2 -translate-y-1/2 text-base font-medium",
+    error && "text-red-600",
+    !error && !floated && "text-zinc-500",
+    !error && floated && state === "focused" && "text-blue-600",
+    !error && floated && state === "filled" && "text-zinc-500",
   );
 }
 
@@ -79,7 +85,10 @@ function FieldWrap(props: {
   return (
     <div className="space-y-1">
       <div className={shellClass(props.state, props.error)}>
-        <label htmlFor={props.id} className={labelClass(props.state, props.floated)}>
+        <label
+          htmlFor={props.id}
+          className={labelClass(props.state, props.floated, props.error)}
+        >
           {props.label}
         </label>
         {props.children}
