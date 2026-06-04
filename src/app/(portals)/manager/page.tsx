@@ -321,12 +321,7 @@ export default function ManagerPendingPage() {
       />
 
       {bulkSelectable ? (
-        <div className="mb-4 space-y-2">
-          <p className="text-sm text-zinc-600">
-            Uncheck any you want to reject or handle separately, then run bulk
-            action on the rest.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
             <button
               type="button"
               className="text-sm font-medium text-zinc-700 underline"
@@ -337,7 +332,6 @@ export default function ManagerPendingPage() {
             <span className="text-sm text-zinc-500">
               {selectedCount} of {claims.length} selected
             </span>
-          </div>
         </div>
       ) : null}
 
