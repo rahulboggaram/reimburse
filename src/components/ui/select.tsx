@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 /** Matches floating field border colors */
 export const fieldOutlineColors = {
-  idle: "#d4d4d8",
+  idle: "#71717a",
   focused: "#2563eb",
   error: "#9f1239",
 } as const;
