@@ -45,10 +45,14 @@ export async function countAdminPendingApproval() {
   return prisma.reimbursement.count({ where: adminApprovalQueueWhere() });
 }
 
-export async function bulkPayPaymentQueue(session: {
-  id: string;
-  role: string;
-}): Promise<BulkActionSummary | { error: string }> {
+export async function bulkPayClaimIds(
+  session: { id: string; role: string },
+  claimIds: string[],
+): Promise<BulkActionSummary | { error: string }> {
+  if (claimIds.length === 0) {
+    return { error: "Select at least one reimbursement to pay." };
+  }
+
   const where = paymentWaitingWhereForSession(session);
   if (!where) {
     return { error: "Your role cannot run bulk payment." };
@@ -63,10 +67,17 @@ export async function bulkPayPaymentQueue(session: {
   }
 
   const claims = await prisma.reimbursement.findMany({
-    where,
+    where: { AND: [where, { id: { in: claimIds } }] },
     orderBy: { decidedAt: "asc" },
     include: { employee: { select: employeeForPayoutSelect } },
   });
+
+  if (claims.length !== claimIds.length) {
+    return {
+      error:
+        "Some selections are no longer in the payment queue. Refresh the page and try again.",
+    };
+  }
 
   const results: BulkItemResult[] = [];
 
@@ -101,17 +112,48 @@ export async function bulkPayPaymentQueue(session: {
   return summarize(results);
 }
 
-export async function bulkAdminApproveQueue(
-  adminId: string,
-): Promise<BulkActionSummary> {
+/** Pay every claim in the payment queue (legacy / tests). */
+export async function bulkPayPaymentQueue(session: {
+  id: string;
+  role: string;
+}): Promise<BulkActionSummary | { error: string }> {
+  const where = paymentWaitingWhereForSession(session);
+  if (!where) {
+    return { error: "Your role cannot run bulk payment." };
+  }
   const claims = await prisma.reimbursement.findMany({
-    where: adminApprovalQueueWhere(),
+    where,
+    select: { id: true },
+  });
+  return bulkPayClaimIds(
+    session,
+    claims.map((c) => c.id),
+  );
+}
+
+export async function bulkAdminApproveClaimIds(
+  adminId: string,
+  claimIds: string[],
+): Promise<BulkActionSummary | { error: string }> {
+  if (claimIds.length === 0) {
+    return { error: "Select at least one reimbursement to approve." };
+  }
+
+  const claims = await prisma.reimbursement.findMany({
+    where: { AND: [adminApprovalQueueWhere(), { id: { in: claimIds } }] },
     orderBy: { createdAt: "asc" },
     include: {
       employee: { select: { role: true, ...employeeForPayoutSelect } },
       approver: { select: { role: true } },
     },
   });
+
+  if (claims.length !== claimIds.length) {
+    return {
+      error:
+        "Some selections are no longer waiting for approval. Refresh the page and try again.",
+    };
+  }
 
   const results: BulkItemResult[] = [];
 
@@ -154,6 +196,24 @@ export async function bulkAdminApproveQueue(
   }
 
   return summarize(results);
+}
+
+/** Approve every claim in the admin queue (legacy / tests). */
+export async function bulkAdminApproveQueue(
+  adminId: string,
+): Promise<BulkActionSummary> {
+  const claims = await prisma.reimbursement.findMany({
+    where: adminApprovalQueueWhere(),
+    select: { id: true },
+  });
+  const result = await bulkAdminApproveClaimIds(
+    adminId,
+    claims.map((c) => c.id),
+  );
+  if ("error" in result) {
+    return { total: 0, succeeded: 0, failed: 0, results: [] };
+  }
+  return result;
 }
 
 function summarize(results: BulkItemResult[]): BulkActionSummary {

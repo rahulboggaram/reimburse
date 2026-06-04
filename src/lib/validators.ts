@@ -57,3 +57,7 @@ export const adminUpdateEmployeeSchema = z.object({
   role: z.enum(ASSIGNABLE_ROLES),
   branchId: z.string().min(1).nullable().optional(),
 });
+
+export const bulkClaimIdsSchema = z.object({
+  claimIds: z.array(z.string().min(1)).min(1).max(200),
+});

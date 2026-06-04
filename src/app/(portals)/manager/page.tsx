@@ -91,6 +91,7 @@ export default function ManagerPendingPage() {
   const [counts, setCounts] = useState<ActionCounts | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
   const isApprover = user?.role === "APPROVER";
@@ -142,10 +143,50 @@ export default function ManagerPendingPage() {
     );
   }, [loadTab, tab, applyTabPayload]);
 
+  const showApproveAll =
+    isAdmin && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
+  const showPayAll =
+    tab === "waiting" &&
+    (isApprover || isAdmin) &&
+    (counts?.paymentWaiting ?? 0) > 0;
+  const payAllCount = counts?.paymentWaiting ?? 0;
+  const approveAllCount = counts?.adminPending ?? 0;
+  const bulkSelectable = tab === "waiting" && (showApproveAll || showPayAll);
+  const selectedCount = claims.filter((c) => selectedIds.has(c.id)).length;
+  const allSelected =
+    claims.length > 0 && claims.every((c) => selectedIds.has(c.id));
+  const someSelected = claims.some((c) => selectedIds.has(c.id));
+
+  useEffect(() => {
+    if (!bulkSelectable) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(claims.map((c) => c.id)));
+  }, [claims, bulkSelectable]);
+
+  function toggleClaimSelection(claimId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(claimId)) next.delete(claimId);
+      else next.add(claimId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(claims.map((c) => c.id)));
+    }
+  }
+
   function handleTabChange(next: QueueTab) {
     if (next === tab) return;
     setTab(next);
     setSelected(null);
+    setSelectedIds(new Set());
     const cached = readTabCache(next);
     if (cached) {
       setClaims(cached.claims);
@@ -188,15 +229,24 @@ export default function ManagerPendingPage() {
 
   async function runBulk(
     endpoint: string,
+    claimIds: string[],
     confirmText: string,
     emptyText: string,
   ) {
     if (bulkBusy) return;
+    if (claimIds.length === 0) {
+      setBulkMessage("Select at least one reimbursement.");
+      return;
+    }
     if (!window.confirm(confirmText)) return;
     setBulkBusy(true);
     setBulkMessage(null);
     try {
-      const response = await fetch(endpoint, { method: "POST" });
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claimIds }),
+      });
       const body = await response.json();
       if (!response.ok) {
         setBulkMessage(body.error ?? "Something went wrong. Try again.");
@@ -216,6 +266,7 @@ export default function ManagerPendingPage() {
         msg += ` ${partial} approved but payout needs attention.`;
       }
       setBulkMessage(msg);
+      setSelectedIds(new Set());
       await refreshQueue();
     } catch {
       setBulkMessage("Something went wrong. Try again.");
@@ -224,13 +275,9 @@ export default function ManagerPendingPage() {
     }
   }
 
-  const showApproveAll =
-    isAdmin && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
-  /** Only Sudhi’s payment queue — matches “Awaiting payment” tab, not admin approval or sent tab. */
-  const showPayAll =
-    isApprover && tab === "waiting" && (counts?.paymentWaiting ?? 0) > 0;
-  const payAllCount = counts?.paymentWaiting ?? 0;
-  const approveAllCount = counts?.adminPending ?? 0;
+  const selectedIdList = claims
+    .filter((c) => selectedIds.has(c.id))
+    .map((c) => c.id);
 
   return (
     <>
@@ -248,39 +295,61 @@ export default function ManagerPendingPage() {
         className="mb-5"
       />
 
-      {(showApproveAll || showPayAll) && (
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          {showApproveAll && (
-            <Button
-              disabled={bulkBusy}
-              onClick={() =>
-                void runBulk(
-                  "/api/claims/bulk-decide",
-                  `Approve all ${approveAllCount} reimbursement${approveAllCount === 1 ? "" : "s"} waiting in your queue? Payment approver claims will be sent to Razorpay when bank details are ready.`,
-                  "Nothing waiting for your approval right now.",
-                )
-              }
+      {bulkSelectable ? (
+        <div className="mb-4 space-y-2">
+          <p className="text-sm text-zinc-600">
+            Uncheck any you want to reject or handle separately, then run bulk
+            action on the rest.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="text-sm font-medium text-zinc-700 underline"
+              onClick={toggleSelectAll}
             >
-              {bulkBusy ? "Working…" : `Approve all (${approveAllCount})`}
-            </Button>
-          )}
-          {showPayAll && payAllCount > 0 && (
-            <Button
-              variant={showApproveAll ? "outline" : "default"}
-              disabled={bulkBusy}
-              onClick={() =>
-                void runBulk(
-                  "/api/claims/bulk-pay",
-                  `Pay all ${payAllCount} reimbursement${payAllCount === 1 ? "" : "s"} in your queue via Razorpay?`,
-                  "No reimbursements are waiting for payout.",
-                )
-              }
-            >
-              {bulkBusy ? "Working…" : `Pay all (${payAllCount})`}
-            </Button>
-          )}
+              {allSelected ? "Clear all" : "Select all"}
+            </button>
+            <span className="text-sm text-zinc-500">
+              {selectedCount} of {claims.length} selected
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {showApproveAll && (
+              <Button
+                disabled={bulkBusy || selectedCount === 0}
+                onClick={() =>
+                  void runBulk(
+                    "/api/claims/bulk-decide",
+                    selectedIdList,
+                    `Approve ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"}? Unchecked items will stay in the queue.`,
+                    "Nothing selected to approve.",
+                  )
+                }
+              >
+                {bulkBusy
+                  ? "Working…"
+                  : `Approve selected (${selectedCount})`}
+              </Button>
+            )}
+            {showPayAll && (
+              <Button
+                variant={showApproveAll ? "outline" : "default"}
+                disabled={bulkBusy || selectedCount === 0}
+                onClick={() =>
+                  void runBulk(
+                    "/api/claims/bulk-pay",
+                    selectedIdList,
+                    `Pay ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"} via Razorpay? Unchecked items will stay in the queue.`,
+                    "Nothing selected to pay.",
+                  )
+                }
+              >
+                {bulkBusy ? "Working…" : `Pay selected (${selectedCount})`}
+              </Button>
+            )}
+          </div>
         </div>
-      )}
+      ) : null}
 
       {bulkMessage && (
         <p className="mb-4 text-sm text-zinc-600" role="status">
@@ -299,6 +368,10 @@ export default function ManagerPendingPage() {
           <ApprovalsTableHeader
             showStatus={showStatus}
             showCategory={tab === "approved"}
+            selectable={bulkSelectable}
+            allSelected={allSelected}
+            someSelected={someSelected}
+            onToggleAll={toggleSelectAll}
           />
           <div>
             {claims.map((claim) => (
@@ -307,6 +380,9 @@ export default function ManagerPendingPage() {
                 claim={claim}
                 showStatus={showStatus}
                 showCategory={tab === "approved"}
+                selectable={bulkSelectable}
+                selected={selectedIds.has(claim.id)}
+                onToggleSelect={() => toggleClaimSelection(claim.id)}
                 onOpen={() => setSelected(claim)}
               />
             ))}

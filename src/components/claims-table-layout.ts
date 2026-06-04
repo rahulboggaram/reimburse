@@ -15,18 +15,31 @@ export const claimsTableGridWithCategory =
 export const claimsTableGridWithCategoryAndStatus =
   "grid w-full grid-cols-[repeat(5,minmax(0,1fr))_1.25rem] items-center gap-x-4";
 
+function withCheckboxColumn(grid: string) {
+  return grid.replace(
+    "grid-cols-[",
+    "grid-cols-[1.75rem_",
+  );
+}
+
 export function approvalsTableGrid(options: {
   showCategory?: boolean;
   showStatus?: boolean;
+  selectable?: boolean;
 }) {
+  let grid: string;
   if (options.showCategory) {
-    return options.showStatus !== false
-      ? claimsTableGridWithCategoryAndStatus
-      : claimsTableGridWithCategory;
+    grid =
+      options.showStatus !== false
+        ? claimsTableGridWithCategoryAndStatus
+        : claimsTableGridWithCategory;
+  } else {
+    grid =
+      options.showStatus !== false
+        ? claimsTableGridWithStatus
+        : claimsTableGridNoStatus;
   }
-  return options.showStatus !== false
-    ? claimsTableGridWithStatus
-    : claimsTableGridNoStatus;
+  return options.selectable ? withCheckboxColumn(grid) : grid;
 }
 
 export function claimsTableHeaderClass(grid: string) {

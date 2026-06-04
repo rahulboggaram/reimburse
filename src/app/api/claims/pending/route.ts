@@ -10,6 +10,7 @@ import {
 import {
   approverPaymentSentWhere,
   approverPaymentWaitingWhere,
+  orgPaymentWaitingWhere,
 } from "@/lib/claim-payment-queue";
 
 type QueueTab = "waiting" | "approved";
@@ -36,7 +37,9 @@ function queueWhere(
 
   if (session.role === "ADMIN") {
     if (tab === "waiting") {
-      return adminApprovalQueueWhere();
+      return {
+        OR: [adminApprovalQueueWhere(), orgPaymentWaitingWhere()],
+      };
     }
     return {
       approverId: session.id,
@@ -73,7 +76,8 @@ export async function GET(request: Request) {
       orderBy,
       include: claimListInclude,
     }),
-    includeCounts && session.role === "APPROVER"
+    includeCounts &&
+    (session.role === "APPROVER" || session.role === "ADMIN")
       ? countPaymentWaiting(session)
       : Promise.resolve(0),
     includeCounts && session.role === "ADMIN"
