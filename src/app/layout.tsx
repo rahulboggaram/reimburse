@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Reimburse",
   description: "Submit and approve expense reimbursements",
   applicationName: "Reimburse",
-  themeColor: "#d97706",
+  themeColor: "#d4af37",
 };
 
 export const viewport = {
