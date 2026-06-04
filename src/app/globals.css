@@ -5,8 +5,8 @@
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
   --color-app-bg: #f4f2ed;
-  --color-brand-gold: #9a7b0a;
-  --color-brand-gold-mid: #d4af37;
+  --color-brand-gold: #6b5507;
+  --color-brand-gold-mid: #8a7020;
   /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
   --height-field: 3.5rem;
   --min-height-textarea: 7.5rem;
