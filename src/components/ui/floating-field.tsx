@@ -69,7 +69,7 @@ function FieldControl(props: {
         "flex w-full px-4",
         props.multiline &&
           (props.autoGrow
-            ? "items-start py-3"
+            ? "min-h-field items-center"
             : "min-h-textarea items-center py-3"),
         !props.multiline && "h-field items-center",
       )}
@@ -267,8 +267,9 @@ export function FloatingSelect(
 }
 
 function resizeTextarea(el: HTMLTextAreaElement) {
+  const lineHeight = Number.parseFloat(getComputedStyle(el).lineHeight) || 24;
   el.style.height = "0px";
-  el.style.height = `${el.scrollHeight}px`;
+  el.style.height = `${Math.max(el.scrollHeight, lineHeight)}px`;
 }
 
 export function FloatingTextarea(
@@ -288,7 +289,7 @@ export function FloatingTextarea(
     id: idProp,
     value,
     autoResize = true,
-    rows = 2,
+    rows = 1,
     required,
     onChange,
     ...textareaProps
@@ -337,7 +338,7 @@ export function FloatingTextarea(
           className={cn(
             controlClass,
             "resize-none leading-relaxed",
-            autoResize && "min-h-textarea-2 overflow-hidden",
+            autoResize && "min-h-0 overflow-hidden",
             showValue ? valueClassForState(state) : "text-transparent caret-zinc-900",
             className,
           )}
