@@ -14,10 +14,10 @@ function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
 
 function shellClass(state: FieldVisualState, error?: boolean) {
   if (error) {
-    return "relative rounded-xl border border-red-300 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-200/60";
+    return "relative rounded-xl border-2 border-red-300 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-200/60";
   }
   return cn(
-    "relative rounded-xl border bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] duration-200",
+    "relative rounded-xl border-2 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] duration-200",
     state === "focused" && "border-blue-600 ring-2 ring-blue-600/15",
     (state === "idle" || state === "filled") && "border-zinc-300",
   );
