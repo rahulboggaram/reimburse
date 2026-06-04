@@ -75,6 +75,7 @@ function razorpayTimelineStep(claim: SerializedClaim): TimelineStep {
     visual: "awaiting",
   };
 }
+import { TimelineCheckMark } from "@/components/timeline-check-mark";
 import { formatDisplayDateTime } from "@/lib/dates";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
@@ -316,20 +317,7 @@ function TimelineDot(props: { visual: VisualState }) {
         aria-hidden
         className={cn(base, "flex items-center justify-center bg-zinc-900")}
       >
-        <svg
-          aria-hidden
-          viewBox="0 0 20 20"
-          className="size-4.5 text-white"
-          fill="none"
-        >
-          <path
-            d="M5.25 10.25 8.25 13.25 14.75 6.75"
-            stroke="currentColor"
-            strokeWidth="2.25"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <TimelineCheckMark className="size-4.5" />
       </span>
     );
   }

@@ -1,11 +1,11 @@
 "use client";
 
 import { useMe } from "@/components/me-provider";
+import { ClaimsTableCheckbox } from "@/components/claims-table-checkbox";
 import {
   approvalsTableGrid,
   claimsTableColCenter,
   claimsTableColCheckbox,
-  claimsTableCheckboxClass,
   claimsTableColChevron,
   claimsTableColStart,
   claimsTableHeaderClass,
@@ -47,17 +47,9 @@ export function ApprovalsTableHeader(props: {
     <div className={claimsTableHeaderClass(grid)}>
       {props.selectable ? (
         <span className={claimsTableColCheckbox}>
-          <input
-            type="checkbox"
-            className={claimsTableCheckboxClass}
+          <ClaimsTableCheckbox
             checked={props.allSelected}
-            ref={(el) => {
-              if (el) {
-                el.indeterminate = Boolean(
-                  props.someSelected && !props.allSelected,
-                );
-              }
-            }}
+            indeterminate={Boolean(props.someSelected && !props.allSelected)}
             onChange={props.onToggleAll}
             aria-label="Select all in list"
           />
@@ -155,20 +147,18 @@ export function ApprovalsTableRow(props: {
           "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
         )}
       >
-        <label
+        <span
           className={claimsTableColCheckbox}
           onClick={stopRowClick}
           onMouseDown={stopRowClick}
         >
-          <input
-            type="checkbox"
-            className={claimsTableCheckboxClass}
+          <ClaimsTableCheckbox
             checked={props.selected}
             onChange={props.onToggleSelect}
             onClick={stopRowClick}
             aria-label={`Select ${claim.employeeName}`}
           />
-        </label>
+        </span>
         {rowCells({ claim, showStatus, showCategory, status })}
       </div>
     );
