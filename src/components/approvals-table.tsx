@@ -5,6 +5,7 @@ import {
   approvalsTableGrid,
   claimsTableColCenter,
   claimsTableColCheckbox,
+  claimsTableCheckboxClass,
   claimsTableColChevron,
   claimsTableColStart,
   claimsTableHeaderClass,
@@ -48,7 +49,7 @@ export function ApprovalsTableHeader(props: {
         <span className={claimsTableColCheckbox}>
           <input
             type="checkbox"
-            className="size-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-600"
+            className={claimsTableCheckboxClass}
             checked={props.allSelected}
             ref={(el) => {
               if (el) {
@@ -161,7 +162,7 @@ export function ApprovalsTableRow(props: {
         >
           <input
             type="checkbox"
-            className="size-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-600"
+            className={claimsTableCheckboxClass}
             checked={props.selected}
             onChange={props.onToggleSelect}
             onClick={stopRowClick}

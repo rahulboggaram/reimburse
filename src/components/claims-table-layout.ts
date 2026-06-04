@@ -91,6 +91,8 @@ export function claimsTableRowClass(grid: string) {
 export const claimsTableColCheckbox =
   "flex shrink-0 items-center justify-center justify-self-center";
 
+export const claimsTableCheckboxClass = "claims-table-checkbox";
+
 export const claimsTableColStart = "min-w-0 justify-self-stretch truncate text-left";
 
 export const claimsTableColCenter =
