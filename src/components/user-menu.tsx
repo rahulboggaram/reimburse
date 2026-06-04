@@ -86,7 +86,7 @@ function AccountMenuTrigger(props: {
       aria-busy={props.loading || undefined}
       disabled={props.loading}
       onClick={props.onClick}
-      className="flex max-w-[11rem] items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50 disabled:cursor-wait sm:max-w-[13rem]"
+      className="flex max-w-[11rem] items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 disabled:cursor-wait sm:max-w-[13rem]"
       aria-label={`Account menu for ${props.label}`}
     >
       {props.loading ? (
