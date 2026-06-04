@@ -35,7 +35,7 @@ function labelClass(
       : "top-1/2 -translate-y-1/2 bg-transparent px-0 text-base font-medium",
     error && errorAccentText,
     !error && !floated && "text-zinc-500",
-    !error && floated && state === "focused" && "text-blue-600",
+    !error && floated && state === "focused" && "text-accent",
     !error && floated && state === "filled" && "text-zinc-500",
   );
 }

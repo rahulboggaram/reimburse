@@ -13,16 +13,16 @@
  *   Also restore borders in src/components/ui/floating-field.tsx (normalShellClass)
  *   and src/components/ui/select.tsx (focused: "#2563eb").
  *
- * Current (white page + orange accent + grey cards + borderless fields):
+ * Current (white page + blue accent + grey cards + borderless fields):
  */
 @theme {
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
   --color-app-bg: #ffffff;
   --color-card-bg: #f4f4f5;
-  --color-accent: #ea580c;
-  --color-accent-hover: #c2410c;
-  --color-accent-soft: #fff7ed;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-soft: #eff6ff;
   /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
   --height-field: 4rem;
   --min-height-textarea: 7.5rem;
