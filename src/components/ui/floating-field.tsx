@@ -35,8 +35,12 @@ function labelClass(state: FieldVisualState, floated: boolean) {
   );
 }
 
-const valueClass =
-  "text-base font-medium leading-normal text-zinc-900";
+function valueClassForState(state: FieldVisualState) {
+  return cn(
+    "text-base leading-normal text-zinc-900",
+    state === "filled" ? "font-semibold" : "font-medium",
+  );
+}
 
 const controlClass =
   "w-full min-w-0 border-0 bg-transparent p-0 outline-none";
