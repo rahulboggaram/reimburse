@@ -84,7 +84,7 @@ export function claimsTableHeaderClass(grid: string) {
 export function claimsTableRowClass(grid: string) {
   return cn(
     grid,
-    "w-full border-b border-zinc-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
+    "w-full border-b border-zinc-200 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-zinc-50/80 sm:px-5",
   );
 }
 
