@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { MAX_RECEIPTS } from "@/lib/receipt-limits";
 import { cn } from "@/lib/utils";
@@ -18,44 +17,76 @@ type ReceiptUploadFieldProps = {
   error?: string | null;
 };
 
-function ReceiptActionIcon(props: { children: React.ReactNode }) {
+function ReceiptActionButton(props: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="inline-flex size-5 shrink-0 text-zinc-500" aria-hidden>
-      {props.children}
-    </span>
+    <button
+      type="button"
+      onClick={props.onClick}
+      className={cn(
+        "flex h-auto min-h-field flex-col items-center justify-center gap-2 rounded-2xl border-2 border-zinc-300 bg-white px-3 py-4 shadow-sm shadow-zinc-200/30 transition-colors",
+        "hover:border-zinc-400 hover:bg-zinc-50 active:bg-zinc-100",
+      )}
+    >
+      <span
+        className="inline-flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-800"
+        aria-hidden
+      >
+        {props.children}
+      </span>
+      <span className="text-sm font-semibold text-zinc-900">{props.label}</span>
+    </button>
   );
 }
 
 function CameraIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg
+      className="size-7"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      aria-hidden
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M6.827 6.175A2.31 2.31 0 0 1 8.955 5h6.09a2.31 2.31 0 0 1 2.128 1.175l1.27 2.54A2.31 2.31 0 0 0 20.59 9H22a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h1.41a2.31 2.31 0 0 0 2.123-1.285l1.27-2.54Z"
+        d="M4 8h2.5l1.6-2.4A1.5 1.5 0 0 1 8.7 5h6.6a1.5 1.5 0 0 1 1.3.75L18 8H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"
       />
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-      />
+      <circle cx="12" cy="13" r="3.25" strokeWidth="2.25" />
     </svg>
   );
 }
 
 function GalleryIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path
+    <svg
+      className="size-7"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      aria-hidden
+    >
+      <rect
+        x="4"
+        y="5"
+        width="14"
+        height="12"
+        rx="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159M3.75 19.5h16.5a1.5 1.5 0 0 0 1.5-1.5V6.75a1.5 1.5 0 0 0-1.5-1.5H3.75a1.5 1.5 0 0 0-1.5 1.5v11.25a1.5 1.5 0 0 0 1.5 1.5Z"
       />
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
-        d="M16.5 7.5h.008v.008H16.5V7.5Z"
+        d="M8 14l2.5-2.5a1 1 0 0 1 1.4 0L15 14"
       />
+      <circle cx="9" cy="9.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -103,29 +134,19 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
     <div className="space-y-3">
       <Label>Receipt Photos</Label>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-field gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
+      <div className="grid grid-cols-2 gap-3">
+        <ReceiptActionButton
+          label="Take photo"
           onClick={() => cameraRef.current?.click()}
         >
-          <ReceiptActionIcon>
-            <CameraIcon />
-          </ReceiptActionIcon>
-          Take photo
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-field gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
+          <CameraIcon />
+        </ReceiptActionButton>
+        <ReceiptActionButton
+          label="From gallery"
           onClick={() => galleryRef.current?.click()}
         >
-          <ReceiptActionIcon>
-            <GalleryIcon />
-          </ReceiptActionIcon>
-          From gallery
-        </Button>
+          <GalleryIcon />
+        </ReceiptActionButton>
       </div>
 
       <input
