@@ -19,12 +19,16 @@ export function approverPaymentWaitingWhere(
   sessionId: string,
 ): Prisma.ReimbursementWhereInput {
   return {
-    ...approverAssigned(sessionId),
-    status: "APPROVED",
-    paidAt: null,
-    OR: [
-      { razorpayPayoutId: null },
-      { payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] } },
+    AND: [
+      approverAssigned(sessionId),
+      { status: "APPROVED" },
+      { paidAt: null },
+      {
+        OR: [
+          { razorpayPayoutId: null },
+          { payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] } },
+        ],
+      },
     ],
   };
 }
@@ -63,15 +67,23 @@ export function approverPaymentSentWhere(
   sessionId: string,
 ): Prisma.ReimbursementWhereInput {
   return {
-    ...approverAssigned(sessionId),
-    OR: [
-      { status: "PAID" },
+    AND: [
+      approverAssigned(sessionId),
       {
-        status: "APPROVED",
-        razorpayPayoutId: { not: null },
         OR: [
-          { payoutStatus: null },
-          { payoutStatus: { notIn: [...FAILED_PAYOUT_STATUSES] } },
+          { status: "PAID" },
+          {
+            AND: [
+              { status: "APPROVED" },
+              { razorpayPayoutId: { not: null } },
+              {
+                OR: [
+                  { payoutStatus: null },
+                  { payoutStatus: { notIn: [...FAILED_PAYOUT_STATUSES] } },
+                ],
+              },
+            ],
+          },
         ],
       },
     ],

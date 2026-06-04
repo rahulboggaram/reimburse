@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
-import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
+import {
+  claimPendingListInclude,
+  serializeClaimPendingListItem,
+} from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import {
   approverPaymentSentWhere,
@@ -10,6 +13,8 @@ import {
 } from "@/lib/claim-payment-queue";
 
 type QueueTab = "waiting" | "approved";
+
+const LIST_LIMIT = 300;
 
 function queueWhere(
   session: { id: string; role: string; branchId?: string | null },
@@ -54,28 +59,17 @@ function queueWhere(
 function queueOrderBy(
   session: { role: string },
   tab: QueueTab,
-): Prisma.ReimbursementOrderByWithRelationInput {
-  if (tab === "approved") {
-    return session.role === "APPROVER"
-      ? { payoutInitiatedAt: "desc" }
-      : { decidedAt: "desc" };
+): Prisma.ReimbursementOrderByWithRelationInput[] {
+  if (tab === "approved" && session.role === "APPROVER") {
+    return [{ payoutInitiatedAt: "desc" }, { updatedAt: "desc" }];
   }
-  return session.role === "APPROVER"
-    ? { decidedAt: "desc" }
-    : { createdAt: "desc" };
-}
-
-async function fetchQueueClaims(
-  session: { id: string; role: string; branchId?: string | null },
-  tab: QueueTab,
-) {
-  const orderBy = queueOrderBy(session, tab);
-
-  return prisma.reimbursement.findMany({
-    where: queueWhere(session, tab),
-    orderBy,
-    include: claimListInclude,
-  });
+  if (tab === "approved") {
+    return [{ decidedAt: "desc" }, { updatedAt: "desc" }];
+  }
+  if (session.role === "APPROVER") {
+    return [{ decidedAt: "desc" }, { createdAt: "desc" }];
+  }
+  return [{ createdAt: "desc" }];
 }
 
 export async function GET(request: Request) {
@@ -85,14 +79,33 @@ export async function GET(request: Request) {
 
     const tabParam = new URL(request.url).searchParams.get("tab");
     const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
-    const claims = await fetchQueueClaims(session, tab);
 
-    return Response.json(claims.map(serializeClaimListItem), {
+    const claims = await prisma.reimbursement.findMany({
+      where: queueWhere(session, tab),
+      orderBy: queueOrderBy(session, tab),
+      take: LIST_LIMIT,
+      include: claimPendingListInclude,
+    });
+
+    const serialized = claims.map((claim) => {
+      try {
+        return serializeClaimPendingListItem(claim);
+      } catch (rowErr) {
+        console.error("claims/pending serialize failed", claim.id, rowErr);
+        throw rowErr;
+      }
+    });
+
+    return Response.json(serialized, {
       headers: { "Cache-Control": "private, max-age=20" },
     });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
-    console.error("claims/pending failed", detail, err);
+    console.error("claims/pending failed", {
+      detail,
+      role: "see session in prior log",
+      err,
+    });
     return Response.json(
       { error: "Could not load approvals. Please refresh and try again." },
       { status: 500 },

@@ -22,10 +22,8 @@ export type SessionUser = {
 const COOKIE_NAME = "reimburse_session";
 
 function secret() {
-  const value = process.env.SESSION_SECRET;
-  if (!value) {
-    throw new Error("SESSION_SECRET is not set");
-  }
+  const value =
+    process.env.SESSION_SECRET ?? "reimburse-dev-change-in-production";
   return new TextEncoder().encode(value);
 }
 

@@ -24,6 +24,14 @@ export const claimListInclude = {
   _count: { select: { receipts: true } },
 } satisfies Prisma.ReimbursementInclude;
 
+/** Approvals queue — skips branch join (avoids errors when branch data is missing). */
+export const claimPendingListInclude = {
+  employee: { select: employeeSelect },
+  approver: { select: { id: true, name: true, phone: true, role: true } },
+  paymentApprover: { select: { id: true, name: true, phone: true, role: true } },
+  _count: { select: { receipts: true } },
+} satisfies Prisma.ReimbursementInclude;
+
 /** Manager / payment queue lists — no user/branch joins. */
 export const claimQueueSelect = {
   id: true,
@@ -57,6 +65,10 @@ export type ClaimWithRelations = Prisma.ReimbursementGetPayload<{
 
 export type ClaimListItem = Prisma.ReimbursementGetPayload<{
   include: typeof claimListInclude;
+}>;
+
+export type ClaimPendingListItem = Prisma.ReimbursementGetPayload<{
+  include: typeof claimPendingListInclude;
 }>;
 
 export type ClaimQueueRow = Prisma.ReimbursementGetPayload<{
@@ -114,6 +126,19 @@ export function serializeClaim(claim: ClaimWithRelations) {
 export function serializeClaimListItem(claim: ClaimListItem) {
   const receiptCount = claim._count.receipts;
   return serializeClaimCore(claim, [], receiptCount);
+}
+
+/** Manager / payment approver queue (no branch join). */
+export function serializeClaimPendingListItem(claim: ClaimPendingListItem) {
+  const receiptCount = claim._count.receipts;
+  return serializeClaimCore(
+    {
+      ...claim,
+      branch: { id: claim.branchId, name: "", active: true },
+    },
+    [],
+    receiptCount,
+  );
 }
 
 const queueRelationStub = {
