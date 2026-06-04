@@ -30,7 +30,7 @@ export function AppShell(props: {
   return (
     <MeProvider initialUser={props.initialUser}>
       <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col px-4 py-5 pb-8 sm:py-6">
-        <header className="mb-10 flex justify-center sm:mb-12">
+        <header className="mb-14 flex justify-center sm:mb-16">
           <ReimburseBrand />
         </header>
         <div className="flex-1">{props.children}</div>
