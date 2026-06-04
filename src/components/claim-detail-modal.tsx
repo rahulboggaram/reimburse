@@ -5,9 +5,8 @@ import { useMe } from "@/components/me-provider";
 import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { Textarea } from "@/components/ui/textarea";
+import { FloatingTextarea } from "@/components/ui/floating-field";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatRole } from "@/lib/access-roles";
@@ -288,17 +287,14 @@ export function ClaimDetailModal(props: {
 
         {user && canDecideReimbursement(user, claim) ? (
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="rejection-reason">Rejection reason</Label>
-              <Textarea
-                id="rejection-reason"
-                rows={1}
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Reason for rejection"
-                className="resize-none"
-              />
-            </div>
+            <FloatingTextarea
+              id="rejection-reason"
+              label="Reason for rejection"
+              rows={2}
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="resize-none"
+            />
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}

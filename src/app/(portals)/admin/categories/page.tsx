@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 import {
@@ -118,12 +117,11 @@ export default function AdminCategoriesPage() {
       <Card className="space-y-3">
         <form onSubmit={createCategory} className="space-y-2">
           <div className="space-y-1.5">
-            <Label htmlFor="category-name">New category name</Label>
-            <Input
+            <FloatingInput
               id="category-name"
+              label="Category name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Category name"
             />
           </div>
           <Button type="submit" disabled={creating || !name.trim()}>

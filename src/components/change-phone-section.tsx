@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingText } from "@/components/ui/loading-dots";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { readJson } from "@/lib/api";
 import { TextLinkButton } from "@/components/text-link";
 import { formatPhoneDisplay } from "@/lib/phone";
@@ -124,19 +123,16 @@ export function ChangePhoneSection(props: {
 
           {step === "idle" ? (
             <form onSubmit={sendOtp} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="new-phone">New mobile number</Label>
-                <Input
-                  id="new-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  required
-                  value={newPhoneInput}
-                  onChange={(e) => setNewPhoneInput(e.target.value)}
-                  placeholder="Mobile number"
-                />
-              </div>
+              <FloatingInput
+                id="new-phone"
+                label="New mobile number"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                required
+                value={newPhoneInput}
+                onChange={(e) => setNewPhoneInput(e.target.value)}
+              />
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="submit" disabled={loading} className="sm:flex-1">
                   {loading ? <LoadingText>Sending</LoadingText> : "Send OTP"}
@@ -160,22 +156,19 @@ export function ChangePhoneSection(props: {
                   {formatPhoneDisplay(phoneE164)}
                 </span>
               </p>
-              <div className="space-y-1.5">
-                <Label htmlFor="change-phone-otp">6-digit OTP</Label>
-                <Input
-                  id="change-phone-otp"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  placeholder="123456"
-                />
-              </div>
+              <FloatingInput
+                id="change-phone-otp"
+                label="6-digit OTP"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+              />
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button type="submit" disabled={loading} className="sm:flex-1">
                   {loading ? <LoadingText>Updating</LoadingText> : "Confirm new number"}

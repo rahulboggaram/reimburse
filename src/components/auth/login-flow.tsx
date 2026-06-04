@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { ReimburseBrand } from "@/components/reimburse-brand";
 import { TextLinkButton } from "@/components/text-link";
 import { readJson } from "@/lib/api";
@@ -126,19 +125,16 @@ export function LoginFlow() {
 
         {step === "phone" ? (
           <form onSubmit={sendOtp} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="phone">Mobile number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel"
-                placeholder="Mobile number"
-                required
-                value={phoneInput}
-                onChange={(e) => setPhoneInput(e.target.value)}
-              />
-            </div>
+            <FloatingInput
+              id="phone"
+              label="Mobile number"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              required
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+            />
             <Button
               type="submit"
               className="w-full"
@@ -157,20 +153,19 @@ export function LoginFlow() {
                 : "Code sent to "}
               <span className="font-medium text-zinc-900">{phoneInput}</span>
             </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="otp">6-digit OTP</Label>
-              <Input
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                autoComplete={isMock ? "off" : "one-time-code"}
-                placeholder="123456"
-                maxLength={6}
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              />
-            </div>
+            <FloatingInput
+              id="otp"
+              label="6-digit OTP"
+              type="text"
+              inputMode="numeric"
+              autoComplete={isMock ? "off" : "one-time-code"}
+              maxLength={6}
+              required
+              value={otp}
+              onChange={(e) =>
+                setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+            />
             <Button
               type="submit"
               className="w-full"

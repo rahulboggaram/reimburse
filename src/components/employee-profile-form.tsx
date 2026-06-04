@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
 import { useMe } from "@/components/me-provider";
@@ -220,18 +219,14 @@ export function EmployeeProfileForm(props: {
         <ProfileCardBlock>
           {nameEditing ? (
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="full-name">Name</Label>
-                <p className="text-xs text-zinc-500">Fill in your name</p>
-                <Input
-                  id="full-name"
-                  required
-                  value={name}
-                  onChange={(e) => setName(toTitleCase(e.target.value))}
-                  placeholder="Your name"
-                  autoComplete="name"
-                />
-              </div>
+              <FloatingInput
+                id="full-name"
+                label="Your name"
+                required
+                value={name}
+                onChange={(e) => setName(toTitleCase(e.target.value))}
+                autoComplete="name"
+              />
               {!isOnboarding ? (
                 <div className="flex items-center justify-end gap-4">
                   <TextLinkButton onClick={() => cancelEdit("name")}>
@@ -294,32 +289,26 @@ export function EmployeeProfileForm(props: {
         ) : null}
         {bankEditing ? (
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="account">Bank account number</Label>
-              <Input
-                id="account"
-                required
-                inputMode="numeric"
-                value={bankAccountNumber}
-                onChange={(e) =>
-                  setBankAccountNumber(e.target.value.replace(/\D/g, ""))
-                }
-                placeholder="Account number"
-                autoComplete="off"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ifsc">IFSC code</Label>
-              <Input
-                id="ifsc"
-                required
-                value={ifscCode}
-                onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                placeholder="IFSC code"
-                maxLength={11}
-                autoComplete="off"
-              />
-            </div>
+            <FloatingInput
+              id="account"
+              label="Bank account number"
+              required
+              inputMode="numeric"
+              value={bankAccountNumber}
+              onChange={(e) =>
+                setBankAccountNumber(e.target.value.replace(/\D/g, ""))
+              }
+              autoComplete="off"
+            />
+            <FloatingInput
+              id="ifsc"
+              label="IFSC code"
+              required
+              value={ifscCode}
+              onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+              maxLength={11}
+              autoComplete="off"
+            />
             {!isOnboarding ? (
               <div className="flex items-center justify-end gap-4">
                 <TextLinkButton onClick={() => cancelEdit("bank")}>

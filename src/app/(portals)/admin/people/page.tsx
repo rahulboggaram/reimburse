@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import {
+  FloatingInput,
+  FloatingSelect,
+} from "@/components/ui/floating-field";
 import {
   EmployeeDetailModal,
   EmployeeListRow,
@@ -183,17 +184,14 @@ export default function AdminPeoplePage() {
               They complete name & bank details on first login.
             </p>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="phone">Mobile number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Mobile number"
-            />
-          </div>
+          <FloatingInput
+            id="phone"
+            label="Mobile number"
+            type="tel"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
           {error ? (
             <p className="text-sm text-red-700" role="alert">
               {error}
@@ -206,22 +204,18 @@ export default function AdminPeoplePage() {
       </Card>
 
       <div className="mb-4 space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="search-employee">Search</Label>
-          <Input
-            id="search-employee"
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Name or mobile number"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="filter-people">Filter by role</Label>
-          <Select
-            id="filter-people"
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+        <FloatingInput
+          id="search-employee"
+          label="Name or mobile number"
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <FloatingSelect
+          id="filter-people"
+          label="Filter by role"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
           >
             <option value="all">All roles</option>
             <option value="employee">Employees only</option>
@@ -230,8 +224,7 @@ export default function AdminPeoplePage() {
             <option value="admin">Admins only</option>
             <option value="signed-up">Signed up</option>
             <option value="pending">Pending signup</option>
-          </Select>
-        </div>
+        </FloatingSelect>
         {search.trim() ? (
           <p className="text-sm text-zinc-600">
             {filtered.length > 0 ? (

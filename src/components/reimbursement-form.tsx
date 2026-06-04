@@ -5,11 +5,12 @@ import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
-import { AutoResizeTextarea } from "@/components/ui/textarea";
+import {
+  FloatingInput,
+  FloatingSelect,
+  FloatingTextarea,
+} from "@/components/ui/floating-field";
 import {
   ReceiptUploadField,
   type ReceiptFileItem,
@@ -37,15 +38,6 @@ type FieldErrors = {
   description?: string;
   receipts?: string;
 };
-
-function FieldError(props: { message?: string }) {
-  if (!props.message) return null;
-  return (
-    <p className="text-sm text-red-700" role="alert">
-      {props.message}
-    </p>
-  );
-}
 
 export function ReimbursementForm(props: {
   title: string;
@@ -246,77 +238,62 @@ export function ReimbursementForm(props: {
           </p>
         ) : null}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="amount">
-            Amount (₹)
-          </Label>
-          <Input
-            id="amount"
-            inputMode="decimal"
-            required
-            aria-invalid={Boolean(fieldErrors.amount)}
-            value={amount}
-            onChange={(e) => {
-              setAmount(e.target.value);
-              setFieldErrors((prev) => ({ ...prev, amount: undefined }));
-            }}
-            placeholder="0"
-            className="font-tabular-nums"
-          />
-          <FieldError message={fieldErrors.amount} />
-        </div>
+        <FloatingInput
+          id="amount"
+          label="Amount (₹)"
+          inputMode="decimal"
+          required
+          error={Boolean(fieldErrors.amount)}
+          fieldError={fieldErrors.amount}
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value);
+            setFieldErrors((prev) => ({ ...prev, amount: undefined }));
+          }}
+          className="font-tabular-nums"
+        />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="category">
-            Category
-          </Label>
-          {loadingOptions ? (
-            <p className="text-sm text-zinc-500">Loading categories…</p>
-          ) : categories.length === 0 ? (
-            <p className="text-sm text-amber-800">
-              No categories available yet. Ask your admin.
-            </p>
-          ) : (
-            <Select
-              id="category"
-              required
-              aria-invalid={Boolean(fieldErrors.category)}
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, category: undefined }));
-              }}
-            >
-              <option value="" disabled>
-                Select category
+        {loadingOptions ? (
+          <p className="text-sm text-zinc-500">Loading categories…</p>
+        ) : categories.length === 0 ? (
+          <p className="text-sm text-amber-800">
+            No categories available yet. Ask your admin.
+          </p>
+        ) : (
+          <FloatingSelect
+            id="category"
+            label="Category"
+            required
+            error={Boolean(fieldErrors.category)}
+            fieldError={fieldErrors.category}
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, category: undefined }));
+            }}
+          >
+            <option value="" disabled hidden />
+            {categories.map((item) => (
+              <option key={item.id} value={item.name}>
+                {item.name}
               </option>
-              {categories.map((item) => (
-                <option key={item.id} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
-            </Select>
-          )}
-          <FieldError message={fieldErrors.category} />
-        </div>
+            ))}
+          </FloatingSelect>
+        )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="description">
-            Description
-          </Label>
-          <AutoResizeTextarea
-            id="description"
-            required
-            aria-invalid={Boolean(fieldErrors.description)}
-            value={description}
-            onChange={(e) => {
-              setDescription(e.target.value);
-              setFieldErrors((prev) => ({ ...prev, description: undefined }));
-            }}
-            placeholder="What was this expense for?"
-          />
-          <FieldError message={fieldErrors.description} />
-        </div>
+        <FloatingTextarea
+          id="description"
+          label="What was this expense for?"
+          required
+          autoResize
+          error={Boolean(fieldErrors.description)}
+          fieldError={fieldErrors.description}
+          value={description}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            setFieldErrors((prev) => ({ ...prev, description: undefined }));
+          }}
+        />
 
         <ReceiptUploadField
           files={receipts}

@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { PageHeading } from "@/components/page-heading";
 import {
   defaultReportDates,
@@ -66,24 +65,20 @@ export default function AdminReportsPage() {
       <Card className="mb-5 space-y-4">
         <p className="text-sm font-semibold text-zinc-800">Filter By Date</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="report-from">From</Label>
-            <Input
-              id="report-from"
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="report-to">To</Label>
-            <Input
-              id="report-to"
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </div>
+          <FloatingInput
+            id="report-from"
+            label="From"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+          <FloatingInput
+            id="report-to"
+            label="To"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
         </div>
         <p className="text-xs text-zinc-500">
           Defaults to the last 30 days. Clear both dates to include all records.

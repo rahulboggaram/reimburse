@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { readJson } from "@/lib/api";
 import {
   fetchAdminBranches,
@@ -117,15 +116,12 @@ export default function AdminBranchesPage() {
 
       <Card className="space-y-3">
         <form onSubmit={createBranch} className="space-y-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="branch-name">New branch name</Label>
-            <Input
-              id="branch-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Branch name"
-            />
-          </div>
+          <FloatingInput
+            id="branch-name"
+            label="Branch name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
           <Button type="submit" disabled={creating || !name.trim()}>
             {creating ? "Creating…" : "Add branch"}
           </Button>

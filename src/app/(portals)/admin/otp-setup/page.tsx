@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { Card } from "@/components/ui/card";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
@@ -190,10 +190,10 @@ export default function AdminOtpSetupPage() {
               is still In development, add that number under API Setup → To first.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Input
+              <FloatingInput
                 type="tel"
                 inputMode="numeric"
-                placeholder="10-digit mobile"
+                label="10-digit mobile"
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
                 className="min-w-[12rem] flex-1"
