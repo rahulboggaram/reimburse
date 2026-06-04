@@ -3,8 +3,7 @@
 
 @theme {
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-brand-family: "Cal Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-brand: var(--font-brand-family);
+  --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
   --color-app-bg: #f4f2ed;
   /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
   --height-field: 3.5rem;
@@ -45,8 +44,8 @@ body {
 
 .font-brand {
   font-family: var(--font-brand);
-  font-weight: 400;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .scrollbar-hide {
