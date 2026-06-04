@@ -56,46 +56,54 @@ function queueWhere(
 }
 
 export async function GET(request: Request) {
-  const session = await requireManagerAccess();
-  if (session instanceof Response) return session;
+  try {
+    const session = await requireManagerAccess();
+    if (session instanceof Response) return session;
 
-  const tabParam = new URL(request.url).searchParams.get("tab");
-  const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
-  const where = queueWhere(session, tab);
-  const orderBy =
-    tab === "approved"
-      ? session.role === "APPROVER"
-        ? { payoutInitiatedAt: "desc" as const }
-        : { decidedAt: "desc" as const }
-      : session.role === "APPROVER"
-        ? { decidedAt: "desc" as const }
-        : { createdAt: "desc" as const };
+    const tabParam = new URL(request.url).searchParams.get("tab");
+    const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
+    const where = queueWhere(session, tab);
+    const orderBy =
+      tab === "approved"
+        ? session.role === "APPROVER"
+          ? { payoutInitiatedAt: "desc" as const }
+          : { decidedAt: "desc" as const }
+        : session.role === "APPROVER"
+          ? { decidedAt: "desc" as const }
+          : { createdAt: "desc" as const };
 
-  const includeCounts = new URL(request.url).searchParams.get("counts") === "1";
+    const includeCounts = new URL(request.url).searchParams.get("counts") === "1";
 
-  const [claims, paymentWaiting, adminPending] = await Promise.all([
-    prisma.reimbursement.findMany({
-      where,
-      orderBy,
-      include: claimListInclude,
-    }),
-    includeCounts &&
-    (session.role === "APPROVER" || session.role === "ADMIN")
-      ? countPaymentWaiting(session)
-      : Promise.resolve(0),
-    includeCounts && session.role === "ADMIN"
-      ? countAdminPendingApproval(session.branchId)
-      : Promise.resolve(0),
-  ]);
+    const [claims, paymentWaiting, adminPending] = await Promise.all([
+      prisma.reimbursement.findMany({
+        where,
+        orderBy,
+        include: claimListInclude,
+      }),
+      includeCounts &&
+      (session.role === "APPROVER" || session.role === "ADMIN")
+        ? countPaymentWaiting(session)
+        : Promise.resolve(0),
+      includeCounts && session.role === "ADMIN"
+        ? countAdminPendingApproval(session.branchId)
+        : Promise.resolve(0),
+    ]);
 
-  const body = includeCounts
-    ? {
-        claims: claims.map(serializeClaimListItem),
-        counts: { paymentWaiting, adminPending },
-      }
-    : claims.map(serializeClaimListItem);
+    const body = includeCounts
+      ? {
+          claims: claims.map(serializeClaimListItem),
+          counts: { paymentWaiting, adminPending },
+        }
+      : claims.map(serializeClaimListItem);
 
-  return Response.json(body, {
-    headers: { "Cache-Control": "private, max-age=20" },
-  });
+    return Response.json(body, {
+      headers: { "Cache-Control": "private, max-age=20" },
+    });
+  } catch (err) {
+    console.error("claims/pending failed", err);
+    return Response.json(
+      { error: "Could not load approvals. Please refresh and try again." },
+      { status: 500 },
+    );
+  }
 }

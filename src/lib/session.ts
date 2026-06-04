@@ -117,7 +117,11 @@ export async function refreshSessionFromDb(
     session.name !== fromToken.name ||
     session.branchId !== fromToken.branchId
   ) {
-    await setSessionCookie(session);
+    try {
+      await setSessionCookie(session);
+    } catch (err) {
+      console.error("session cookie refresh failed", err);
+    }
   }
   return session;
 }
