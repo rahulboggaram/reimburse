@@ -37,7 +37,7 @@ export function ReimburseBrand() {
       className="flex flex-col items-center gap-0.5 rounded-lg text-center outline-none ring-zinc-900 focus-visible:ring-2"
       aria-label="Reimburse home"
     >
-      <span className="font-brand text-5xl leading-none text-emerald-950">
+      <span className="font-brand text-[3.6rem] leading-none text-emerald-950">
         Reimburse
       </span>
       <p className="text-sm text-zinc-600">by Yellow Metal</p>
