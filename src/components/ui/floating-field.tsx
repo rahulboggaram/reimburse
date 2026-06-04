@@ -6,21 +6,27 @@ import { Select } from "@/components/ui/select";
 
 type FieldVisualState = "idle" | "focused" | "filled";
 
+const errorAccentText = "text-rose-800";
+const errorBannerBg = "bg-rose-50";
+
 function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
   if (focused) return "focused";
   if (hasValue) return "filled";
   return "idle";
 }
 
-function shellClass(state: FieldVisualState, error?: boolean) {
-  if (error) {
-    return "relative rounded-xl border-2 border-red-300 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-200/60";
-  }
+function normalShellClass(state: FieldVisualState) {
   return cn(
     "relative rounded-xl border-2 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] duration-200",
     state === "focused" &&
       "border-2 border-blue-600 ring-2 ring-blue-600/20 ring-offset-2 ring-offset-white",
     (state === "idle" || state === "filled") && "border-zinc-300",
+  );
+}
+
+function errorShellClass() {
+  return cn(
+    "overflow-hidden rounded-2xl border-2 border-rose-800 bg-white shadow-sm shadow-zinc-200/30 transition-colors duration-200 focus-within:border-rose-800",
   );
 }
 
@@ -30,11 +36,12 @@ function labelClass(
   error?: boolean,
 ) {
   return cn(
-    "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate bg-white px-0.5 leading-none transition-all duration-200 ease-out",
+    "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate px-0.5 leading-none transition-all duration-200 ease-out",
+    "bg-white",
     floated
       ? "top-0 -translate-y-1/2 text-xs font-medium"
       : "top-1/2 -translate-y-1/2 text-base font-medium",
-    error && "text-red-600",
+    error && errorAccentText,
     !error && !floated && "text-zinc-500",
     !error && floated && state === "focused" && "text-blue-600",
     !error && floated && state === "filled" && "text-zinc-500",
@@ -53,7 +60,6 @@ const controlClass =
 
 function FieldControl(props: {
   multiline?: boolean;
-  /** Grows with textarea content (2 lines minimum). */
   autoGrow?: boolean;
   children: React.ReactNode;
 }) {
@@ -79,21 +85,46 @@ function FieldWrap(props: {
   state: FieldVisualState;
   floated: boolean;
   error?: boolean;
+  errorMessage?: string;
+  required?: boolean;
   children: React.ReactNode;
-  hint?: React.ReactNode;
 }) {
-  return (
-    <div className="space-y-1">
-      <div className={shellClass(props.state, props.error)}>
-        <label
-          htmlFor={props.id}
-          className={labelClass(props.state, props.floated, props.error)}
-        >
-          {props.label}
-        </label>
-        {props.children}
+  const displayFloated = props.floated || Boolean(props.error);
+
+  const labelNode = (
+    <label
+      htmlFor={props.id}
+      className={labelClass(props.state, displayFloated, props.error)}
+    >
+      {props.label}
+      {props.required ? (
+        <span className={cn(props.error && errorAccentText)}> *</span>
+      ) : null}
+    </label>
+  );
+
+  if (props.error) {
+    return (
+      <div className={errorShellClass()}>
+        <div className="relative bg-white">
+          {labelNode}
+          {props.children}
+        </div>
+        {props.errorMessage ? (
+          <div className={cn(errorBannerBg, "px-4 py-2.5")}>
+            <p className={cn("text-sm", errorAccentText)} role="alert">
+              {props.errorMessage}
+            </p>
+          </div>
+        ) : null}
       </div>
-      {props.hint}
+    );
+  }
+
+  return (
+    <div className={normalShellClass(props.state)}>
+      {labelNode}
+      {props.children}
     </div>
   );
 }
@@ -101,7 +132,7 @@ function FieldWrap(props: {
 export function FieldError(props: { message?: string }) {
   if (!props.message) return null;
   return (
-    <p className="text-sm text-red-700" role="alert">
+    <p className={cn("text-sm", errorAccentText)} role="alert">
       {props.message}
     </p>
   );
@@ -130,6 +161,7 @@ export function FloatingInput(
     className,
     id: idProp,
     value,
+    required,
     onFocus,
     onBlur,
     ...inputProps
@@ -146,12 +178,14 @@ export function FloatingInput(
       state={state}
       floated={floated}
       error={error}
-      hint={<FieldError message={fieldError} />}
+      errorMessage={fieldError}
+      required={required}
     >
       <FieldControl>
         <input
           {...inputProps}
           id={id}
+          required={required}
           value={value}
           onFocus={(e) => {
             setFocused(true);
@@ -180,8 +214,16 @@ export function FloatingSelect(
     children: React.ReactNode;
   },
 ) {
-  const { label, error, fieldError, className, id: idProp, value, ...selectProps } =
-    props;
+  const {
+    label,
+    error,
+    fieldError,
+    className,
+    id: idProp,
+    value,
+    required,
+    ...selectProps
+  } = props;
   const autoId = useId();
   const id = idProp ?? autoId;
   const { setFocused, floated, state } = useFloatingFieldState(value);
@@ -194,12 +236,14 @@ export function FloatingSelect(
       state={state}
       floated={floated}
       error={error}
-      hint={<FieldError message={fieldError} />}
+      errorMessage={fieldError}
+      required={required}
     >
       <FieldControl>
         <Select
           {...selectProps}
           id={id}
+          required={required}
           value={value}
           onFocus={(e) => {
             setFocused(true);
@@ -232,7 +276,6 @@ export function FloatingTextarea(
     label: string;
     error?: boolean;
     fieldError?: string;
-    /** Start at two lines and grow with more text. Default true. */
     autoResize?: boolean;
     rows?: number;
   },
@@ -246,6 +289,7 @@ export function FloatingTextarea(
     value,
     autoResize = true,
     rows = 2,
+    required,
     onChange,
     ...textareaProps
   } = props;
@@ -267,7 +311,8 @@ export function FloatingTextarea(
       state={state}
       floated={floated}
       error={error}
-      hint={<FieldError message={fieldError} />}
+      errorMessage={fieldError}
+      required={required}
     >
       <FieldControl multiline autoGrow={autoResize}>
         <textarea
@@ -275,6 +320,7 @@ export function FloatingTextarea(
           ref={ref}
           id={id}
           rows={rows}
+          required={required}
           value={value}
           onFocus={(e) => {
             setFocused(true);
