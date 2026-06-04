@@ -27,7 +27,7 @@ function ReceiptActionButton(props: {
       type="button"
       onClick={props.onClick}
       className={cn(
-        "flex h-auto min-h-field flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-zinc-300 bg-white px-3 py-4 shadow-sm shadow-zinc-200/30 transition-colors",
+        "flex h-auto min-h-field flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-zinc-300 bg-white px-3 py-4 transition-colors",
         "hover:border-zinc-400 hover:bg-zinc-50 active:bg-zinc-100",
       )}
     >

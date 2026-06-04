@@ -17,16 +17,15 @@ function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
 
 function normalShellClass(state: FieldVisualState) {
   return cn(
-    "relative rounded-xl border-[1.5px] bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] duration-200",
-    state === "focused" &&
-      "border-[1.5px] border-blue-600 ring-2 ring-blue-600/20 ring-offset-2 ring-offset-white",
+    "relative rounded-xl border-[1.5px] bg-white transition-[border-color] duration-200",
+    state === "focused" && "border-[1.5px] border-blue-600",
     (state === "idle" || state === "filled") && "border-zinc-300",
   );
 }
 
 function errorFieldShellClass() {
   return cn(
-    "relative rounded-xl border-[1.5px] border-rose-800 bg-white shadow-sm shadow-zinc-200/30 transition-colors duration-200",
+    "relative rounded-xl border-[1.5px] border-rose-800 bg-white transition-colors duration-200",
   );
 }
 
