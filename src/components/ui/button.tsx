@@ -14,8 +14,8 @@ const buttonVariants = cva(
           "hover:bg-zinc-100 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:hover:bg-zinc-100",
       },
       size: {
-        default: "h-11 px-4 py-2",
-        lg: "h-12 px-4 text-base",
+        default: "h-field px-4 py-2",
+        lg: "h-field px-4 text-base",
       },
     },
     defaultVariants: {

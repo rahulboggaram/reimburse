@@ -123,7 +123,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
         <Button
           type="button"
           variant="outline"
-          className="h-11 gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
+          className="h-field gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
           onClick={() => cameraRef.current?.click()}
         >
           <ReceiptActionIcon>
@@ -134,7 +134,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
         <Button
           type="button"
           variant="outline"
-          className="h-11 gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
+          className="h-field gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
           onClick={() => galleryRef.current?.click()}
         >
           <ReceiptActionIcon>
@@ -145,7 +145,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
         <Button
           type="button"
           variant="outline"
-          className="h-11 gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
+          className="h-field gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
           onClick={() => browseRef.current?.click()}
         >
           <ReceiptActionIcon>

@@ -296,7 +296,7 @@ export function ClaimDetailModal(props: {
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="e.g. Missing receipt"
-                className="min-h-11 resize-none"
+                className="resize-none"
               />
             </div>
             {error ? (

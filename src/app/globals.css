@@ -5,6 +5,9 @@
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
   --color-app-bg: #f4f2ed;
+  /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
+  --height-field: 3.5rem;
+  --min-height-textarea: 7.5rem;
 }
 
 html {

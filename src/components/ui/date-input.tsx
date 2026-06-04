@@ -30,7 +30,7 @@ export function DateInput({
         openPicker();
       }}
       className={cn(
-        "date-input flex h-11 w-full cursor-pointer rounded-xl border border-zinc-200 bg-white px-3.5 text-base outline-none ring-zinc-900 focus-visible:ring-2",
+        "date-input flex h-field w-full cursor-pointer rounded-xl border border-zinc-200 bg-white px-4 text-base outline-none ring-zinc-900 focus-visible:ring-2",
         className,
       )}
     />
