@@ -5,6 +5,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Reimburse",
   description: "Submit and approve expense reimbursements",
+  applicationName: "Reimburse",
+  themeColor: "#022c22",
 };
 
 export const viewport = {
