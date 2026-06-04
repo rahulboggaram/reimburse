@@ -97,7 +97,7 @@ export function Modal(props: {
             <div className="flex items-start justify-between gap-4">
               <h2
                 id="modal-title"
-                className="font-brand-title min-w-0 flex-1 text-lg text-zinc-900"
+                className="min-w-0 flex-1 text-lg font-semibold text-zinc-900"
               >
                 {toTitleCase(props.title)}
               </h2>
