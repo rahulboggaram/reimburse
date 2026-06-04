@@ -65,7 +65,6 @@ export function ClaimDetailModal(props: {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [syncingPayout, setSyncingPayout] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { user } = useMe();
@@ -178,39 +177,10 @@ export function ClaimDetailModal(props: {
     }
   }
 
-  async function syncPayout() {
-    setError(null);
-    setSyncingPayout(true);
-    try {
-      const syncUrl =
-        props.variant === "admin"
-          ? `/api/admin/claims/${claim.id}/payout/sync`
-          : `/api/claims/${claim.id}/payout/sync`;
-      const response = await fetch(syncUrl, {
-        method: "POST",
-      });
-      const updated = await readJson<SerializedClaim>(response);
-      cacheClaimDetail(updated);
-      setDetailClaim(updated);
-      await props.onUpdated?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not refresh payout status.");
-    } finally {
-      setSyncingPayout(false);
-    }
-  }
-
   const canRetryPay =
     canPay &&
     claim.status === "APPROVED" &&
     payoutFailed(claim.payoutStatus);
-
-  const payoutUnsettled =
-    Boolean(claim.razorpayPayoutId) &&
-    claim.status !== "PAID" &&
-    !claim.paidAt;
-
-  const canSyncPayout = payoutUnsettled;
 
   const receiptsTotal = claimReceiptCount(claim);
   const showSubmitterRole =
@@ -401,35 +371,6 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {canSyncPayout ? (
-          <div className="space-y-4 border-t border-zinc-100 pt-8">
-            {error ? (
-              <p className="text-sm text-red-700" role="alert">
-                {error}
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              size="lg"
-              disabled={syncingPayout}
-              onClick={syncPayout}
-            >
-              {syncingPayout ? "Refreshing Payment Status…" : "Refresh Payment Status"}
-            </Button>
-            <p className="text-center text-xs text-zinc-500">
-              Use this if Razorpay shows “processed” but the app hasn’t updated yet.
-            </p>
-          </div>
-        ) : null}
-
-        {payoutUnsettled && payoutInProgress(claim.payoutStatus) ? (
-          <p className="border-t border-zinc-100 pt-8 text-sm text-blue-700">
-            Payment is processing in RazorpayX. Status updates automatically every
-            few seconds, or tap Refresh Payment Status.
-          </p>
-        ) : null}
       </div>
     </Modal>
   );
