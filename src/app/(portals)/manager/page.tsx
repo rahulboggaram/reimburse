@@ -310,11 +310,7 @@ export default function ManagerPendingPage() {
 
   return (
     <>
-      <PageHeading
-        title="Approvals"
-        description="Review and take action"
-        className="mb-8"
-      />
+      <PageHeading title="Approvals" className="mb-8" />
 
       <SegmentControl
         options={queueSegments(user?.role)}
