@@ -203,7 +203,7 @@ export default function AdminPeoplePage() {
         </form>
       </Card>
 
-      <div className="mb-4 space-y-3">
+      <Card className="mb-4 space-y-4">
         <FloatingInput
           id="search-employee"
           label="Name or mobile number"
@@ -216,14 +216,14 @@ export default function AdminPeoplePage() {
           label="Filter by role"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-          >
-            <option value="all">All roles</option>
-            <option value="employee">Employees only</option>
-            <option value="branch-manager">Branch managers only</option>
-            <option value="approver">Payment approvers only</option>
-            <option value="admin">Admins only</option>
-            <option value="signed-up">Signed up</option>
-            <option value="pending">Pending signup</option>
+        >
+          <option value="all">All roles</option>
+          <option value="employee">Employees only</option>
+          <option value="branch-manager">Branch managers only</option>
+          <option value="approver">Payment approvers only</option>
+          <option value="admin">Admins only</option>
+          <option value="signed-up">Signed up</option>
+          <option value="pending">Pending signup</option>
         </FloatingSelect>
         {search.trim() ? (
           <p className="text-sm text-zinc-600">
@@ -249,7 +249,7 @@ export default function AdminPeoplePage() {
             )}
           </p>
         ) : null}
-      </div>
+      </Card>
 
       <h2 className="mb-3 text-lg font-semibold">All Employees</h2>
 
