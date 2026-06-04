@@ -28,7 +28,7 @@ function labelClass(state: FieldVisualState, floated: boolean) {
     "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate bg-white px-0.5 leading-none transition-all duration-200 ease-out",
     floated
       ? "top-0 -translate-y-1/2 text-xs font-medium"
-      : "top-1/2 -translate-y-1/2 text-base font-normal text-zinc-500",
+      : "top-1/2 -translate-y-1/2 text-base font-medium text-zinc-500",
     floated && state === "focused" && "text-blue-600",
     floated && state === "filled" && "text-zinc-500",
   );
