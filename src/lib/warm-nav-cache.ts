@@ -18,29 +18,18 @@ function pendingCacheKey(tab: "waiting" | "approved") {
   return `claims-pending-${tab}`;
 }
 
-function wantsPendingCounts(role: string) {
-  return role === "ADMIN" || role === "APPROVER";
-}
-
 async function fetchPendingTab(
   tab: "waiting" | "approved",
-  role: string,
 ): Promise<TabPayload> {
-  const countsQuery = wantsPendingCounts(role) ? "&counts=1" : "";
-  const response = await fetch(`/api/claims/pending?tab=${tab}${countsQuery}`);
-  const data = await readJson<
-    SerializedClaim[] | { claims: SerializedClaim[]; counts: ActionCounts }
-  >(response);
-  if (Array.isArray(data)) {
-    return { claims: data, counts: null };
-  }
-  return { claims: data.claims, counts: data.counts };
+  const response = await fetch(`/api/claims/pending?tab=${tab}`);
+  const claims = await readJson<SerializedClaim[]>(response);
+  return { claims, counts: null };
 }
 
-function warmPendingTab(tab: "waiting" | "approved", role: string) {
+function warmPendingTab(tab: "waiting" | "approved") {
   const key = pendingCacheKey(tab);
   if (readClientCache(key)) return;
-  void fetchClientCache(key, () => fetchPendingTab(tab, role), 90_000);
+  void fetchClientCache(key, () => fetchPendingTab(tab), 90_000);
 }
 
 /** Prefetch likely API responses when the account menu opens. */
@@ -59,8 +48,8 @@ export function warmNavCaches(user: {
     user.role === "APPROVER" ||
     user.role === "BRANCH_MANAGER"
   ) {
-    warmPendingTab("waiting", user.role);
-    warmPendingTab("approved", user.role);
+    warmPendingTab("waiting");
+    window.setTimeout(() => warmPendingTab("approved"), 2000);
   }
 
   if (user.role === "ADMIN") {

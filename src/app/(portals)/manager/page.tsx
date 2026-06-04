@@ -99,22 +99,11 @@ export default function ManagerPendingPage() {
   const isAdmin = user?.role === "ADMIN";
   const wantsCounts = isApprover || isAdmin;
 
-  const fetchTab = useCallback(
-    async (activeTab: QueueTab): Promise<TabPayload> => {
-      const countsQuery = wantsCounts ? "&counts=1" : "";
-      const response = await fetch(
-        `/api/claims/pending?tab=${activeTab}${countsQuery}`,
-      );
-      const data = await readJson<
-        SerializedClaim[] | { claims: SerializedClaim[]; counts: ActionCounts }
-      >(response);
-      if (Array.isArray(data)) {
-        return { claims: data, counts: null };
-      }
-      return { claims: data.claims, counts: data.counts };
-    },
-    [wantsCounts],
-  );
+  const fetchTab = useCallback(async (activeTab: QueueTab): Promise<TabPayload> => {
+    const response = await fetch(`/api/claims/pending?tab=${activeTab}`);
+    const claims = await readJson<SerializedClaim[]>(response);
+    return { claims, counts: null };
+  }, []);
 
   const applyTabPayload = useCallback((payload: TabPayload) => {
     setClaims(payload.claims);
@@ -133,16 +122,27 @@ export default function ManagerPendingPage() {
     [fetchTab],
   );
 
+  const loadActionCounts = useCallback(async (): Promise<ActionCounts | null> => {
+    if (!wantsCounts) return null;
+    const response = await fetch("/api/claims/action-counts");
+    return readJson<ActionCounts>(response);
+  }, [wantsCounts]);
+
   const refreshQueue = useCallback(async () => {
     invalidateClientCache("claims-pending");
     setLoading(true);
     const data = await loadTab(tab, true);
     applyTabPayload(data);
     setLoading(false);
+    if (wantsCounts) {
+      void loadActionCounts().then((nextCounts) => {
+        if (nextCounts) setCounts(nextCounts);
+      });
+    }
     void Promise.all(
       TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)),
     );
-  }, [loadTab, tab, applyTabPayload]);
+  }, [loadTab, loadActionCounts, tab, applyTabPayload, wantsCounts]);
 
   const showApproveAll =
     isAdmin && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
@@ -194,6 +194,11 @@ export default function ManagerPendingPage() {
       setClaims([]);
     }
     setLoading(!cached);
+    if (wantsCounts) {
+      void loadActionCounts().then((nextCounts) => {
+        if (nextCounts) setCounts(nextCounts);
+      });
+    }
   }
 
   useEffect(() => {
@@ -226,16 +231,25 @@ export default function ManagerPendingPage() {
         }
       });
 
+    if (wantsCounts) {
+      void loadActionCounts().then((nextCounts) => {
+        if (!cancelled && nextCounts) setCounts(nextCounts);
+      });
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [tab, loadTab, applyTabPayload]);
+  }, [tab, loadTab, loadActionCounts, applyTabPayload, wantsCounts]);
 
   useEffect(() => {
     if (!wantsCounts) return;
     const other = TABS.find((t) => t !== tab);
     if (!other || readTabCache(other)) return;
-    void fetchClientCache(cacheKey(other), () => fetchTab(other));
+    const timer = window.setTimeout(() => {
+      void fetchClientCache(cacheKey(other), () => fetchTab(other));
+    }, 1500);
+    return () => window.clearTimeout(timer);
   }, [fetchTab, tab, wantsCounts]);
 
   async function runBulk(

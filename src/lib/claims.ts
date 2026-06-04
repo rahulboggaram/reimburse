@@ -24,12 +24,43 @@ export const claimListInclude = {
   _count: { select: { receipts: true } },
 } satisfies Prisma.ReimbursementInclude;
 
+/** Manager / payment queue lists — no user/branch joins. */
+export const claimQueueSelect = {
+  id: true,
+  employeeId: true,
+  employeeName: true,
+  amount: true,
+  category: true,
+  description: true,
+  expenseDate: true,
+  branchId: true,
+  status: true,
+  rejectionReason: true,
+  decidedAt: true,
+  razorpayPayoutId: true,
+  payoutStatus: true,
+  payoutUtr: true,
+  payoutError: true,
+  payoutInitiatedAt: true,
+  paidAt: true,
+  approverId: true,
+  paymentApproverId: true,
+  refiledFromId: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { receipts: true } },
+} satisfies Prisma.ReimbursementSelect;
+
 export type ClaimWithRelations = Prisma.ReimbursementGetPayload<{
   include: typeof claimInclude;
 }>;
 
 export type ClaimListItem = Prisma.ReimbursementGetPayload<{
   include: typeof claimListInclude;
+}>;
+
+export type ClaimQueueRow = Prisma.ReimbursementGetPayload<{
+  select: typeof claimQueueSelect;
 }>;
 
 function serializeClaimCore(
@@ -83,4 +114,57 @@ export function serializeClaim(claim: ClaimWithRelations) {
 export function serializeClaimListItem(claim: ClaimListItem) {
   const receiptCount = claim._count.receipts;
   return serializeClaimCore(claim, [], receiptCount);
+}
+
+const queueRelationStub = {
+  name: null as string | null,
+  phone: "",
+};
+
+/** Approval / payment queue tables — minimal payload; detail modal loads full claim. */
+export function serializeClaimQueueItem(claim: ClaimQueueRow) {
+  const receiptCount = claim._count.receipts;
+  return {
+    id: claim.id,
+    employeeId: claim.employeeId,
+    employeeName: claim.employeeName,
+    employee: {
+      id: claim.employeeId,
+      ...queueRelationStub,
+      role: "EMPLOYEE",
+    },
+    amount: Number(claim.amount),
+    category: claim.category,
+    description: claim.description,
+    expenseDate: claim.expenseDate.toISOString(),
+    branchId: claim.branchId,
+    branch: { id: claim.branchId, name: "", active: true },
+    status: claim.status,
+    rejectionReason: claim.rejectionReason,
+    decidedAt: claim.decidedAt?.toISOString() ?? null,
+    razorpayPayoutId: claim.razorpayPayoutId,
+    payoutStatus: claim.payoutStatus,
+    payoutUtr: claim.payoutUtr,
+    payoutError: claim.payoutError,
+    payoutInitiatedAt: claim.payoutInitiatedAt?.toISOString() ?? null,
+    paidAt: claim.paidAt?.toISOString() ?? null,
+    approverId: claim.approverId,
+    approver: {
+      id: claim.approverId,
+      ...queueRelationStub,
+      role: "BRANCH_MANAGER",
+    },
+    paymentApproverId: claim.paymentApproverId,
+    paymentApprover: {
+      id: claim.paymentApproverId,
+      ...queueRelationStub,
+      role: "APPROVER",
+    },
+    refiledFromId: claim.refiledFromId,
+    receipts: [],
+    receiptCount,
+    queueList: true as const,
+    createdAt: claim.createdAt.toISOString(),
+    updatedAt: claim.updatedAt.toISOString(),
+  };
 }

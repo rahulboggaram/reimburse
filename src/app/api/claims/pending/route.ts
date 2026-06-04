@@ -1,12 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
-import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
+import { claimQueueSelect, serializeClaimQueueItem } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
-import {
-  countAdminPendingApproval,
-  countPaymentWaiting,
-} from "@/lib/bulk-claim-actions";
 import {
   approverPaymentSentWhere,
   approverPaymentWaitingWhere,
@@ -55,6 +51,55 @@ function queueWhere(
     : { status: { in: ["APPROVED", "PAID"] } };
 }
 
+function queueOrderBy(
+  session: { role: string },
+  tab: QueueTab,
+): Prisma.ReimbursementOrderByWithRelationInput {
+  if (tab === "approved") {
+    return session.role === "APPROVER"
+      ? { payoutInitiatedAt: "desc" }
+      : { decidedAt: "desc" };
+  }
+  return session.role === "APPROVER"
+    ? { decidedAt: "desc" }
+    : { createdAt: "desc" };
+}
+
+async function fetchQueueClaims(
+  session: { id: string; role: string; branchId?: string | null },
+  tab: QueueTab,
+) {
+  const orderBy = queueOrderBy(session, tab);
+
+  if (session.role === "ADMIN" && tab === "waiting") {
+    const [needsApproval, awaitingPayment] = await Promise.all([
+      prisma.reimbursement.findMany({
+        where: adminApprovalQueueWhere(session.branchId),
+        orderBy: { createdAt: "desc" },
+        select: claimQueueSelect,
+      }),
+      prisma.reimbursement.findMany({
+        where: orgPaymentWaitingWhere(session.branchId),
+        orderBy: { createdAt: "desc" },
+        select: claimQueueSelect,
+      }),
+    ]);
+    const byId = new Map<string, (typeof needsApproval)[number]>();
+    for (const row of [...needsApproval, ...awaitingPayment]) {
+      byId.set(row.id, row);
+    }
+    return [...byId.values()].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+  }
+
+  return prisma.reimbursement.findMany({
+    where: queueWhere(session, tab),
+    orderBy,
+    select: claimQueueSelect,
+  });
+}
+
 export async function GET(request: Request) {
   try {
     const session = await requireManagerAccess();
@@ -62,41 +107,9 @@ export async function GET(request: Request) {
 
     const tabParam = new URL(request.url).searchParams.get("tab");
     const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
-    const where = queueWhere(session, tab);
-    const orderBy =
-      tab === "approved"
-        ? session.role === "APPROVER"
-          ? { payoutInitiatedAt: "desc" as const }
-          : { decidedAt: "desc" as const }
-        : session.role === "APPROVER"
-          ? { decidedAt: "desc" as const }
-          : { createdAt: "desc" as const };
+    const claims = await fetchQueueClaims(session, tab);
 
-    const includeCounts = new URL(request.url).searchParams.get("counts") === "1";
-
-    const [claims, paymentWaiting, adminPending] = await Promise.all([
-      prisma.reimbursement.findMany({
-        where,
-        orderBy,
-        include: claimListInclude,
-      }),
-      includeCounts &&
-      (session.role === "APPROVER" || session.role === "ADMIN")
-        ? countPaymentWaiting(session)
-        : Promise.resolve(0),
-      includeCounts && session.role === "ADMIN"
-        ? countAdminPendingApproval(session.branchId)
-        : Promise.resolve(0),
-    ]);
-
-    const body = includeCounts
-      ? {
-          claims: claims.map(serializeClaimListItem),
-          counts: { paymentWaiting, adminPending },
-        }
-      : claims.map(serializeClaimListItem);
-
-    return Response.json(body, {
+    return Response.json(claims.map(serializeClaimQueueItem), {
       headers: { "Cache-Control": "private, max-age=20" },
     });
   } catch (err) {

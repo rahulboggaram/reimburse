@@ -30,6 +30,7 @@ function payoutFailed(status: string | null) {
 }
 
 function claimNeedsFullLoad(claim: SerializedClaim) {
+  if (claim.queueList) return true;
   if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
     return false;
   }
