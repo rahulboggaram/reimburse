@@ -43,7 +43,7 @@ function labelClass(
 function valueClassForState(state: FieldVisualState) {
   return cn(
     "leading-normal text-zinc-900",
-    state === "filled" ? "text-lg font-bold" : "text-base font-medium",
+    state === "filled" ? "text-lg font-semibold" : "text-base font-medium",
   );
 }
 
