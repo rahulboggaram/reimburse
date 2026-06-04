@@ -203,8 +203,6 @@ export function EmployeeProfileForm(props: {
   const nameEditing = isOnboarding || editingSection === "name";
   const bankEditing = isOnboarding || editingSection === "bank";
 
-  const profileCardClass = "ring-1 ring-zinc-200/80";
-
   const content = (
     <div className="space-y-6">
       <PageHeading title={props.title} description={props.description} />
@@ -215,7 +213,7 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className={cn(profileCardClass, "divide-y divide-zinc-100 p-0")}>
+      <Card className="divide-y divide-zinc-100 p-0">
         <ProfileCardBlock>
           {nameEditing ? (
             <div className="space-y-4">
@@ -280,7 +278,7 @@ export function EmployeeProfileForm(props: {
         ) : null}
       </Card>
 
-      <Card className={cn(profileCardClass, "p-5")}>
+      <Card className="p-5">
         {isOnboarding ? (
           <p className="mb-4 text-sm text-zinc-600">
             Bank details are required for every team member so payouts can reach
