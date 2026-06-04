@@ -2,7 +2,6 @@
 
 import { useMe } from "@/components/me-provider";
 import {
-  claimsTableColAmount,
   claimsTableColCenter,
   claimsTableColChevron,
   claimsTableColStart,
@@ -20,8 +19,10 @@ export function MyClaimsTableHeader() {
   return (
     <div className={claimsTableHeaderClass(claimsTableGridWithStatus)}>
       <span className={cn(claimsTableColStart, "truncate")}>Category</span>
-      <span className={claimsTableColCenter}>Date</span>
-      <span className={claimsTableColAmount}>Amount</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
+        Amount
+      </span>
       <span className={claimsTableColCenter}>Status</span>
       <span className={claimsTableColChevron} aria-hidden />
     </div>
@@ -53,21 +54,21 @@ export function MyClaimsTableRow(props: {
       <span
         className={cn(
           claimsTableColCenter,
-          "text-sm text-zinc-600 tabular-nums",
+          "text-sm whitespace-nowrap text-zinc-600 tabular-nums",
         )}
       >
         {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
       <span
         className={cn(
-          claimsTableColAmount,
-          "text-sm font-semibold text-zinc-900",
+          claimsTableColCenter,
+          "text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums",
         )}
       >
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
-      <span className={cn(claimsTableColCenter, "flex justify-center")}>
-        <StatusBadge status={status} compact />
+      <span className={claimsTableColCenter}>
+        <StatusBadge status={status} compact className="mx-auto" />
       </span>
       <span className={claimsTableColChevron} aria-hidden>
         ›

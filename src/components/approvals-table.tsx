@@ -3,7 +3,6 @@
 import { useMe } from "@/components/me-provider";
 import {
   approvalsTableGrid,
-  claimsTableColAmount,
   claimsTableColCenter,
   claimsTableColCheckbox,
   claimsTableColChevron,
@@ -67,11 +66,54 @@ export function ApprovalsTableHeader(props: {
       {showCategory ? (
         <span className={cn(claimsTableColStart, "truncate")}>Category</span>
       ) : null}
-      <span className={claimsTableColCenter}>Date</span>
-      <span className={claimsTableColAmount}>Amount</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
+        Amount
+      </span>
       {showStatus ? <span className={claimsTableColCenter}>Status</span> : null}
       <span className={claimsTableColChevron} aria-hidden />
     </div>
+  );
+}
+
+function rowCells(props: {
+  claim: SerializedClaim;
+  showStatus: boolean;
+  showCategory: boolean;
+  status: string;
+}) {
+  const { claim, showStatus, showCategory, status } = props;
+  return (
+    <>
+      <span className={cn(claimsTableColStart, employeeCellClass)}>
+        {claim.employeeName}
+      </span>
+      {showCategory ? (
+        <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
+          {claim.category}
+        </span>
+      ) : null}
+      <span className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}>
+        {formatDisplayDateNoYear(claim.expenseDate)}
+      </span>
+      <span
+        className={cn(
+          claimsTableColCenter,
+          bodyCellClass,
+          "whitespace-nowrap",
+        )}
+      >
+        ₹{claim.amount.toLocaleString("en-IN")}
+      </span>
+      {showStatus ? (
+        <span className={claimsTableColCenter}>
+          <StatusBadge status={status} compact className="mx-auto" />
+        </span>
+      ) : null}
+      <span className={claimsTableColChevron} aria-hidden>
+        ›
+      </span>
+    </>
   );
 }
 
@@ -95,23 +137,23 @@ export function ApprovalsTableRow(props: {
     selectable: props.selectable,
   });
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={props.onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          props.onOpen();
-        }
-      }}
-      className={cn(
-        claimsTableRowClass(grid),
-        "cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
-      )}
-    >
-      {props.selectable ? (
+  if (props.selectable) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={props.onOpen}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            props.onOpen();
+          }
+        }}
+        className={cn(
+          claimsTableRowClass(grid),
+          "cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+        )}
+      >
         <label
           className={claimsTableColCheckbox}
           onClick={stopRowClick}
@@ -126,29 +168,18 @@ export function ApprovalsTableRow(props: {
             aria-label={`Select ${claim.employeeName}`}
           />
         </label>
-      ) : null}
-      <span className={cn(claimsTableColStart, employeeCellClass)}>
-        {claim.employeeName}
-      </span>
-      {showCategory ? (
-        <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
-          {claim.category}
-        </span>
-      ) : null}
-      <span className={cn(claimsTableColCenter, bodyCellClass)}>
-        {formatDisplayDateNoYear(claim.expenseDate)}
-      </span>
-      <span className={cn(claimsTableColAmount, bodyCellClass, "font-semibold text-zinc-900")}>
-        ₹{claim.amount.toLocaleString("en-IN")}
-      </span>
-      {showStatus ? (
-        <span className={cn(claimsTableColCenter, "flex min-w-0 justify-center")}>
-          <StatusBadge status={status} compact className="max-w-full" />
-        </span>
-      ) : null}
-      <span className={claimsTableColChevron} aria-hidden>
-        ›
-      </span>
-    </div>
+        {rowCells({ claim, showStatus, showCategory, status })}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={props.onOpen}
+      className={claimsTableRowClass(grid)}
+    >
+      {rowCells({ claim, showStatus, showCategory, status })}
+    </button>
   );
 }
