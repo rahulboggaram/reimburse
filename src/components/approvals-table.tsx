@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDateNoYear } from "@/lib/dates";
+import { TextLinkButton } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
 const employeeCellClass =
@@ -33,13 +34,9 @@ export function ApprovalsSelectionBar(props: {
 }) {
   return (
     <div className="mb-3 flex justify-end">
-      <button
-        type="button"
-        className="text-sm font-medium text-zinc-700 underline"
-        onClick={props.onToggleAll}
-      >
+      <TextLinkButton onClick={props.onToggleAll}>
         {props.allSelected ? "Clear all" : "Select all"}
-      </button>
+      </TextLinkButton>
     </div>
   );
 }
