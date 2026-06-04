@@ -4,6 +4,7 @@ import { useMe } from "@/components/me-provider";
 import {
   approvalsTableGrid,
   claimsTableColCenter,
+  claimsTableColCheckbox,
   claimsTableColChevron,
   claimsTableColStart,
   claimsTableHeaderClass,
@@ -40,7 +41,7 @@ export function ApprovalsTableHeader(props: {
   return (
     <div className={claimsTableHeaderClass(grid)}>
       {props.selectable ? (
-        <span className="flex items-center justify-center">
+        <span className={claimsTableColCheckbox}>
           <input
             type="checkbox"
             className="size-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-600"
@@ -91,7 +92,7 @@ export function ApprovalsTableRow(props: {
     <div className={claimsTableRowClass(grid)}>
       {props.selectable ? (
         <label
-          className="flex items-center justify-center"
+          className={claimsTableColCheckbox}
           onClick={(e) => e.stopPropagation()}
         >
           <input
@@ -106,39 +107,38 @@ export function ApprovalsTableRow(props: {
       <button
         type="button"
         onClick={props.onOpen}
-        className={cn(
-          "contents text-left",
-          props.selectable ? "[&>span]:cursor-pointer" : "",
-        )}
+        className="contents min-w-0 cursor-pointer text-left"
       >
-      <span className={cn(claimsTableColStart, employeeCellClass)}>
-        {claim.employeeName}
-      </span>
-      {showCategory ? (
-        <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
-          {claim.category}
+        <span className={cn(claimsTableColStart, employeeCellClass)}>
+          {claim.employeeName}
         </span>
-      ) : null}
-      <span className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}>
-        {formatDisplayDateNoYear(claim.expenseDate)}
-      </span>
-      <span
-        className={cn(
-          claimsTableColCenter,
-          bodyCellClass,
-          "whitespace-nowrap",
-        )}
-      >
-        ₹{claim.amount.toLocaleString("en-IN")}
-      </span>
-      {showStatus ? (
-        <span className={claimsTableColCenter}>
-          <StatusBadge status={status} compact className="mx-auto" />
+        {showCategory ? (
+          <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
+            {claim.category}
+          </span>
+        ) : null}
+        <span
+          className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}
+        >
+          {formatDisplayDateNoYear(claim.expenseDate)}
         </span>
-      ) : null}
-      <span className={claimsTableColChevron} aria-hidden>
-        ›
-      </span>
+        <span
+          className={cn(
+            claimsTableColCenter,
+            bodyCellClass,
+            "whitespace-nowrap",
+          )}
+        >
+          ₹{claim.amount.toLocaleString("en-IN")}
+        </span>
+        {showStatus ? (
+          <span className={claimsTableColCenter}>
+            <StatusBadge status={status} compact className="mx-auto" />
+          </span>
+        ) : null}
+        <span className={claimsTableColChevron} aria-hidden>
+          ›
+        </span>
       </button>
     </div>
   );
