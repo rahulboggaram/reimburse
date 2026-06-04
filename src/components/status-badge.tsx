@@ -51,7 +51,7 @@ export function StatusBadge(props: {
       className={cn(
         "inline-flex max-w-full items-center rounded-full font-semibold",
         compact
-          ? "truncate px-2.5 py-1 text-xs leading-normal"
+          ? "whitespace-nowrap px-2 py-0.5 text-[11px] leading-tight"
           : "px-3 py-1.5 text-sm leading-normal",
         useCapitalize && "capitalize",
         styles[key] ?? styles[raw] ?? styles[label] ?? neutralStyle,

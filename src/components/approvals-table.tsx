@@ -3,6 +3,7 @@
 import { useMe } from "@/components/me-provider";
 import {
   approvalsTableGrid,
+  claimsTableColAmount,
   claimsTableColCenter,
   claimsTableColCheckbox,
   claimsTableColChevron,
@@ -67,9 +68,7 @@ export function ApprovalsTableHeader(props: {
         <span className={cn(claimsTableColStart, "truncate")}>Category</span>
       ) : null}
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
-      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
-        Amount
-      </span>
+      <span className={cn(claimsTableColAmount, "whitespace-nowrap")}>Amount</span>
       {showStatus ? <span className={claimsTableColCenter}>Status</span> : null}
       <span className={claimsTableColChevron} aria-hidden />
     </div>
@@ -139,14 +138,12 @@ export function ApprovalsTableRow(props: {
       <span className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}>
         {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
-      <span
-        className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}
-      >
+      <span className={cn(claimsTableColAmount, bodyCellClass)}>
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
       {showStatus ? (
-        <span className={cn(claimsTableColCenter, "flex justify-center")}>
-          <StatusBadge status={status} compact />
+        <span className={cn(claimsTableColCenter, "flex min-w-0 justify-center")}>
+          <StatusBadge status={status} compact className="max-w-full" />
         </span>
       ) : null}
       <span className={claimsTableColChevron} aria-hidden>

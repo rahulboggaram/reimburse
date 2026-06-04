@@ -2,6 +2,7 @@
 
 import { useMe } from "@/components/me-provider";
 import {
+  claimsTableColAmount,
   claimsTableColCenter,
   claimsTableColChevron,
   claimsTableColStart,
@@ -20,9 +21,7 @@ export function MyClaimsTableHeader() {
     <div className={claimsTableHeaderClass(claimsTableGridWithStatus)}>
       <span className={cn(claimsTableColStart, "truncate")}>Category</span>
       <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
-      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
-        Amount
-      </span>
+      <span className={cn(claimsTableColAmount, "whitespace-nowrap")}>Amount</span>
       <span className={claimsTableColCenter}>Status</span>
       <span className={claimsTableColChevron} aria-hidden />
     </div>
@@ -61,8 +60,8 @@ export function MyClaimsTableRow(props: {
       </span>
       <span
         className={cn(
-          claimsTableColCenter,
-          "text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums",
+          claimsTableColAmount,
+          "text-sm font-semibold text-zinc-900",
         )}
       >
         ₹{claim.amount.toLocaleString("en-IN")}
