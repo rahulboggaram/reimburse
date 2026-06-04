@@ -129,6 +129,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       "/admin/activity",
       "/admin/reports",
       "/admin/analytics",
+      "/admin/otp-setup",
       "/admin/branches",
       "/admin/categories",
     ];
@@ -349,6 +350,13 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
                 active={pathname.startsWith("/admin/analytics")}
               >
                 Insights
+              </MenuLink>
+              <MenuLink
+                href="/admin/otp-setup"
+                onNavigate={closeMenu}
+                active={pathname.startsWith("/admin/otp-setup")}
+              >
+                WhatsApp login
               </MenuLink>
               {profileLink}
               <MenuDivider />
