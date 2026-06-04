@@ -35,10 +35,28 @@ function labelClass(state: FieldVisualState, floated: boolean) {
 }
 
 const valueClass =
-  "text-base font-medium text-zinc-900";
+  "text-base font-medium leading-normal text-zinc-900";
 
-const inputClass =
-  "block h-field w-full rounded-xl border-0 bg-transparent px-4 pb-2.5 pt-5 outline-none";
+const controlClass =
+  "w-full min-w-0 border-0 bg-transparent p-0 outline-none";
+
+function FieldControl(props: {
+  multiline?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex w-full px-4",
+        props.multiline
+          ? "min-h-textarea items-center py-3"
+          : "h-field items-center",
+      )}
+    >
+      {props.children}
+    </div>
+  );
+}
 
 function FieldWrap(props: {
   id: string;
@@ -112,24 +130,26 @@ export function FloatingInput(
       error={error}
       hint={<FieldError message={fieldError} />}
     >
-      <input
-        {...inputProps}
-        id={id}
-        value={value}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-        className={cn(
-          inputClass,
-          showValue ? valueClass : "text-transparent caret-zinc-900",
-          className,
-        )}
-      />
+      <FieldControl>
+        <input
+          {...inputProps}
+          id={id}
+          value={value}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          className={cn(
+            controlClass,
+            showValue ? valueClass : "text-transparent caret-zinc-900",
+            className,
+          )}
+        />
+      </FieldControl>
     </FieldWrap>
   );
 }
@@ -158,27 +178,28 @@ export function FloatingSelect(
       error={error}
       hint={<FieldError message={fieldError} />}
     >
-      <Select
-        {...selectProps}
-        id={id}
-        value={value}
-        onFocus={(e) => {
-          setFocused(true);
-          selectProps.onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          selectProps.onBlur?.(e);
-        }}
-        className={cn(
-          "h-field w-full rounded-xl border-0 bg-transparent py-0 pl-4 pr-12 shadow-none ring-0 focus-visible:ring-0",
-          floated ? "pt-5 pb-2.5" : "",
-          showValue ? valueClass : "text-transparent",
-          className,
-        )}
-      >
-        {props.children}
-      </Select>
+      <FieldControl>
+        <Select
+          {...selectProps}
+          id={id}
+          value={value}
+          onFocus={(e) => {
+            setFocused(true);
+            selectProps.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            selectProps.onBlur?.(e);
+          }}
+          className={cn(
+            "h-full min-h-0 w-full rounded-none border-0 bg-transparent py-0 pl-0 pr-8 shadow-none ring-0 focus-visible:ring-0",
+            showValue ? valueClass : "text-transparent",
+            className,
+          )}
+        >
+          {props.children}
+        </Select>
+      </FieldControl>
     </FieldWrap>
   );
 }
@@ -224,33 +245,35 @@ export function FloatingTextarea(
       error={error}
       hint={<FieldError message={fieldError} />}
     >
-      <textarea
-        {...textareaProps}
-        ref={ref}
-        id={id}
-        value={value}
-        onFocus={(e) => {
-          setFocused(true);
-          textareaProps.onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          textareaProps.onBlur?.(e);
-        }}
-        onChange={(e) => {
-          if (autoResize) {
-            e.currentTarget.style.height = "0px";
-            e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-          }
-          onChange?.(e);
-        }}
-        className={cn(
-          "block min-h-textarea w-full resize-none rounded-xl border-0 bg-transparent px-4 leading-relaxed outline-none",
-          floated ? "pt-6 pb-3" : "pt-5 pb-3",
-          showValue ? cn(valueClass, "text-base") : "text-transparent caret-zinc-900",
-          className,
-        )}
-      />
+      <FieldControl multiline>
+        <textarea
+          {...textareaProps}
+          ref={ref}
+          id={id}
+          value={value}
+          onFocus={(e) => {
+            setFocused(true);
+            textareaProps.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            textareaProps.onBlur?.(e);
+          }}
+          onChange={(e) => {
+            if (autoResize) {
+              e.currentTarget.style.height = "0px";
+              e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+            }
+            onChange?.(e);
+          }}
+          className={cn(
+            controlClass,
+            "min-h-[1.5rem] resize-none leading-relaxed",
+            showValue ? valueClass : "text-transparent caret-zinc-900",
+            className,
+          )}
+        />
+      </FieldControl>
     </FieldWrap>
   );
 }
