@@ -31,7 +31,7 @@ function labelClass(
   return cn(
     "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate leading-none transition-all duration-200 ease-out",
     floated
-      ? "top-3 translate-y-0 bg-transparent px-0 text-xs font-medium"
+      ? "top-2.5 translate-y-0 bg-transparent px-0 text-xs font-medium"
       : "top-1/2 -translate-y-1/2 bg-transparent px-0 text-base font-medium",
     error && errorAccentText,
     !error && !floated && "text-zinc-500",
@@ -64,12 +64,12 @@ function FieldControl(props: {
           (props.autoGrow
             ? cn(
                 "min-h-field",
-                props.floated ? "items-start pb-3 pt-5" : "items-center",
+                props.floated ? "items-start gap-2 pb-3 pt-6" : "items-center",
               )
             : "min-h-textarea items-center py-3"),
         !props.multiline &&
           (props.floated
-            ? "h-field items-end pb-2.5 pt-5"
+            ? "h-field items-start pb-3 pt-6"
             : "h-field items-center"),
       )}
     >
