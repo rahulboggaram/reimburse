@@ -47,15 +47,19 @@ const controlClass =
 
 function FieldControl(props: {
   multiline?: boolean;
+  /** Grows with textarea content (2 lines minimum). */
+  autoGrow?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
       className={cn(
         "flex w-full px-4",
-        props.multiline
-          ? "min-h-textarea items-center py-3"
-          : "h-field items-center",
+        props.multiline &&
+          (props.autoGrow
+            ? "items-start py-3"
+            : "min-h-textarea items-center py-3"),
+        !props.multiline && "h-field items-center",
       )}
     >
       {props.children}
@@ -150,7 +154,7 @@ export function FloatingInput(
           }}
           className={cn(
             controlClass,
-            showValue ? valueClass : "text-transparent caret-zinc-900",
+            showValue ? valueClassForState(state) : "text-transparent caret-zinc-900",
             className,
           )}
         />
@@ -198,7 +202,7 @@ export function FloatingSelect(
           }}
           className={cn(
             "h-full min-h-0 w-full rounded-none border-0 bg-transparent py-0 pl-0 pr-8 shadow-none ring-0 focus-visible:ring-0",
-            showValue ? valueClass : "text-transparent",
+            showValue ? valueClassForState(state) : "text-transparent",
             className,
           )}
         >
@@ -209,12 +213,19 @@ export function FloatingSelect(
   );
 }
 
+function resizeTextarea(el: HTMLTextAreaElement) {
+  el.style.height = "0px";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 export function FloatingTextarea(
   props: React.ComponentProps<"textarea"> & {
     label: string;
     error?: boolean;
     fieldError?: string;
+    /** Start at two lines and grow with more text. Default true. */
     autoResize?: boolean;
+    rows?: number;
   },
 ) {
   const {
@@ -224,7 +235,8 @@ export function FloatingTextarea(
     className,
     id: idProp,
     value,
-    autoResize,
+    autoResize = true,
+    rows = 2,
     onChange,
     ...textareaProps
   } = props;
@@ -236,10 +248,8 @@ export function FloatingTextarea(
 
   useLayoutEffect(() => {
     if (!autoResize || !ref.current) return;
-    const el = ref.current;
-    el.style.height = "0px";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [value, autoResize]);
+    resizeTextarea(ref.current);
+  }, [value, autoResize, floated]);
 
   return (
     <FieldWrap
@@ -250,11 +260,12 @@ export function FloatingTextarea(
       error={error}
       hint={<FieldError message={fieldError} />}
     >
-      <FieldControl multiline>
+      <FieldControl multiline autoGrow={autoResize}>
         <textarea
           {...textareaProps}
           ref={ref}
           id={id}
+          rows={rows}
           value={value}
           onFocus={(e) => {
             setFocused(true);
@@ -265,16 +276,14 @@ export function FloatingTextarea(
             textareaProps.onBlur?.(e);
           }}
           onChange={(e) => {
-            if (autoResize) {
-              e.currentTarget.style.height = "0px";
-              e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-            }
+            if (autoResize) resizeTextarea(e.currentTarget);
             onChange?.(e);
           }}
           className={cn(
             controlClass,
-            "min-h-[1.5rem] resize-none leading-relaxed",
-            showValue ? valueClass : "text-transparent caret-zinc-900",
+            "resize-none leading-relaxed",
+            autoResize && "min-h-textarea-2 overflow-hidden",
+            showValue ? valueClassForState(state) : "text-transparent caret-zinc-900",
             className,
           )}
         />

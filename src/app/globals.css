@@ -8,6 +8,7 @@
   /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
   --height-field: 3.5rem;
   --min-height-textarea: 7.5rem;
+  --min-height-textarea-2: 4.75rem;
 }
 
 html {
