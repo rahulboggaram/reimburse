@@ -164,10 +164,6 @@ export function EmployeeDetailModal(props: {
                   </option>
                 ))}
               </Select>
-              <p className="text-xs text-zinc-600">
-                Required for this role — claims and approvals are scoped to this
-                branch.
-              </p>
             </div>
           ) : null}
         </div>
