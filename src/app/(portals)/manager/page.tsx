@@ -320,21 +320,6 @@ export default function ManagerPendingPage() {
         className="mb-5"
       />
 
-      {bulkSelectable ? (
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-zinc-700 underline"
-              onClick={toggleSelectAll}
-            >
-              {allSelected ? "Clear all" : "Select all"}
-            </button>
-            <span className="text-sm text-zinc-500">
-              {selectedCount} of {claims.length} selected
-            </span>
-        </div>
-      ) : null}
-
       {bulkMessage && (
         <p className="mb-4 text-sm text-zinc-600" role="status">
           {bulkMessage}
@@ -365,6 +350,8 @@ export default function ManagerPendingPage() {
             allSelected={allSelected}
             someSelected={someSelected}
             onToggleAll={toggleSelectAll}
+            selectedCount={selectedCount}
+            totalCount={claims.length}
           />
           <div>
             {claims.map((claim) => (
