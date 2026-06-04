@@ -39,7 +39,7 @@ function ReceiptActionButton(props: {
         fieldShellBase,
         props.error
           ? "border-rose-800"
-          : "border-zinc-300 hover:bg-zinc-50 active:bg-zinc-100 focus-visible:border-blue-600 focus-visible:outline-none",
+          : "border-zinc-300 hover:bg-zinc-50 active:bg-zinc-100 focus-visible:border-accent focus-visible:outline-none",
       )}
     >
       <span className="text-zinc-800">{props.children}</span>

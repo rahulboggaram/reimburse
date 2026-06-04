@@ -63,7 +63,7 @@ export function RejectedClaimActions(props: {
             "inline-flex items-center justify-center rounded-xl text-sm font-semibold",
             stacked
               ? "w-full bg-zinc-900 px-4 py-3 text-white hover:bg-zinc-800"
-              : "px-3 py-2 text-blue-600 hover:text-blue-800",
+              : "px-3 py-2 text-accent hover:text-accent-hover",
           )}
         >
           Edit and resubmit

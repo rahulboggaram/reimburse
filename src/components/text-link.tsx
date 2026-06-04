@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-/** Shared blue text-link style across the app funnel. */
+/** Shared accent text-link style across the app funnel. */
 export const textLinkClassName =
-  "text-sm font-medium text-blue-600 hover:text-blue-800";
+  "text-sm font-medium text-accent hover:text-accent-hover";
 
 export function TextLink(
   props: React.ComponentProps<typeof Link> & { className?: string },

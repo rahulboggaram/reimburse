@@ -9,7 +9,7 @@ const labels: Record<string, string> = {
 const successStyle = "bg-emerald-50 text-emerald-600";
 const errorStyle = "bg-red-50 text-red-600";
 /** In-progress / waiting states (Queued, Awaiting, paying). */
-const progressStyle = "bg-blue-50 text-blue-600";
+const progressStyle = "bg-accent-soft text-accent";
 const neutralStyle = "bg-zinc-100 text-zinc-600";
 
 const styles: Record<string, string> = {

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-amber-400",
-  APPROVED: "bg-blue-500",
+  APPROVED: "bg-accent",
   REJECTED: "bg-red-400",
   PAID: "bg-emerald-600",
 };

@@ -31,7 +31,7 @@ function Panel(props: { children: React.ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm shadow-zinc-200/50",
+        "rounded-2xl border border-zinc-200 bg-card-bg p-4 shadow-sm shadow-zinc-200/40",
         props.className,
       )}
     >
@@ -220,7 +220,7 @@ export default function AdminAnalyticsPage() {
                   sublabel: `${row.count} claims`,
                 }))}
                 formatValue={(v) => formatInr(v)}
-                barClassName="bg-blue-500"
+                barClassName="bg-accent"
               />
             </Panel>
             <Panel>

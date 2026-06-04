@@ -18,7 +18,7 @@ function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
 function normalShellClass(state: FieldVisualState) {
   return cn(
     "relative rounded-xl border-[1.5px] bg-white transition-[border-color] duration-200",
-    state === "focused" && "border-[1.5px] border-blue-600",
+    state === "focused" && "border-[1.5px] border-accent",
     (state === "idle" || state === "filled") && "border-zinc-300",
   );
 }
@@ -39,7 +39,7 @@ function labelClass(
       : "top-1/2 -translate-y-1/2 text-base font-medium",
     error && errorAccentText,
     !error && !floated && "text-zinc-500",
-    !error && floated && state === "focused" && "text-blue-600",
+    !error && floated && state === "focused" && "text-accent",
     !error && floated && state === "filled" && "text-zinc-500",
   );
 }

@@ -4,7 +4,11 @@
 @theme {
   --font-sans: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-brand: var(--font-brand-family), ui-sans-serif, system-ui, sans-serif;
-  --color-app-bg: #f4f2ed;
+  --color-app-bg: #ffffff;
+  --color-card-bg: #f4f4f5;
+  --color-accent: #ea580c;
+  --color-accent-hover: #c2410c;
+  --color-accent-soft: #fff7ed;
   /* Comfortable tap targets on mobile (text fields, selects, date pickers) */
   --height-field: 3.5rem;
   --min-height-textarea: 7.5rem;
@@ -19,7 +23,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f4f2ed;
+  background-color: var(--color-app-bg);
 }
 
 .font-tabular-nums {
@@ -46,18 +50,6 @@ body {
   font-family: var(--font-brand);
   font-weight: 800;
   letter-spacing: -0.03em;
-}
-
-.wordmark-gold {
-  background-image: linear-gradient(
-    135deg,
-    #5c4a06 0%,
-    #8a7020 50%,
-    #5c4a06 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
 }
 
 .scrollbar-hide {
