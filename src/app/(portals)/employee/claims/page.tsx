@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
-import { fetchMyClaims } from "@/lib/fetch-own-claims";
+import { fetchMyClaims, readMyClaimsCache } from "@/lib/fetch-own-claims";
 
 function MyClaimsLoadingSkeleton() {
   return (
@@ -31,6 +31,7 @@ export default function MyClaimsPage() {
   const { user, loading: meLoading } = useMe();
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   useEffect(() => {
@@ -62,18 +63,23 @@ export default function MyClaimsPage() {
     if (meLoading || !user || !canViewOwnReimbursements(user)) return;
 
     const ownerId = user.id;
+    const cached = readMyClaimsCache(ownerId);
     let cancelled = false;
 
-    setClaims([]);
-    setSelected(null);
-    setLoading(true);
+    if (cached) {
+      setClaims(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    setHydrated(true);
 
     fetchMyClaims(ownerId)
       .then((rows) => {
         if (!cancelled) setClaims(rows);
       })
       .catch(() => {
-        if (!cancelled) setClaims([]);
+        if (!cancelled && !cached) setClaims([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -94,7 +100,7 @@ export default function MyClaimsPage() {
   }
 
   const activeClaims = claims.filter((claim) => claim.status !== "REJECTED");
-  const waitingForClaims = loading && claims.length === 0;
+  const waitingForClaims = hydrated && loading && claims.length === 0;
 
   return (
     <>

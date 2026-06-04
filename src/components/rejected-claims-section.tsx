@@ -8,7 +8,7 @@ import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { Card } from "@/components/ui/card";
 import { formatDisplayDate } from "@/lib/dates";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
-import { fetchMyRejectedClaims } from "@/lib/fetch-own-claims";
+import { fetchMyRejectedClaims, readMyRejectedClaimsCache } from "@/lib/fetch-own-claims";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
 import { toTitleCase } from "@/lib/user-profile";
@@ -49,17 +49,23 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
     }
 
     const ownerId = user.id;
+    const cached = readMyRejectedClaimsCache(ownerId);
     let cancelled = false;
 
-    setClaims([]);
-    setLoading(true);
+    if (cached) {
+      setClaims(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+    setHydrated(true);
 
     fetchMyRejectedClaims(ownerId)
       .then((rows) => {
         if (!cancelled) setClaims(rows);
       })
       .catch(() => {
-        if (!cancelled) setClaims([]);
+        if (!cancelled && !cached) setClaims([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

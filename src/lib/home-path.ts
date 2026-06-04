@@ -1,10 +1,7 @@
 import type { UserRole } from "@prisma/client";
-import { canAccessManagerPortal } from "@/lib/access-roles";
 
-export function getAppHomePathForRole(role: UserRole | string): string {
-  const r = role as UserRole;
-  if (r === "ADMIN") return "/employee";
-  if (canAccessManagerPortal(r)) return "/manager";
+/** Logo and post-login home — new reimbursement form for every role. */
+export function getAppHomePathForRole(_role: UserRole | string): string {
   return "/employee";
 }
 

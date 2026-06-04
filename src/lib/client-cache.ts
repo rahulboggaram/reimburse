@@ -4,6 +4,7 @@ type CacheEntry<T> = {
 };
 
 const store = new Map<string, CacheEntry<unknown>>();
+const inflight = new Map<string, Promise<unknown>>();
 
 export function readClientCache<T>(key: string): T | null {
   const entry = store.get(key);
@@ -27,17 +28,34 @@ export async function fetchClientCache<T>(
   const cached = readClientCache<T>(key);
   if (cached !== null) return cached;
 
-  const data = await fetcher();
-  writeClientCache(key, data, ttlMs);
-  return data;
+  const pending = inflight.get(key);
+  if (pending) return pending as Promise<T>;
+
+  const promise = fetcher()
+    .then((data) => {
+      writeClientCache(key, data, ttlMs);
+      inflight.delete(key);
+      return data;
+    })
+    .catch((err) => {
+      inflight.delete(key);
+      throw err;
+    });
+
+  inflight.set(key, promise);
+  return promise;
 }
 
 export function invalidateClientCache(prefix?: string) {
   if (!prefix) {
     store.clear();
+    inflight.clear();
     return;
   }
   for (const key of store.keys()) {
     if (key.startsWith(prefix)) store.delete(key);
+  }
+  for (const key of inflight.keys()) {
+    if (key.startsWith(prefix)) inflight.delete(key);
   }
 }

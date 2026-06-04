@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMe } from "@/components/me-provider";
 import type { MeUser } from "@/components/me-provider";
 import { invalidateClientCache } from "@/lib/client-cache";
+import { warmNavCaches } from "@/lib/warm-nav-cache";
 import { userDisplayLabel } from "@/lib/user-profile";
 import {
   canAccessManagerPortal,
@@ -109,6 +110,11 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     user ?? (props.initialUser ? sessionToMeUser(props.initialUser) : null);
   const label = resolvedUser ? userDisplayLabel(resolvedUser) : "";
   const showLoading = loading && !resolvedUser;
+
+  useEffect(() => {
+    if (!open || !resolvedUser?.profileComplete) return;
+    warmNavCaches(resolvedUser);
+  }, [open, resolvedUser?.id, resolvedUser?.role, resolvedUser?.profileComplete]);
 
   useEffect(() => {
     if (!open) return;
@@ -216,6 +222,16 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     resolvedUser.role === "ADMIN" ||
     resolvedUser.role === "BRANCH_MANAGER" ||
     resolvedUser.role === "APPROVER";
+  const newReimbursementLink = (
+    <MenuLink
+      href="/employee"
+      onNavigate={closeMenu}
+      active={pathname === "/employee"}
+    >
+      New reimbursement
+    </MenuLink>
+  );
+
   const approvalsLink = canApprove ? (
     <MenuLink
       href="/manager"
@@ -279,13 +295,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
         >
           {canAdmin ? (
             <>
-              <MenuLink
-                href="/employee"
-                onNavigate={closeMenu}
-                active={pathname === "/employee"}
-              >
-                New reimbursement
-              </MenuLink>
+              {newReimbursementLink}
               {approvalsLink}
               {myReimbursementsLink}
               <MenuDivider />
@@ -345,6 +355,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
             </>
           ) : (
             <>
+              {newReimbursementLink}
               {approvalsLink}
               {myReimbursementsLink}
               {profileLink}

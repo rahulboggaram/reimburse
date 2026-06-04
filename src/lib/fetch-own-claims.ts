@@ -37,6 +37,14 @@ function readValidatedCache(
   return owned;
 }
 
+export function readMyClaimsCache(ownerId: string): SerializedClaim[] | null {
+  return readValidatedCache(claimsMineCacheKey(ownerId), ownerId);
+}
+
+export function readMyRejectedClaimsCache(ownerId: string): SerializedClaim[] | null {
+  return readValidatedCache(claimsRejectedCacheKey(ownerId), ownerId);
+}
+
 export async function fetchMyClaims(
   ownerId: string,
   options?: { fresh?: boolean },
@@ -51,6 +59,11 @@ export async function fetchMyClaims(
 
   const rows = await fetchJsonOwn("/api/claims/mine", ownerId);
   writeClientCache(key, rows, CACHE_TTL_MS);
+  writeClientCache(
+    claimsRejectedCacheKey(ownerId),
+    rows.filter((c) => c.status === "REJECTED"),
+    CACHE_TTL_MS,
+  );
   return rows;
 }
 
@@ -64,6 +77,14 @@ export async function fetchMyRejectedClaims(
   if (!options?.fresh) {
     const cached = readValidatedCache(key, ownerId);
     if (cached) return cached;
+
+    const mineKey = claimsMineCacheKey(ownerId);
+    const mineCached = readValidatedCache(mineKey, ownerId);
+    if (mineCached) {
+      const rejected = mineCached.filter((c) => c.status === "REJECTED");
+      writeClientCache(key, rejected, CACHE_TTL_MS);
+      return rejected;
+    }
   }
 
   const rows = await fetchJsonOwn("/api/claims/mine/rejected", ownerId);
