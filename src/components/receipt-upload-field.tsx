@@ -60,23 +60,10 @@ function GalleryIcon() {
   );
 }
 
-function FolderIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M2.25 12.75V18a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25v-5.25M2.25 12.75h4.5m-4.5 0 1.17-3.684A2.25 2.25 0 0 1 5.25 7.5h4.128a2.25 2.25 0 0 1 1.59.659l1.18 1.18a2.25 2.25 0 0 0 1.59.659H18.75a2.25 2.25 0 0 1 2.25 2.25M9.75 12.75h4.5"
-      />
-    </svg>
-  );
-}
-
 export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
   const baseId = useId();
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const browseRef = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
   function addFiles(fileList: FileList | null) {
@@ -119,7 +106,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
         <p className="text-xs text-zinc-500">Add one or more photos</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
           variant="outline"
@@ -140,18 +127,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
           <ReceiptActionIcon>
             <GalleryIcon />
           </ReceiptActionIcon>
-          Gallery
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-field gap-2 px-2 text-xs font-medium sm:px-4 sm:text-sm"
-          onClick={() => browseRef.current?.click()}
-        >
-          <ReceiptActionIcon>
-            <FolderIcon />
-          </ReceiptActionIcon>
-          Browse
+          From gallery
         </Button>
       </div>
 
@@ -180,19 +156,6 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
           e.target.value = "";
         }}
       />
-      <input
-        ref={browseRef}
-        id={`${baseId}-browse`}
-        type="file"
-        accept="image/*,application/pdf"
-        multiple
-        className="sr-only"
-        onChange={(e) => {
-          addFiles(e.target.files);
-          e.target.value = "";
-        }}
-      />
-
       {displayError ? (
         <p className="text-sm text-red-700" role="alert">
           {displayError}
