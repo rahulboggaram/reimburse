@@ -21,7 +21,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
       lang="en"
       className={`h-full antialiased ${brandFont.variable}`}
     >
-      <body className="min-h-dvh bg-zinc-100 font-sans text-zinc-900">
+      <body className="min-h-dvh bg-app-bg font-sans text-zinc-900">
         {props.children}
       </body>
     </html>
