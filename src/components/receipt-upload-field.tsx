@@ -17,9 +17,13 @@ type ReceiptUploadFieldProps = {
   error?: string | null;
 };
 
+const fieldShellBase =
+  "flex h-auto min-h-field flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] bg-white px-3 py-4 transition-[border-color] duration-200";
+
 function ReceiptActionButton(props: {
   label: string;
   onClick: () => void;
+  error?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -27,8 +31,10 @@ function ReceiptActionButton(props: {
       type="button"
       onClick={props.onClick}
       className={cn(
-        "flex h-auto min-h-field flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-zinc-300 bg-white px-3 py-4 transition-colors",
-        "hover:border-zinc-400 hover:bg-zinc-50 active:bg-zinc-100",
+        fieldShellBase,
+        props.error
+          ? "border-rose-800"
+          : "border-zinc-300 hover:bg-zinc-50 active:bg-zinc-100 focus-visible:border-blue-600 focus-visible:outline-none",
       )}
     >
       <span
@@ -129,24 +135,36 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
   }
 
   const displayError = props.error ?? localError;
+  const hasError = Boolean(displayError);
 
   return (
     <div className="space-y-3">
       <Label>Receipt Photos</Label>
 
-      <div className="grid grid-cols-2 gap-3">
-        <ReceiptActionButton
-          label="Take photo"
-          onClick={() => cameraRef.current?.click()}
-        >
-          <CameraIcon />
-        </ReceiptActionButton>
-        <ReceiptActionButton
-          label="From gallery"
-          onClick={() => galleryRef.current?.click()}
-        >
-          <GalleryIcon />
-        </ReceiptActionButton>
+      <div className="flex flex-col">
+        <div className="grid grid-cols-2 gap-3">
+          <ReceiptActionButton
+            label="Take photo"
+            error={hasError}
+            onClick={() => cameraRef.current?.click()}
+          >
+            <CameraIcon />
+          </ReceiptActionButton>
+          <ReceiptActionButton
+            label="From gallery"
+            error={hasError}
+            onClick={() => galleryRef.current?.click()}
+          >
+            <GalleryIcon />
+          </ReceiptActionButton>
+        </div>
+        {displayError ? (
+          <div className="bg-rose-50 px-4 py-2.5">
+            <p className="text-sm text-rose-800" role="alert">
+              {displayError}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <input
@@ -174,12 +192,6 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
           e.target.value = "";
         }}
       />
-      {displayError ? (
-        <p className="text-sm text-red-700" role="alert">
-          {displayError}
-        </p>
-      ) : null}
-
       {props.files.length > 0 ? (
         <div className="space-y-2">
           <p className="text-xs font-medium text-zinc-600">
