@@ -90,7 +90,7 @@ async function sendViaMsg91(phoneE164: string, otp: string) {
 }
 
 function whatsappApiVersion() {
-  return process.env.WHATSAPP_API_VERSION?.trim() || "v21.0";
+  return process.env.WHATSAPP_API_VERSION?.trim() || "v25.0";
 }
 
 function whatsappRecipient(phoneE164: string) {
@@ -103,7 +103,7 @@ async function sendViaWhatsapp(phoneE164: string, otp: string) {
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID!.trim();
   const templateName = process.env.WHATSAPP_OTP_TEMPLATE_NAME!.trim();
   const languageCode =
-    process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE?.trim() || "en_US";
+    process.env.WHATSAPP_OTP_TEMPLATE_LANGUAGE?.trim() || "en";
   const includeButton =
     process.env.WHATSAPP_OTP_TEMPLATE_HAS_BUTTON?.trim().toLowerCase() !==
     "false";

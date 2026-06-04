@@ -53,10 +53,7 @@ export async function POST(request: Request) {
       return Response.json({ error: err.message }, { status: 503 });
     }
     if (err instanceof SmsDeliveryError) {
-      return Response.json(
-        { error: "Could not send OTP. Try again in a moment." },
-        { status: 502 },
-      );
+      return Response.json({ error: err.message }, { status: 502 });
     }
 
     const isDbConfigured =
