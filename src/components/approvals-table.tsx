@@ -27,6 +27,28 @@ function stopRowClick(event: React.MouseEvent) {
   event.stopPropagation();
 }
 
+export function ApprovalsSelectionBar(props: {
+  selectedCount: number;
+  totalCount: number;
+  allSelected: boolean;
+  onToggleAll: () => void;
+}) {
+  return (
+    <div className="mb-3 flex justify-end items-center gap-3">
+      <span className="whitespace-nowrap text-sm text-zinc-500">
+        {props.selectedCount} of {props.totalCount} selected
+      </span>
+      <button
+        type="button"
+        className="text-sm font-medium text-zinc-700 underline"
+        onClick={props.onToggleAll}
+      >
+        {props.allSelected ? "Clear all" : "Select all"}
+      </button>
+    </div>
+  );
+}
+
 export function ApprovalsTableHeader(props: {
   showStatus?: boolean;
   showCategory?: boolean;
@@ -34,8 +56,6 @@ export function ApprovalsTableHeader(props: {
   allSelected?: boolean;
   someSelected?: boolean;
   onToggleAll?: () => void;
-  selectedCount?: number;
-  totalCount?: number;
 }) {
   const showStatus = props.showStatus !== false;
   const showCategory = props.showCategory === true;
@@ -44,50 +64,29 @@ export function ApprovalsTableHeader(props: {
     showStatus,
     selectable: props.selectable,
   });
-  const showSelectionSummary =
-    props.selectable &&
-    props.onToggleAll &&
-    props.selectedCount !== undefined &&
-    props.totalCount !== undefined;
 
   return (
-    <div className="flex items-center border-b border-zinc-200 bg-zinc-50">
-      <div className={cn(claimsTableHeaderClass(grid), "min-w-0 flex-1 border-b-0")}>
-        {props.selectable ? (
-          <span className={claimsTableColCheckbox}>
-            <ClaimsTableCheckbox
-              checked={props.allSelected}
-              indeterminate={Boolean(props.someSelected && !props.allSelected)}
-              onChange={props.onToggleAll}
-              aria-label="Select all in list"
-            />
-          </span>
-        ) : null}
-        <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
-        {showCategory ? (
-          <span className={cn(claimsTableColStart, "truncate")}>Category</span>
-        ) : null}
-        <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
-        <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
-          Amount
+    <div className={claimsTableHeaderClass(grid)}>
+      {props.selectable ? (
+        <span className={claimsTableColCheckbox}>
+          <ClaimsTableCheckbox
+            checked={props.allSelected}
+            indeterminate={Boolean(props.someSelected && !props.allSelected)}
+            onChange={props.onToggleAll}
+            aria-label="Select all in list"
+          />
         </span>
-        {showStatus ? <span className={claimsTableColCenter}>Status</span> : null}
-        <span className={claimsTableColChevron} aria-hidden />
-      </div>
-      {showSelectionSummary ? (
-        <div className="flex shrink-0 items-center gap-3 px-4 sm:px-5">
-          <span className="whitespace-nowrap text-sm text-zinc-500">
-            {props.selectedCount} of {props.totalCount} selected
-          </span>
-          <button
-            type="button"
-            className="text-sm font-medium text-zinc-700 underline"
-            onClick={props.onToggleAll}
-          >
-            {props.allSelected ? "Clear all" : "Select all"}
-          </button>
-        </div>
       ) : null}
+      <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
+      {showCategory ? (
+        <span className={cn(claimsTableColStart, "truncate")}>Category</span>
+      ) : null}
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>Date</span>
+      <span className={cn(claimsTableColCenter, "whitespace-nowrap")}>
+        Amount
+      </span>
+      {showStatus ? <span className={claimsTableColCenter}>Status</span> : null}
+      <span className={claimsTableColChevron} aria-hidden />
     </div>
   );
 }

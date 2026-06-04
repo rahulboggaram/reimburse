@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  ApprovalsSelectionBar,
   ApprovalsTableHeader,
   ApprovalsTableRow,
 } from "@/components/approvals-table";
@@ -345,17 +346,24 @@ export default function ManagerPendingPage() {
           <p className="text-sm text-zinc-600">{emptyMessage(tab, user?.role)}</p>
         </Card>
       ) : (
-        <Card className="overflow-hidden p-0">
-          <ApprovalsTableHeader
-            showStatus={showStatus}
-            showCategory={tab === "approved"}
-            selectable={bulkSelectable}
-            allSelected={allSelected}
-            someSelected={someSelected}
-            onToggleAll={toggleSelectAll}
-            selectedCount={selectedCount}
-            totalCount={claims.length}
-          />
+        <>
+          {bulkSelectable ? (
+            <ApprovalsSelectionBar
+              selectedCount={selectedCount}
+              totalCount={claims.length}
+              allSelected={allSelected}
+              onToggleAll={toggleSelectAll}
+            />
+          ) : null}
+          <Card className="overflow-hidden p-0">
+            <ApprovalsTableHeader
+              showStatus={showStatus}
+              showCategory={tab === "approved"}
+              selectable={bulkSelectable}
+              allSelected={allSelected}
+              someSelected={someSelected}
+              onToggleAll={toggleSelectAll}
+            />
           <div>
             {claims.map((claim) => (
               <ApprovalsTableRow
@@ -409,7 +417,8 @@ export default function ManagerPendingPage() {
               ) : null}
             </div>
           ) : null}
-        </Card>
+          </Card>
+        </>
       )}
 
       <ClaimDetailModal
