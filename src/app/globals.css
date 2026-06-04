@@ -52,8 +52,8 @@ body {
 }
 
 .claims-table-checkbox {
-  width: 1rem;
-  height: 1rem;
+  width: 1.125rem;
+  height: 1.125rem;
   flex-shrink: 0;
   cursor: pointer;
   appearance: none;
@@ -61,30 +61,30 @@ body {
   border-radius: 9999px;
   border: 2px solid #d4d4d8;
   background-color: #fff;
+  background-position: center center;
+  background-repeat: no-repeat;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease;
 }
 
 .claims-table-checkbox:focus-visible {
-  outline: 2px solid #059669;
+  outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
 
 .claims-table-checkbox:checked {
-  border-color: #059669;
-  background-color: #059669;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 4.5l2 2 4-4'/%3E%3C/svg%3E");
-  background-size: 0.7rem;
-  background-position: center;
-  background-repeat: no-repeat;
+  border-color: #2563eb;
+  background-color: #2563eb;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.75' d='M4.25 8.25 7 10.75 11.75 5.25'/%3E%3C/svg%3E");
+  background-size: 0.8rem;
+  background-position: center center;
 }
 
 .claims-table-checkbox:indeterminate {
-  border-color: #059669;
-  background-color: #059669;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath stroke='white' stroke-linecap='round' stroke-width='2' d='M3 6h6'/%3E%3C/svg%3E");
-  background-size: 0.65rem;
-  background-position: center;
-  background-repeat: no-repeat;
+  border-color: #2563eb;
+  background-color: #2563eb;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath stroke='%23ffffff' stroke-linecap='round' stroke-width='2.75' d='M4.25 8h7.5'/%3E%3C/svg%3E");
+  background-size: 0.75rem;
+  background-position: center center;
 }
