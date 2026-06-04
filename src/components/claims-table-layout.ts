@@ -1,49 +1,77 @@
 import { cn } from "@/lib/utils";
 
-const checkboxCol = "2rem";
-const chevronCol = "1.25rem";
+/** Explicit grid tracks (static strings) so Tailwind v4 emits grid-template-columns. */
+const gridBase = "grid w-full items-center gap-x-4";
 
-function withOptionalCheckbox(template: string, selectable?: boolean) {
-  if (!selectable) return template;
-  return template.replace("grid-cols-[", `grid-cols-[${checkboxCol}_`);
-}
+export const claimsTableGridWithStatus = cn(
+  gridBase,
+  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-/** Equal-width data columns + narrow chevron; shared gap between columns. */
-const claimsTableGridWithStatusBase = `grid w-full grid-cols-[repeat(4,minmax(0,1fr))_${chevronCol}] items-center gap-x-4`;
+export const claimsTableGridNoStatus = cn(
+  gridBase,
+  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-const claimsTableGridNoStatusBase = `grid w-full grid-cols-[repeat(3,minmax(0,1fr))_${chevronCol}] items-center gap-x-4`;
+export const claimsTableGridWithCategory = cn(
+  gridBase,
+  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-const claimsTableGridWithCategoryBase = `grid w-full grid-cols-[repeat(4,minmax(0,1fr))_${chevronCol}] items-center gap-x-4`;
+export const claimsTableGridWithCategoryAndStatus = cn(
+  gridBase,
+  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-const claimsTableGridWithCategoryAndStatusBase = `grid w-full grid-cols-[repeat(5,minmax(0,1fr))_${chevronCol}] items-center gap-x-4`;
+const claimsTableGridWithStatusSelectable = cn(
+  gridBase,
+  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-export const claimsTableGridWithStatus = claimsTableGridWithStatusBase;
+const claimsTableGridNoStatusSelectable = cn(
+  gridBase,
+  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-export const claimsTableGridNoStatus = claimsTableGridNoStatusBase;
+const claimsTableGridWithCategorySelectable = cn(
+  gridBase,
+  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
-export const claimsTableGridWithCategory = claimsTableGridWithCategoryBase;
-
-export const claimsTableGridWithCategoryAndStatus =
-  claimsTableGridWithCategoryAndStatusBase;
+const claimsTableGridWithCategoryAndStatusSelectable = cn(
+  gridBase,
+  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+);
 
 export function approvalsTableGrid(options: {
   showCategory?: boolean;
   showStatus?: boolean;
   selectable?: boolean;
 }) {
-  let base: string;
-  if (options.showCategory) {
-    base =
-      options.showStatus !== false
-        ? claimsTableGridWithCategoryAndStatusBase
-        : claimsTableGridWithCategoryBase;
-  } else {
-    base =
-      options.showStatus !== false
-        ? claimsTableGridWithStatusBase
-        : claimsTableGridNoStatusBase;
+  const showCategory = options.showCategory === true;
+  const showStatus = options.showStatus !== false;
+  const selectable = options.selectable === true;
+
+  if (showCategory) {
+    if (showStatus) {
+      return selectable
+        ? claimsTableGridWithCategoryAndStatusSelectable
+        : claimsTableGridWithCategoryAndStatus;
+    }
+    return selectable
+      ? claimsTableGridWithCategorySelectable
+      : claimsTableGridWithCategory;
   }
-  return withOptionalCheckbox(base, options.selectable);
+
+  if (showStatus) {
+    return selectable
+      ? claimsTableGridWithStatusSelectable
+      : claimsTableGridWithStatus;
+  }
+
+  return selectable
+    ? claimsTableGridNoStatusSelectable
+    : claimsTableGridNoStatus;
 }
 
 export function claimsTableHeaderClass(grid: string) {
@@ -56,17 +84,17 @@ export function claimsTableHeaderClass(grid: string) {
 export function claimsTableRowClass(grid: string) {
   return cn(
     grid,
-    "w-full border-b border-zinc-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
+    "w-full border-b border-zinc-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
   );
 }
 
 export const claimsTableColCheckbox =
-  "flex shrink-0 items-center justify-center justify-self-start";
+  "flex shrink-0 items-center justify-center justify-self-center";
 
-export const claimsTableColStart = "min-w-0 justify-self-stretch text-left";
+export const claimsTableColStart = "min-w-0 justify-self-stretch truncate text-left";
 
 export const claimsTableColCenter =
-  "flex min-w-0 w-full items-center justify-center justify-self-stretch text-center";
+  "min-w-0 justify-self-stretch truncate text-center";
 
 export const claimsTableColChevron =
-  "flex w-full items-center justify-center justify-self-center text-base leading-none text-zinc-400";
+  "flex shrink-0 items-center justify-center justify-self-center text-base leading-none text-zinc-400";

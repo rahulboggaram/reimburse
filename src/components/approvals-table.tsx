@@ -106,8 +106,8 @@ function rowCells(props: {
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
       {showStatus ? (
-        <span className={claimsTableColCenter}>
-          <StatusBadge status={status} compact className="mx-auto" />
+        <span className={cn(claimsTableColCenter, "flex justify-center")}>
+          <StatusBadge status={status} compact />
         </span>
       ) : null}
       <span className={claimsTableColChevron} aria-hidden>
@@ -151,7 +151,7 @@ export function ApprovalsTableRow(props: {
         }}
         className={cn(
           claimsTableRowClass(grid),
-          "cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+          "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
         )}
       >
         <label
@@ -174,12 +174,22 @@ export function ApprovalsTableRow(props: {
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={props.onOpen}
-      className={claimsTableRowClass(grid)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          props.onOpen();
+        }
+      }}
+      className={cn(
+        claimsTableRowClass(grid),
+        "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+      )}
     >
       {rowCells({ claim, showStatus, showCategory, status })}
-    </button>
+    </div>
   );
 }

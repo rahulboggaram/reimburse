@@ -38,10 +38,20 @@ export function MyClaimsTableRow(props: {
   const status = claimDisplayStatus(claim, user?.role);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={props.onOpen}
-      className={claimsTableRowClass(claimsTableGridWithStatus)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          props.onOpen();
+        }
+      }}
+      className={cn(
+        claimsTableRowClass(claimsTableGridWithStatus),
+        "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+      )}
     >
       <span
         className={cn(
@@ -67,12 +77,12 @@ export function MyClaimsTableRow(props: {
       >
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
-      <span className={claimsTableColCenter}>
-        <StatusBadge status={status} compact className="mx-auto" />
+      <span className={cn(claimsTableColCenter, "flex justify-center")}>
+        <StatusBadge status={status} compact />
       </span>
       <span className={claimsTableColChevron} aria-hidden>
         ›
       </span>
-    </button>
+    </div>
   );
 }
