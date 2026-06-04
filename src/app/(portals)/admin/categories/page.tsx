@@ -96,14 +96,15 @@ export default function AdminCategoriesPage() {
   }
 
   function confirmDisableCategory(categoryName: string) {
-    return window.confirm(
-      `Disabling a category hides it from new claims. Past reimbursements keep the category name they were filed with.\n\nDisable “${categoryName}”?`,
-    );
+    return window.confirm(`Disable “${categoryName}”?`);
   }
 
   return (
     <div className="space-y-4">
-      <PageHeading title="Categories" />
+      <PageHeading
+        title="Categories"
+        info="Disabling a category hides it from new claims. Past reimbursements keep the category name they were filed with."
+      />
 
       {error ? (
         <p
@@ -154,7 +155,10 @@ export default function AdminCategoriesPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setCategoryActive(category.id, false)}
+                        onClick={() => {
+                          if (!confirmDisableCategory(category.name)) return;
+                          void setCategoryActive(category.id, false);
+                        }}
                       >
                         Disable
                       </Button>

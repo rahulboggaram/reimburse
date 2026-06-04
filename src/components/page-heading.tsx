@@ -1,5 +1,6 @@
 "use client";
 
+import { PageInfoTip } from "@/components/page-info-tip";
 import { UserMenu } from "@/components/user-menu";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
@@ -7,6 +8,8 @@ import { cn } from "@/lib/utils";
 export function PageHeading(props: {
   title: string;
   description?: string;
+  /** Shown via (i) next to the title on hover or tap. */
+  info?: string;
   as?: "h1" | "h2";
   className?: string;
   /** Show account menu (name + arrow) aligned with the title. Default true. */
@@ -27,7 +30,10 @@ export function PageHeading(props: {
       )}
     >
       <div className="min-w-0 flex-1 space-y-1">
-        <Heading className={headingClass}>{toTitleCase(props.title)}</Heading>
+        <div className="flex items-center gap-1.5">
+          <Heading className={headingClass}>{toTitleCase(props.title)}</Heading>
+          {props.info ? <PageInfoTip text={props.info} /> : null}
+        </div>
         {props.description ? (
           <p className="text-sm text-zinc-600">{props.description}</p>
         ) : null}

@@ -96,14 +96,15 @@ export default function AdminBranchesPage() {
   }
 
   function confirmDisableBranch(branchName: string) {
-    return window.confirm(
-      `Disabling a branch hides it from new claims. Past reimbursements and records are always kept.\n\nDisable “${branchName}”?`,
-    );
+    return window.confirm(`Disable “${branchName}”?`);
   }
 
   return (
     <div className="space-y-4">
-      <PageHeading title="Branches" />
+      <PageHeading
+        title="Branches"
+        info="Disabling a branch hides it from new claims. Past reimbursements and records are always kept."
+      />
 
       {error ? (
         <p
@@ -154,7 +155,10 @@ export default function AdminBranchesPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setBranchActive(branch.id, false)}
+                        onClick={() => {
+                          if (!confirmDisableBranch(branch.name)) return;
+                          void setBranchActive(branch.id, false);
+                        }}
                       >
                         Disable
                       </Button>
