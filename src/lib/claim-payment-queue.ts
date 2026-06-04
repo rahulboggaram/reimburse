@@ -17,11 +17,9 @@ function approverAssigned(sessionId: string) {
 /** Payment approver queue — approved, not yet sent to Razorpay (or payout failed). */
 export function approverPaymentWaitingWhere(
   sessionId: string,
-  branchId?: string | null,
 ): Prisma.ReimbursementWhereInput {
   return {
     ...approverAssigned(sessionId),
-    ...(branchId ? { branchId } : {}),
     status: "APPROVED",
     paidAt: null,
     OR: [
@@ -52,7 +50,7 @@ export function paymentWaitingWhereForSession(session: {
   branchId?: string | null;
 }): Prisma.ReimbursementWhereInput | null {
   if (session.role === "APPROVER") {
-    return approverPaymentWaitingWhere(session.id, session.branchId);
+    return approverPaymentWaitingWhere(session.id);
   }
   if (session.role === "ADMIN") {
     return orgPaymentWaitingWhere(session.branchId);
@@ -63,11 +61,9 @@ export function paymentWaitingWhereForSession(session: {
 /** Payment approver sent to RazorpayX — in progress or completed. */
 export function approverPaymentSentWhere(
   sessionId: string,
-  branchId?: string | null,
 ): Prisma.ReimbursementWhereInput {
   return {
     ...approverAssigned(sessionId),
-    ...(branchId ? { branchId } : {}),
     OR: [
       { status: "PAID" },
       {

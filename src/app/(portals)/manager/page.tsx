@@ -91,6 +91,7 @@ export default function ManagerPendingPage() {
   const [counts, setCounts] = useState<ActionCounts | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
@@ -197,6 +198,7 @@ export default function ManagerPendingPage() {
 
   useEffect(() => {
     let cancelled = false;
+    setFetchError(null);
 
     const cached = readTabCache(tab);
     if (cached) {
@@ -206,12 +208,23 @@ export default function ManagerPendingPage() {
       setLoading(true);
     }
 
-    void loadTab(tab).then((data) => {
-      if (!cancelled) {
-        applyTabPayload(data);
-        setLoading(false);
-      }
-    });
+    void loadTab(tab)
+      .then((data) => {
+        if (!cancelled) {
+          applyTabPayload(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setFetchError(
+            err instanceof Error
+              ? err.message
+              : "Could not load approvals. Try again.",
+          );
+          setLoading(false);
+        }
+      });
 
     return () => {
       cancelled = true;
@@ -319,6 +332,15 @@ export default function ManagerPendingPage() {
           {bulkMessage}
         </p>
       )}
+
+      {fetchError ? (
+        <p
+          role="alert"
+          className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+        >
+          {fetchError}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>

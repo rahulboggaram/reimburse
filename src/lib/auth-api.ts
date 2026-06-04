@@ -5,6 +5,7 @@ import {
   canAccessManagerPortal,
   canSubmitReimbursement,
   getSession,
+  refreshSessionFromDb,
   type SessionUser,
 } from "@/lib/session";
 
@@ -83,8 +84,12 @@ export async function requireAdminAccess(): Promise<SessionUser | Response> {
 export async function requireManagerAccess(): Promise<SessionUser | Response> {
   const session = await requireSession();
   if (session instanceof Response) return session;
-  if (!canAccessManagerPortal(session)) {
+  const refreshed = await refreshSessionFromDb(session);
+  if (!refreshed) {
+    return jsonError("Please sign in.", 401);
+  }
+  if (!canAccessManagerPortal(refreshed)) {
     return jsonError("You do not have access.", 403);
   }
-  return session;
+  return refreshed;
 }

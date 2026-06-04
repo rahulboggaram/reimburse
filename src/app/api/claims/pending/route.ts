@@ -31,8 +31,8 @@ function queueWhere(
 
   if (session.role === "APPROVER") {
     return tab === "waiting"
-      ? approverPaymentWaitingWhere(session.id, session.branchId)
-      : approverPaymentSentWhere(session.id, session.branchId);
+      ? approverPaymentWaitingWhere(session.id)
+      : approverPaymentSentWhere(session.id);
   }
 
   if (session.role === "ADMIN") {
