@@ -1,2 +1,2 @@
-/** Cal Sans display face for the Reimburse wordmark (OFL). */
-import "@fontsource/cal-sans/latin-400.css";
+/** Clash Display for the Reimburse wordmark */
+import "./clash-display-font.css";
