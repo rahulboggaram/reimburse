@@ -37,7 +37,7 @@ function ReceiptActionButton(props: {
       )}
     >
       <span className="text-zinc-800">{props.children}</span>
-      <span className="text-sm font-medium text-zinc-900">{props.label}</span>
+      <span className="text-sm font-medium text-zinc-500">{props.label}</span>
     </button>
   );
 }
