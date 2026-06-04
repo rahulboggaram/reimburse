@@ -111,11 +111,71 @@ npm run whatsapp:check 9876543210
 
 ---
 
+## Register error: Object ID does not exist (code 100)
+
+If registering `+91 80903 80909` fails with:
+
+`Object with ID '1153332481195437' does not exist, cannot be loaded due to missing permissions...`
+
+**Do this before trying register again:**
+
+### 1. Check what that ID actually is
+
+In [Graph API Explorer](https://developers.facebook.com/tools/explorer/) (app **Yellow Metal**, token with WhatsApp permissions), run:
+
+```http
+GET /1153332481195437?fields=display_phone_number,status,code_verification_status
+```
+
+| Result | Meaning |
+|--------|---------|
+| Shows `display_phone_number` +91… | Correct **Phone number ID** — problem is **token permissions** (Step 2) |
+| Error / empty | **Wrong ID** — you may have WABA ID or Business ID; get real Phone number ID (Step 3) |
+| `status` is **CONNECTED** | **Skip register** — number is already registered; go to send test message |
+
+### 2. Fix the token
+
+Create a **new** system user token with **all** of:
+
+- `whatsapp_business_messaging`
+- `whatsapp_business_management`
+- `business_management`
+
+Assign the system user **Full control** on the **WhatsApp account** that owns +91 80903 80909. Generate token for app **Yellow Metal**.
+
+### 3. Get the real Phone number ID
+
+From Graph Explorer (same token), list numbers on your WABA:
+
+```http
+GET /YOUR_WABA_ID/phone_numbers
+```
+
+(`YOUR_WABA_ID` is under Business settings → WhatsApp accounts → Yellow Metal → account details, or WhatsApp Manager.)
+
+Use the `id` for the row where `display_phone_number` is **+91 80903 80909**. That `id` is `WHATSAPP_PHONE_NUMBER_ID` — not the WABA id, not App ID.
+
+### 4. Register only if status is Pending
+
+```bash
+curl -X POST "https://graph.facebook.com/v25.0/CORRECT_PHONE_NUMBER_ID/register" \
+  -H "Authorization: Bearer YOUR_SYSTEM_USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"messaging_product":"whatsapp","pin":"YOUR_6_DIGIT_2FA_PIN"}'
+```
+
+PIN = two-step verification PIN for that business number in WhatsApp Manager (not the OTP you send users).
+
+Wrong PIN → error **133005**. Too many tries → wait 72 hours.
+
+---
+
 ## If something fails
 
 | Error / symptom | Fix |
 |-----------------|-----|
-| Object does not exist / permission | System user token + link WABA in Configuration |
+| Object does not exist / permission | Wrong phone number ID, or system user token without WABA access |
+| Object does not exist / permission (old) | System user token + link WABA in Configuration |
 | Used US test number ID | Only Yellow Metal **Phone number ID** |
 | Number **Pending** | Run register curl with correct PIN |
 | Message not received | Add phone under API Setup → **To** (In development mode) |
