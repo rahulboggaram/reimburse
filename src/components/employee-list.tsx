@@ -177,12 +177,18 @@ export function EmployeeDetailModal(props: {
           type="button"
           className="w-full border-red-200 text-red-700"
           onClick={async () => {
-            if (!confirm("Remove this employee's access?")) return;
+            if (
+              !confirm(
+                "Disable this person's access? Their past reimbursements stay in the system.",
+              )
+            ) {
+              return;
+            }
             await props.onRemove(employee.id);
             props.onClose();
           }}
         >
-          Remove employee
+          Disable access
         </Button>
       </div>
     </Modal>

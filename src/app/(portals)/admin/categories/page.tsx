@@ -95,24 +95,12 @@ export default function AdminCategoriesPage() {
     }
   }
 
-  async function deleteCategory(categoryId: string) {
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/categories/${categoryId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok && res.status !== 204) {
-        await readJson(res);
-      }
-      await reload();
-    } catch {
-      setError("Could not delete category. It may be used in a claim.");
-    }
-  }
-
   return (
     <div className="space-y-4">
-      <PageHeading title="Categories" />
+      <PageHeading
+        title="Categories"
+        description="Disabling a category hides it from new claims. Past reimbursements keep the category name they were filed with."
+      />
 
       {error ? (
         <p
@@ -183,23 +171,13 @@ export default function AdminCategoriesPage() {
                     <p className="text-sm font-medium text-zinc-900">
                       {category.name}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setCategoryActive(category.id, true)}
-                      >
-                        Enable
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-red-200 text-red-700 hover:bg-red-50"
-                        onClick={() => deleteCategory(category.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setCategoryActive(category.id, true)}
+                    >
+                      Enable
+                    </Button>
                   </li>
                 ))}
               </ul>

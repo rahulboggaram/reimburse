@@ -33,7 +33,7 @@ model User {
   razorpayFundAccountId String?
   role              UserRole
   branchId          String?
-  branch            Branch?  @relation(fields: [branchId], references: [id])
+  branch            Branch?  @relation(fields: [branchId], references: [id], onDelete: Restrict)
   active            Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -87,9 +87,9 @@ model PlatformActivity {
   id           String               @id @default(cuid())
   type         PlatformActivityType
   actorId      String?
-  actor        User?                @relation("ActivityActor", fields: [actorId], references: [id])
+  actor        User?                @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Restrict)
   targetUserId String?
-  targetUser   User?                @relation("ActivityTarget", fields: [targetUserId], references: [id])
+  targetUser   User?                @relation("ActivityTarget", fields: [targetUserId], references: [id], onDelete: Restrict)
   summary      String
   metadata     String?
   createdAt    DateTime             @default(now())
@@ -123,27 +123,29 @@ model OtpChallenge {
 model Reimbursement {
   id              String              @id @default(cuid())
   employeeId      String
-  employee        User                @relation("EmployeeClaims", fields: [employeeId], references: [id])
+  employee        User                @relation("EmployeeClaims", fields: [employeeId], references: [id], onDelete: Restrict)
   employeeName    String
   amount          Decimal
   category        String
   description     String
   expenseDate     DateTime
   branchId        String
-  branch          Branch              @relation(fields: [branchId], references: [id])
+  branch          Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
   status            ReimbursementStatus @default(PENDING)
   rejectionReason   String?
   decidedAt         DateTime?
   razorpayPayoutId  String?
+  /** Reimburse batch ref when paid via Pay all (one per employee still has its own Razorpay payout). */
+  payoutBatchId     String?
   payoutStatus      String?
   payoutUtr         String?
   payoutError       String?
   payoutInitiatedAt DateTime?
   paidAt            DateTime?
   approverId      String
-  approver        User                @relation("ApproverClaims", fields: [approverId], references: [id])
+  approver        User                @relation("ApproverClaims", fields: [approverId], references: [id], onDelete: Restrict)
   paymentApproverId String
-  paymentApprover   User                @relation("PaymentApproverClaims", fields: [paymentApproverId], references: [id])
+  paymentApprover   User                @relation("PaymentApproverClaims", fields: [paymentApproverId], references: [id], onDelete: Restrict)
   refiledFromId   String?
   receipts        ReimbursementReceipt[]
   createdAt       DateTime            @default(now())
@@ -154,4 +156,5 @@ model Reimbursement {
   @@index([approverId])
   @@index([branchId])
   @@index([paymentApproverId])
+  @@index([payoutBatchId])
 }

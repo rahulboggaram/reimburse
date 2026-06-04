@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
+import { deactivateExpenseCategory } from "@/lib/soft-deactivate";
 import { createExpenseCategorySchema } from "@/lib/validators";
 
 export async function PATCH(
@@ -40,6 +41,7 @@ export async function PATCH(
   }
 }
 
+/** Deactivates the category; past reimbursements keep their category name. */
 export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
@@ -49,13 +51,9 @@ export async function DELETE(
 
   const { id } = await context.params;
   try {
-    await prisma.expenseCategory.delete({ where: { id } });
-    return new Response(null, { status: 204 });
+    const category = await deactivateExpenseCategory(id);
+    return Response.json(category);
   } catch {
-    return Response.json(
-      { error: "Could not delete category (may be in use)" },
-      { status: 409 },
-    );
+    return Response.json({ error: "Category not found" }, { status: 404 });
   }
 }
-

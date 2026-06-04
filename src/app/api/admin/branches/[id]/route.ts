@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
+import { deactivateBranch } from "@/lib/soft-deactivate";
 import { createBranchSchema } from "@/lib/validators";
 
 export async function PATCH(
@@ -38,6 +39,7 @@ export async function PATCH(
   }
 }
 
+/** Deactivates the branch; past reimbursements and records are kept. */
 export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },
@@ -47,13 +49,9 @@ export async function DELETE(
 
   const { id } = await context.params;
   try {
-    await prisma.branch.delete({ where: { id } });
-    return new Response(null, { status: 204 });
+    const branch = await deactivateBranch(id);
+    return Response.json(branch);
   } catch {
-    return Response.json(
-      { error: "Could not delete branch (may be in use)" },
-      { status: 409 },
-    );
+    return Response.json({ error: "Branch not found" }, { status: 404 });
   }
 }
-

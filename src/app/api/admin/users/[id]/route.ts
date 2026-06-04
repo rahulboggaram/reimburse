@@ -72,6 +72,7 @@ export async function PATCH(
   return Response.json(user);
 }
 
+/** Deactivates the user; reimbursements and activity history are never deleted. */
 export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> },

@@ -95,24 +95,12 @@ export default function AdminBranchesPage() {
     }
   }
 
-  async function deleteBranch(branchId: string) {
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/branches/${branchId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok && res.status !== 204) {
-        await readJson(res);
-      }
-      await reload();
-    } catch {
-      setError("Could not delete branch. It may be used in a claim.");
-    }
-  }
-
   return (
     <div className="space-y-4">
-      <PageHeading title="Branches" />
+      <PageHeading
+        title="Branches"
+        description="Disabling a branch hides it from new claims. Past reimbursements and records are always kept."
+      />
 
       {error ? (
         <p
@@ -183,23 +171,13 @@ export default function AdminBranchesPage() {
                     <p className="text-sm font-medium text-zinc-900">
                       {branch.name}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setBranchActive(branch.id, true)}
-                      >
-                        Enable
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-red-200 text-red-700 hover:bg-red-50"
-                        onClick={() => deleteBranch(branch.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setBranchActive(branch.id, true)}
+                    >
+                      Enable
+                    </Button>
                   </li>
                 ))}
               </ul>
