@@ -149,8 +149,6 @@ export default function ManagerPendingPage() {
     tab === "waiting" &&
     (isApprover || isAdmin) &&
     (counts?.paymentWaiting ?? 0) > 0;
-  const payAllCount = counts?.paymentWaiting ?? 0;
-  const approveAllCount = counts?.adminPending ?? 0;
   const bulkSelectable = tab === "waiting" && (showApproveAll || showPayAll);
   const selectedCount = claims.filter((c) => selectedIds.has(c.id)).length;
   const allSelected =
@@ -313,41 +311,6 @@ export default function ManagerPendingPage() {
               {selectedCount} of {claims.length} selected
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {showApproveAll && (
-              <Button
-                disabled={bulkBusy || selectedCount === 0}
-                onClick={() =>
-                  void runBulk(
-                    "/api/claims/bulk-decide",
-                    selectedIdList,
-                    `Approve ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"}? Unchecked items will stay in the queue.`,
-                    "Nothing selected to approve.",
-                  )
-                }
-              >
-                {bulkBusy
-                  ? "Working…"
-                  : `Approve selected (${selectedCount})`}
-              </Button>
-            )}
-            {showPayAll && (
-              <Button
-                variant={showApproveAll ? "outline" : "default"}
-                disabled={bulkBusy || selectedCount === 0}
-                onClick={() =>
-                  void runBulk(
-                    "/api/claims/bulk-pay",
-                    selectedIdList,
-                    `Pay ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"} via Razorpay? Unchecked items will stay in the queue.`,
-                    "Nothing selected to pay.",
-                  )
-                }
-              >
-                {bulkBusy ? "Working…" : `Pay selected (${selectedCount})`}
-              </Button>
-            )}
-          </div>
         </div>
       ) : null}
 
@@ -387,6 +350,45 @@ export default function ManagerPendingPage() {
               />
             ))}
           </div>
+          {bulkSelectable ? (
+            <div className="space-y-2 border-t border-zinc-200 bg-zinc-50/80 px-4 py-4 sm:px-5">
+              {showApproveAll ? (
+                <Button
+                  className="w-full"
+                  disabled={bulkBusy || selectedCount === 0}
+                  onClick={() =>
+                    void runBulk(
+                      "/api/claims/bulk-decide",
+                      selectedIdList,
+                      `Approve ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"}? Unchecked items will stay in the queue.`,
+                      "Nothing selected to approve.",
+                    )
+                  }
+                >
+                  {bulkBusy
+                    ? "Working…"
+                    : `Approve selected (${selectedCount})`}
+                </Button>
+              ) : null}
+              {showPayAll ? (
+                <Button
+                  className="w-full"
+                  variant={showApproveAll ? "outline" : "default"}
+                  disabled={bulkBusy || selectedCount === 0}
+                  onClick={() =>
+                    void runBulk(
+                      "/api/claims/bulk-pay",
+                      selectedIdList,
+                      `Pay ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"} via Razorpay? Unchecked items will stay in the queue.`,
+                      "Nothing selected to pay.",
+                    )
+                  }
+                >
+                  {bulkBusy ? "Working…" : `Pay selected (${selectedCount})`}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </Card>
       )}
 
