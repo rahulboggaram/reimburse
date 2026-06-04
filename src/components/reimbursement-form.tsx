@@ -22,19 +22,16 @@ import { prepareReceiptFilesForUpload } from "@/lib/compress-receipt-image";
 
 type SubmitPhase = "idle" | "preparing" | "uploading";
 
-type Branch = { id: string; name: string };
 type ExpenseCategory = { id: string; name: string };
 
 export type ReimbursementFormValues = {
   amount?: string;
-  branchId?: string;
   category?: string;
   description?: string;
 };
 
 type FieldErrors = {
   amount?: string;
-  branchId?: string;
   category?: string;
   description?: string;
   receipts?: string;
@@ -59,32 +56,20 @@ export function ReimbursementForm(props: {
   const router = useRouter();
   const [, startNavigation] = useTransition();
   const cachedBootstrap = readFormBootstrapCache<{
-    branches: Branch[];
     categories: ExpenseCategory[];
-    userBranchId?: string | null;
+    userBranch: { id: string; name: string } | null;
   }>();
-  const [branches, setBranches] = useState<Branch[]>(
-    () => cachedBootstrap?.branches ?? [],
-  );
-  const [loadingBranches, setLoadingBranches] = useState(
-    () => !cachedBootstrap,
+  const [userBranch, setUserBranch] = useState(
+    () => cachedBootstrap?.userBranch ?? null,
   );
   const [categories, setCategories] = useState<ExpenseCategory[]>(
     () => cachedBootstrap?.categories ?? [],
   );
-  const [loadingCategories, setLoadingCategories] = useState(
-    () => !cachedBootstrap,
-  );
+  const [loadingOptions, setLoadingOptions] = useState(() => !cachedBootstrap);
   const [submitting, setSubmitting] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
   const [amount, setAmount] = useState(props.initial?.amount ?? "");
-  const [branchId, setBranchId] = useState(
-    () =>
-      props.initial?.branchId ??
-      cachedBootstrap?.userBranchId ??
-      "",
-  );
   const [category, setCategory] = useState(props.initial?.category ?? "");
   const [description, setDescription] = useState(props.initial?.description ?? "");
   const [receipts, setReceipts] = useState<ReceiptFileItem[]>([]);
@@ -95,22 +80,15 @@ export function ReimbursementForm(props: {
 
   useEffect(() => {
     void fetchFormBootstrap<{
-      branches: Branch[];
       categories: ExpenseCategory[];
-      userBranchId: string | null;
+      userBranch: { id: string; name: string } | null;
     }>()
       .then((data) => {
-        setBranches(data.branches);
         setCategories(data.categories);
-        if (!props.initial?.branchId && !branchId && data.userBranchId) {
-          setBranchId(data.userBranchId);
-        }
+        setUserBranch(data.userBranch);
       })
       .catch(() => setError("Could not load form options."))
-      .finally(() => {
-        setLoadingBranches(false);
-        setLoadingCategories(false);
-      });
+      .finally(() => setLoadingOptions(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
   }, []);
 
@@ -130,10 +108,6 @@ export function ReimbursementForm(props: {
       if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
         errors.amount = "Enter a valid amount greater than zero.";
       }
-    }
-
-    if (!branchId.trim()) {
-      errors.branchId = "Select a branch.";
     }
 
     if (!category.trim()) {
@@ -166,7 +140,6 @@ export function ReimbursementForm(props: {
 
       const formData = new FormData();
       formData.set("amount", String(parsedAmount));
-      formData.set("branchId", branchId.trim());
       formData.set("category", category);
       formData.set("description", description.trim());
       for (const file of preparedReceipts) {
@@ -222,9 +195,18 @@ export function ReimbursementForm(props: {
     return "Saving…";
   })();
 
+  const missingBranch = !loadingOptions && !userBranch;
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (missingBranch) {
+      setError(
+        "No branch is assigned to your account. Ask your admin to set one in People.",
+      );
+      return;
+    }
 
     const errors = validate();
     setFieldErrors(errors);
@@ -256,6 +238,22 @@ export function ReimbursementForm(props: {
           </p>
         ) : null}
 
+        {userBranch ? (
+          <p className="text-sm text-zinc-600">
+            Branch:{" "}
+            <span className="font-medium text-zinc-900">{userBranch.name}</span>
+            {" "}
+            <span className="text-zinc-500">(from your profile)</span>
+          </p>
+        ) : null}
+
+        {missingBranch ? (
+          <p className="text-sm text-amber-800">
+            No branch is assigned to your account yet. Ask your admin to set one
+            in People before you submit.
+          </p>
+        ) : null}
+
         <div className="space-y-1.5">
           <Label htmlFor="amount">
             Amount (₹)
@@ -280,7 +278,7 @@ export function ReimbursementForm(props: {
           <Label htmlFor="category">
             Category
           </Label>
-          {loadingCategories ? (
+          {loadingOptions ? (
             <p className="text-sm text-zinc-500">Loading categories…</p>
           ) : categories.length === 0 ? (
             <p className="text-sm text-amber-800">
@@ -308,45 +306,6 @@ export function ReimbursementForm(props: {
             </Select>
           )}
           <FieldError message={fieldErrors.category} />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="branch">Branch</Label>
-          {meUser?.role === "ADMIN" || meUser?.role === "APPROVER" ? (
-            <p className="text-xs text-zinc-500">
-              Select which branch this reimbursement is for. It should match
-              your assigned branch unless you are entering on behalf of another
-              location.
-            </p>
-          ) : null}
-          {loadingBranches ? (
-            <p className="text-sm text-zinc-500">Loading branches…</p>
-          ) : branches.length === 0 ? (
-            <p className="text-sm text-amber-800">
-              No branches available yet. Ask your admin.
-            </p>
-          ) : (
-            <Select
-              id="branch"
-              required
-              aria-invalid={Boolean(fieldErrors.branchId)}
-              value={branchId}
-              onChange={(e) => {
-                setBranchId(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, branchId: undefined }));
-              }}
-            >
-              <option value="" disabled>
-                Select branch
-              </option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </Select>
-          )}
-          <FieldError message={fieldErrors.branchId} />
         </div>
 
         <div className="space-y-1.5">
@@ -384,9 +343,8 @@ export function ReimbursementForm(props: {
         className="w-full"
         disabled={
           submitting ||
-          loadingBranches ||
-          loadingCategories ||
-          branches.length === 0 ||
+          loadingOptions ||
+          missingBranch ||
           categories.length === 0
         }
       >

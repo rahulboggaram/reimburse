@@ -1,17 +1,15 @@
 import type { z } from "zod";
-import { createReimbursementSchema } from "@/lib/validators";
+import { createReimbursementFormSchema } from "@/lib/validators";
 
 export function parseClaimFieldsFromFormData(
   formData: FormData,
-): z.infer<typeof createReimbursementSchema> | null {
+): z.infer<typeof createReimbursementFormSchema> | null {
   const amount = Number.parseFloat(String(formData.get("amount") ?? ""));
-  const branchId = String(formData.get("branchId") ?? "");
   const category = String(formData.get("category") ?? "");
   const description = String(formData.get("description") ?? "");
 
-  const parsed = createReimbursementSchema.safeParse({
+  const parsed = createReimbursementFormSchema.safeParse({
     amount,
-    branchId,
     category,
     description,
   });

@@ -31,14 +31,14 @@ export const adminCreateEmployeeSchema = z.object({
   phone: z.string().min(10).max(20),
 });
 
-export const createReimbursementSchema = z.object({
+/** Claim form fields (branch comes from the user's People profile). */
+export const createReimbursementFormSchema = z.object({
   amount: z.number().positive().max(10_000_000),
-  branchId: z.string().trim(),
   category: z.string().trim().min(1).max(80),
   description: z.string().trim().min(3).max(2000),
 });
 
-export const refileReimbursementSchema = createReimbursementSchema;
+export const refileReimbursementFormSchema = createReimbursementFormSchema;
 
 export const createBranchSchema = z.object({
   name: z.string().trim().min(2).max(80),

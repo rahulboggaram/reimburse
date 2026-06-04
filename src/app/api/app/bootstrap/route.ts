@@ -5,12 +5,7 @@ export async function GET() {
   const session = await requireSession();
   if (session instanceof Response) return session;
 
-  const [branches, categories, user] = await Promise.all([
-    prisma.branch.findMany({
-      where: { active: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
+  const [categories, user] = await Promise.all([
     prisma.expenseCategory.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
@@ -18,12 +13,20 @@ export async function GET() {
     }),
     prisma.user.findUnique({
       where: { id: session.id },
-      select: { branchId: true },
+      select: {
+        branchId: true,
+        branch: { select: { id: true, name: true, active: true } },
+      },
     }),
   ]);
 
+  const userBranch =
+    user?.branchId && user.branch
+      ? { id: user.branch.id, name: user.branch.name }
+      : null;
+
   return Response.json(
-    { branches, categories, userBranchId: user?.branchId ?? null },
+    { categories, userBranch },
     {
       headers: {
         "Cache-Control": "private, max-age=60",

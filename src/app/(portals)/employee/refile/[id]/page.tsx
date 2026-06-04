@@ -58,7 +58,6 @@ export default function RefileClaimPage() {
     amount: String(claim.amount),
     category: claim.category,
     description: claim.description,
-    branchId: claim.branchId,
   };
 
   return (

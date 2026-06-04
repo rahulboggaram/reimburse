@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
-import { resolveClaimBranchId } from "@/lib/claim-branch";
+import { resolveClaimBranchForUser } from "@/lib/claim-branch";
 import { resolveClaimRouting } from "@/lib/claim-routing";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { replaceClaimReceipts } from "@/lib/attach-receipts";
@@ -34,7 +34,7 @@ export async function PATCH(
     );
   }
 
-  const branchResult = await resolveClaimBranchId(body.branchId);
+  const branchResult = await resolveClaimBranchForUser(session.id);
   if ("error" in branchResult) {
     return Response.json({ error: branchResult.error }, { status: 400 });
   }
