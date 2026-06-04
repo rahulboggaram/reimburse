@@ -76,6 +76,9 @@ export function ApprovalsTableHeader(props: {
       </div>
       {showSelectionSummary ? (
         <div className="flex shrink-0 items-center gap-3 px-4 sm:px-5">
+          <span className="whitespace-nowrap text-sm text-zinc-500">
+            {props.selectedCount} of {props.totalCount} selected
+          </span>
           <button
             type="button"
             className="text-sm font-medium text-zinc-700 underline"
@@ -83,9 +86,6 @@ export function ApprovalsTableHeader(props: {
           >
             {props.allSelected ? "Clear all" : "Select all"}
           </button>
-          <span className="whitespace-nowrap text-sm text-zinc-500">
-            {props.selectedCount} of {props.totalCount} selected
-          </span>
         </div>
       ) : null}
     </div>
