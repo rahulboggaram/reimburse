@@ -2,7 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Select } from "@/components/ui/select";
+import { fieldOutlineColors, Select } from "@/components/ui/select";
 
 type FieldVisualState = "idle" | "focused" | "filled";
 
@@ -228,6 +228,11 @@ export function FloatingSelect(
   const id = idProp ?? autoId;
   const { setFocused, floated, state } = useFloatingFieldState(value);
   const showValue = state === "focused" || state === "filled";
+  const outlineColor = error
+    ? fieldOutlineColors.error
+    : state === "focused"
+      ? fieldOutlineColors.focused
+      : fieldOutlineColors.idle;
 
   return (
     <FieldWrap
@@ -242,6 +247,7 @@ export function FloatingSelect(
       <FieldControl>
         <Select
           {...selectProps}
+          outlineColor={outlineColor}
           id={id}
           required={required}
           value={value}
