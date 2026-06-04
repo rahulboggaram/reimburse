@@ -1,4 +1,5 @@
 import { isOtpMockMode } from "@/lib/otp";
+import { getOtpDeliveryChannel } from "@/lib/sms";
 
 export type WhatsappOtpConfig = {
   mockMode: boolean;
@@ -84,4 +85,28 @@ export async function probeWhatsappSender(): Promise<PhoneProbe> {
       error: err instanceof Error ? err.message : "Could not reach Meta API.",
     };
   }
+}
+
+export type WhatsappSetupStatus = {
+  config: WhatsappOtpConfig;
+  channel: string | null;
+  sender: PhoneProbe | null;
+  ready: boolean;
+};
+
+export async function getWhatsappSetupStatus(): Promise<WhatsappSetupStatus> {
+  const config = getWhatsappOtpConfig();
+  const sender = config.configured ? await probeWhatsappSender() : null;
+  const ready =
+    !config.mockMode &&
+    config.configured &&
+    sender?.ok === true &&
+    sender.status !== "PENDING";
+
+  return {
+    config,
+    channel: config.mockMode ? null : getOtpDeliveryChannel(),
+    sender,
+    ready,
+  };
 }

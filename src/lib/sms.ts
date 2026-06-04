@@ -193,6 +193,16 @@ async function sendViaTwilio(phoneE164: string, body: string) {
   }
 }
 
+/** Send login OTP via WhatsApp template (admin test / scripts). */
+export async function sendWhatsappOtp(phoneE164: string, otp: string) {
+  if (!resolveProvider() || resolveProvider() !== "whatsapp") {
+    throw new SmsConfigError(
+      "WhatsApp is not configured. Set WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, and WHATSAPP_OTP_TEMPLATE_NAME.",
+    );
+  }
+  await sendViaWhatsapp(phoneE164, otp);
+}
+
 /** Send OTP in live mode (WhatsApp or SMS). Caller should guard with isSmsConfigured(). */
 export async function sendOtpSms(phoneE164: string, otp: string, smsBody: string) {
   const provider = resolveProvider();
@@ -203,7 +213,7 @@ export async function sendOtpSms(phoneE164: string, otp: string, smsBody: string
   }
 
   if (provider === "whatsapp") {
-    await sendViaWhatsapp(phoneE164, otp);
+    await sendWhatsappOtp(phoneE164, otp);
     return;
   }
 

@@ -1,24 +1,16 @@
 import { requireAdminAccess } from "@/lib/auth-api";
-import { getOtpDeliveryChannel } from "@/lib/otp";
-import { getWhatsappOtpConfig, probeWhatsappSender } from "@/lib/whatsapp-otp";
+import { getWhatsappOtpConfig, getWhatsappSetupStatus } from "@/lib/whatsapp-otp";
 
 export async function GET() {
   const session = await requireAdminAccess();
   if (session instanceof Response) return session;
 
   const config = getWhatsappOtpConfig();
-  const sender =
-    config.configured && !config.mockMode ? await probeWhatsappSender() : null;
-
-  const ready =
-    !config.mockMode &&
-    config.configured &&
-    sender?.ok === true &&
-    sender.status !== "PENDING";
+  const { channel, sender, ready } = await getWhatsappSetupStatus();
 
   return Response.json({
     config,
-    channel: config.mockMode ? null : getOtpDeliveryChannel(),
+    channel,
     sender,
     ready,
     vercelVars: {
