@@ -40,7 +40,7 @@ export function ReimburseBrand() {
       <span className="font-brand text-[3.06rem] leading-none text-emerald-950">
         Reimburse
       </span>
-      <p className="text-sm text-zinc-600">by Yellow Metal</p>
+      <p className="text-lg text-zinc-600">by Yellow Metal</p>
     </Link>
   );
 }
