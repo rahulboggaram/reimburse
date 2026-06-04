@@ -18,7 +18,8 @@ function shellClass(state: FieldVisualState, error?: boolean) {
   }
   return cn(
     "relative rounded-xl border-2 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] duration-200",
-    state === "focused" && "border-blue-600 ring-2 ring-blue-600/15",
+    state === "focused" &&
+      "border-2 border-blue-600 ring-2 ring-blue-600/20 ring-offset-2 ring-offset-white",
     (state === "idle" || state === "filled") && "border-zinc-300",
   );
 }
