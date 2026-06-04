@@ -25,7 +25,7 @@ export default function AdminActivityPage() {
     <>
       <PageHeading
         title="Activity log"
-        description="Logins, profile changes, and admin actions — not reimbursements."
+        info="Logins, profile changes, and admin actions — not reimbursements."
         className="mb-4"
       />
 
