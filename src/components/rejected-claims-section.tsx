@@ -95,7 +95,7 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
       <div>
         <h2
           id="rejected-claims-heading"
-          className="text-lg font-semibold text-zinc-900"
+          className="font-brand-title text-lg text-zinc-900"
         >
           Needs your attention
         </h2>

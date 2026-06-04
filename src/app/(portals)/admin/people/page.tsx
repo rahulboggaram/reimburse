@@ -187,7 +187,7 @@ export default function AdminPeoplePage() {
       <Card className="mb-6">
         <form onSubmit={addEmployee} className="space-y-4">
           <div>
-            <h2 className="font-semibold">Add new employee</h2>
+            <h2 className="font-brand-title">Add new employee</h2>
             <p className="text-sm text-zinc-600">
               They complete name & bank details on first login.
             </p>
@@ -213,7 +213,7 @@ export default function AdminPeoplePage() {
 
       <Card className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="min-w-0 text-lg font-semibold">All Employees</h2>
+          <h2 className="font-brand-title min-w-0 text-lg text-zinc-900">All Employees</h2>
           <Select
             id="filter-people"
             aria-label="Filter by role"

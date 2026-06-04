@@ -18,8 +18,8 @@ export function PageHeading(props: {
   const Heading = props.as ?? "h1";
   const headingClass =
     props.as === "h2"
-      ? "text-lg font-semibold text-zinc-900 sm:text-xl"
-      : "text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl";
+      ? "font-brand-title text-lg text-zinc-900 sm:text-xl"
+      : "font-brand-title text-xl text-zinc-900 sm:text-2xl";
   const showAccountMenu = props.accountMenu !== false;
 
   return (

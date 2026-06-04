@@ -62,8 +62,18 @@ body {
 
 .font-brand {
   font-family: var(--font-brand);
+}
+
+.font-brand-wordmark {
   font-weight: 800;
   letter-spacing: -0.03em;
+}
+
+/* Page titles (Create reimbursement, People, etc.) — same family as logo */
+.font-brand-title {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .scrollbar-hide {
