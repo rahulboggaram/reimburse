@@ -265,7 +265,7 @@ export function EmployeeProfileForm(props: {
           )}
         </ProfileCardBlock>
 
-        {phone ? (
+        {phone && !isOnboarding ? (
           <ProfileCardBlock>
             <ChangePhoneSection
               currentPhone={phone}
@@ -277,9 +277,11 @@ export function EmployeeProfileForm(props: {
           </ProfileCardBlock>
         ) : null}
 
-        <ProfileCardBlock>
-          <RoleBadge role={accessRole || "Employee"} />
-        </ProfileCardBlock>
+        {!isOnboarding ? (
+          <ProfileCardBlock>
+            <RoleBadge role={accessRole || "Employee"} />
+          </ProfileCardBlock>
+        ) : null}
       </Card>
 
       <Card className={cn(profileCardClass, "p-5")}>
