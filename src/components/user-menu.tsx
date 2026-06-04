@@ -128,6 +128,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       "/admin/claims",
       "/admin/activity",
       "/admin/reports",
+      "/admin/analytics",
       "/admin/branches",
       "/admin/categories",
     ];
@@ -341,6 +342,13 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
                 active={pathname.startsWith("/admin/reports")}
               >
                 Reports
+              </MenuLink>
+              <MenuLink
+                href="/admin/analytics"
+                onNavigate={closeMenu}
+                active={pathname.startsWith("/admin/analytics")}
+              >
+                Insights
               </MenuLink>
               <MenuLink
                 href="/admin/otp-setup"

@@ -6,6 +6,8 @@ export const ADMIN_CLAIMS_KEY = "admin-claims";
 export const ADMIN_BRANCHES_KEY = "admin-branches";
 export const ADMIN_CATEGORIES_KEY = "admin-categories";
 export const ADMIN_ACTIVITY_KEY = "admin-activity";
+export const adminAnalyticsCacheKey = (days: number) =>
+  `admin-analytics-${days}`;
 export const FORM_BOOTSTRAP_KEY = "form-bootstrap";
 
 const TTL_MS = 5 * 60 * 1000;
@@ -42,6 +44,16 @@ export function fetchAdminActivity<T = unknown>() {
   return fetchClientCache<T>(ADMIN_ACTIVITY_KEY, () =>
     fetch("/api/admin/activity").then((r) => readJson<T>(r)),
     TTL_MS,
+  );
+}
+
+export function fetchAdminAnalytics<T = unknown>(days = 30) {
+  const key = adminAnalyticsCacheKey(days);
+  return fetchClientCache<T>(
+    key,
+    () =>
+      fetch(`/api/admin/analytics?days=${days}`).then((r) => readJson<T>(r)),
+    60_000,
   );
 }
 
@@ -102,5 +114,6 @@ export function warmAdminNavCaches() {
   void fetchAdminBranches();
   void fetchAdminCategories();
   void fetchAdminActivity();
+  void fetchAdminAnalytics(30);
   void fetchFormBootstrap();
 }
