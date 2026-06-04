@@ -34,7 +34,7 @@ export function ReimburseBrand() {
   return (
     <Link
       href={homeHref}
-      className="flex flex-col items-center gap-0.5 rounded-lg text-center outline-none ring-zinc-900 focus-visible:ring-2"
+      className="flex flex-col items-center gap-1 rounded-lg pt-4 text-center outline-none ring-zinc-900 focus-visible:ring-2"
       aria-label="Reimburse home"
     >
       <span className="font-brand text-[3.06rem] leading-none text-emerald-950">
