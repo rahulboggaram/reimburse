@@ -203,6 +203,8 @@ export default function AdminPeoplePage() {
         </form>
       </Card>
 
+      <h2 className="mb-3 text-lg font-semibold">All Employees</h2>
+
       <Card className="mb-4 space-y-4">
         <FloatingInput
           id="search-employee"
@@ -250,8 +252,6 @@ export default function AdminPeoplePage() {
           </p>
         ) : null}
       </Card>
-
-      <h2 className="mb-3 text-lg font-semibold">All Employees</h2>
 
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
