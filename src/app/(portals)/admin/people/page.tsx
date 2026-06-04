@@ -4,10 +4,8 @@ import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  FloatingInput,
-  FloatingSelect,
-} from "@/components/ui/floating-field";
+import { FloatingInput } from "@/components/ui/floating-field";
+import { Select } from "@/components/ui/select";
 import {
   EmployeeDetailModal,
   EmployeeListRow,
@@ -32,6 +30,16 @@ type RoleFilter =
   | "admin"
   | "signed-up"
   | "pending";
+
+const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
+  { value: "all", label: "All roles" },
+  { value: "employee", label: "Employees" },
+  { value: "branch-manager", label: "Branch managers" },
+  { value: "approver", label: "Approvers" },
+  { value: "admin", label: "Admins" },
+  { value: "signed-up", label: "Signed up" },
+  { value: "pending", label: "Pending" },
+];
 
 function matchesSearch(employee: EmployeeRecord, query: string) {
   const q = query.trim().toLowerCase();
@@ -203,7 +211,22 @@ export default function AdminPeoplePage() {
         </form>
       </Card>
 
-      <h2 className="mb-3 text-lg font-semibold">All Employees</h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="min-w-0 text-lg font-semibold">All Employees</h2>
+        <Select
+          id="filter-people"
+          aria-label="Filter by role"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+          className="h-auto max-w-[10.5rem] shrink-0 rounded-full border-zinc-200 bg-size-[1rem] bg-position-[right_0.625rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-800 shadow-none ring-0 focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:max-w-none"
+        >
+          {ROLE_FILTER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </div>
 
       <Card className="mb-4 space-y-4">
         <FloatingInput
@@ -213,20 +236,6 @@ export default function AdminPeoplePage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <FloatingSelect
-          id="filter-people"
-          label="Filter by role"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-        >
-          <option value="all">All roles</option>
-          <option value="employee">Employees only</option>
-          <option value="branch-manager">Branch managers only</option>
-          <option value="approver">Payment approvers only</option>
-          <option value="admin">Admins only</option>
-          <option value="signed-up">Signed up</option>
-          <option value="pending">Pending signup</option>
-        </FloatingSelect>
         {search.trim() ? (
           <p className="text-sm text-zinc-600">
             {filtered.length > 0 ? (
