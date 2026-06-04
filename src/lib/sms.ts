@@ -195,7 +195,7 @@ async function sendViaTwilio(phoneE164: string, body: string) {
 
 /** Send login OTP via WhatsApp template (admin test / scripts). */
 export async function sendWhatsappOtp(phoneE164: string, otp: string) {
-  if (!resolveProvider() || resolveProvider() !== "whatsapp") {
+  if (resolveProvider() !== "whatsapp") {
     throw new SmsConfigError(
       "WhatsApp is not configured. Set WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, and WHATSAPP_OTP_TEMPLATE_NAME.",
     );
