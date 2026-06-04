@@ -42,6 +42,17 @@ function MenuDivider() {
   return <div className="my-1 border-t border-zinc-100" role="separator" />;
 }
 
+function MenuUserHeader(props: { name: string }) {
+  return (
+    <>
+      <div className="px-4 py-2.5">
+        <p className="truncate text-sm font-bold text-zinc-900">{props.name}</p>
+      </div>
+      <MenuDivider />
+    </>
+  );
+}
+
 function sessionToMeUser(user: SessionUser): MeUser {
   return {
     id: user.id,
@@ -73,7 +84,6 @@ function MenuChevron(props: { open: boolean }) {
 }
 
 function AccountMenuTrigger(props: {
-  label: string;
   open: boolean;
   loading?: boolean;
   onClick: () => void;
@@ -86,13 +96,13 @@ function AccountMenuTrigger(props: {
       aria-busy={props.loading || undefined}
       disabled={props.loading}
       onClick={props.onClick}
-      className="flex max-w-[11rem] items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 disabled:cursor-wait sm:max-w-[13rem]"
-      aria-label={`Account menu for ${props.label}`}
+      className="flex items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 disabled:cursor-wait"
+      aria-label="Open menu"
     >
       {props.loading ? (
-        <span className="h-4 w-20 animate-pulse rounded bg-zinc-200" />
+        <span className="h-4 w-10 animate-pulse rounded bg-zinc-200" />
       ) : (
-        <span className="truncate">{props.label}</span>
+        <span>Menu</span>
       )}
       <MenuChevron open={props.open} />
     </button>
@@ -175,7 +185,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     return (
       <div ref={menuRef} className="relative shrink-0">
         <AccountMenuTrigger
-          label=""
           open={false}
           loading={showLoading}
           onClick={() => {}}
@@ -188,7 +197,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     return (
       <div ref={menuRef} className="relative shrink-0">
         <AccountMenuTrigger
-          label={label}
           open={open}
           onClick={() => setOpen((value) => !value)}
         />
@@ -197,6 +205,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
             role="menu"
             className="absolute top-[calc(100%+6px)] right-0 z-30 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
           >
+            <MenuUserHeader name={label} />
             <MenuLink
               href="/employee/onboarding"
               onNavigate={closeMenu}
@@ -285,7 +294,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
   return (
     <div ref={menuRef} className="relative shrink-0">
       <AccountMenuTrigger
-        label={label}
         open={open}
         onClick={() => setOpen((value) => !value)}
       />
@@ -295,6 +303,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
           role="menu"
           className="absolute top-[calc(100%+6px)] right-0 z-30 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
         >
+          <MenuUserHeader name={label} />
           {canAdmin ? (
             <>
               {newReimbursementLink}
