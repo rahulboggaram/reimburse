@@ -22,7 +22,10 @@ async function fetchPendingTab(
   tab: "waiting" | "approved",
 ): Promise<TabPayload> {
   const response = await fetch(`/api/claims/pending?tab=${tab}`);
-  const claims = await readJson<SerializedClaim[]>(response);
+  const data = await readJson<
+    SerializedClaim[] | { claims: SerializedClaim[] }
+  >(response);
+  const claims = Array.isArray(data) ? data : data.claims;
   return { claims, counts: null };
 }
 

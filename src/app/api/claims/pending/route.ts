@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
-import { claimQueueSelect, serializeClaimQueueItem } from "@/lib/claims";
+import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import {
   approverPaymentSentWhere,
@@ -71,32 +71,10 @@ async function fetchQueueClaims(
 ) {
   const orderBy = queueOrderBy(session, tab);
 
-  if (session.role === "ADMIN" && tab === "waiting") {
-    const [needsApproval, awaitingPayment] = await Promise.all([
-      prisma.reimbursement.findMany({
-        where: adminApprovalQueueWhere(session.branchId),
-        orderBy: { createdAt: "desc" },
-        select: claimQueueSelect,
-      }),
-      prisma.reimbursement.findMany({
-        where: orgPaymentWaitingWhere(session.branchId),
-        orderBy: { createdAt: "desc" },
-        select: claimQueueSelect,
-      }),
-    ]);
-    const byId = new Map<string, (typeof needsApproval)[number]>();
-    for (const row of [...needsApproval, ...awaitingPayment]) {
-      byId.set(row.id, row);
-    }
-    return [...byId.values()].sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
-  }
-
   return prisma.reimbursement.findMany({
     where: queueWhere(session, tab),
     orderBy,
-    select: claimQueueSelect,
+    include: claimListInclude,
   });
 }
 
@@ -109,11 +87,12 @@ export async function GET(request: Request) {
     const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
     const claims = await fetchQueueClaims(session, tab);
 
-    return Response.json(claims.map(serializeClaimQueueItem), {
+    return Response.json(claims.map(serializeClaimListItem), {
       headers: { "Cache-Control": "private, max-age=20" },
     });
   } catch (err) {
-    console.error("claims/pending failed", err);
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("claims/pending failed", detail, err);
     return Response.json(
       { error: "Could not load approvals. Please refresh and try again." },
       { status: 500 },

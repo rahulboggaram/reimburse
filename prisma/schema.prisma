@@ -154,6 +154,4 @@ model Reimbursement {
   @@index([approverId])
   @@index([branchId])
   @@index([paymentApproverId])
-  @@index([paymentApproverId, status, paidAt])
-  @@index([branchId, status, paidAt])
 }
