@@ -1,66 +1,64 @@
 import { cn } from "@/lib/utils";
 
-/** Equal-width data columns + narrow chevron; shared gap between columns. */
-export const claimsTableGridWithStatus =
-  "grid w-full grid-cols-[repeat(4,minmax(0,1fr))_1.25rem] items-center gap-x-4";
-
-export const claimsTableGridNoStatus =
-  "grid w-full grid-cols-[repeat(3,minmax(0,1fr))_1.25rem] items-center gap-x-4";
-
-/** Approved tab: category + employee + date + amount */
-export const claimsTableGridWithCategory =
-  "grid w-full grid-cols-[repeat(4,minmax(0,1fr))_1.25rem] items-center gap-x-4";
-
-/** Approved tab with status column */
-export const claimsTableGridWithCategoryAndStatus =
-  "grid w-full grid-cols-[repeat(5,minmax(0,1fr))_1.25rem] items-center gap-x-4";
+const chevronCol = "1.25rem";
+const checkboxCol = "2.25rem";
 
 /** Checkbox column: narrow, left-aligned, always first. */
 export const claimsTableColCheckbox =
   "flex shrink-0 items-center justify-start justify-self-start";
-
-function withCheckboxColumn(grid: string) {
-  return grid.replace("grid-cols-[", "grid-cols-[auto_");
-}
 
 export function approvalsTableGrid(options: {
   showCategory?: boolean;
   showStatus?: boolean;
   selectable?: boolean;
 }) {
-  let grid: string;
-  if (options.showCategory) {
-    grid =
-      options.showStatus !== false
-        ? claimsTableGridWithCategoryAndStatus
-        : claimsTableGridWithCategory;
-  } else {
-    grid =
-      options.showStatus !== false
-        ? claimsTableGridWithStatus
-        : claimsTableGridNoStatus;
+  const showStatus = options.showStatus !== false;
+  const showCategory = options.showCategory === true;
+  const prefix = options.selectable ? `${checkboxCol}_` : "";
+  const gap = "gap-x-3";
+
+  if (showCategory) {
+    const dataCols = showStatus ? 5 : 4;
+    return cn(
+      "grid w-full items-center",
+      gap,
+      `grid-cols-[${prefix}repeat(${dataCols},minmax(0,1fr))_${chevronCol}]`,
+    );
   }
-  return options.selectable ? withCheckboxColumn(grid) : grid;
+
+  const dataCols = showStatus ? 4 : 3;
+  return cn(
+    "grid w-full items-center",
+    gap,
+    `grid-cols-[${prefix}repeat(${dataCols},minmax(0,1fr))_${chevronCol}]`,
+  );
 }
 
 export function claimsTableHeaderClass(grid: string) {
   return cn(
     grid,
-    "gap-x-3 border-b border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs font-medium tracking-wide text-zinc-500 uppercase sm:px-5",
+    "border-b border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs font-medium tracking-wide text-zinc-500 uppercase sm:px-5",
   );
 }
 
 export function claimsTableRowClass(grid: string) {
   return cn(
     grid,
-    "gap-x-3 w-full border-b border-zinc-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
+    "w-full border-b border-zinc-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
   );
 }
 
 export const claimsTableColStart = "min-w-0 justify-self-stretch text-left";
 
 export const claimsTableColCenter =
-  "flex min-w-0 w-full items-center justify-center justify-self-stretch text-center";
+  "min-w-0 justify-self-stretch text-center";
 
 export const claimsTableColChevron =
-  "flex w-full items-center justify-center justify-self-center text-base leading-none text-zinc-400";
+  "flex items-center justify-center justify-self-center text-base leading-none text-zinc-400";
+
+/** My claims table (category, date, amount, status). */
+export const claimsTableGridWithStatus = approvalsTableGrid({
+  showCategory: true,
+  showStatus: true,
+  selectable: false,
+});

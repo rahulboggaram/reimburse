@@ -22,6 +22,10 @@ const employeeCellClass =
 const bodyCellClass =
   "text-sm font-normal text-zinc-600 tabular-nums";
 
+function stopRowClick(event: React.MouseEvent) {
+  event.stopPropagation();
+}
+
 export function ApprovalsTableHeader(props: {
   showStatus?: boolean;
   showCategory?: boolean;
@@ -47,7 +51,11 @@ export function ApprovalsTableHeader(props: {
             className="size-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-600"
             checked={props.allSelected}
             ref={(el) => {
-              if (el) el.indeterminate = Boolean(props.someSelected && !props.allSelected);
+              if (el) {
+                el.indeterminate = Boolean(
+                  props.someSelected && !props.allSelected,
+                );
+              }
             }}
             onChange={props.onToggleAll}
             aria-label="Select all in list"
@@ -89,57 +97,61 @@ export function ApprovalsTableRow(props: {
   });
 
   return (
-    <div className={claimsTableRowClass(grid)}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={props.onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          props.onOpen();
+        }
+      }}
+      className={cn(
+        claimsTableRowClass(grid),
+        "cursor-pointer text-left outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+      )}
+    >
       {props.selectable ? (
         <label
           className={claimsTableColCheckbox}
-          onClick={(e) => e.stopPropagation()}
+          onClick={stopRowClick}
+          onMouseDown={stopRowClick}
         >
           <input
             type="checkbox"
             className="size-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-600"
             checked={props.selected}
             onChange={props.onToggleSelect}
+            onClick={stopRowClick}
             aria-label={`Select ${claim.employeeName}`}
           />
         </label>
       ) : null}
-      <button
-        type="button"
-        onClick={props.onOpen}
-        className="contents min-w-0 cursor-pointer text-left"
+      <span className={cn(claimsTableColStart, employeeCellClass)}>
+        {claim.employeeName}
+      </span>
+      {showCategory ? (
+        <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
+          {claim.category}
+        </span>
+      ) : null}
+      <span className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}>
+        {formatDisplayDateNoYear(claim.expenseDate)}
+      </span>
+      <span
+        className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}
       >
-        <span className={cn(claimsTableColStart, employeeCellClass)}>
-          {claim.employeeName}
+        ₹{claim.amount.toLocaleString("en-IN")}
+      </span>
+      {showStatus ? (
+        <span className={cn(claimsTableColCenter, "flex justify-center")}>
+          <StatusBadge status={status} compact />
         </span>
-        {showCategory ? (
-          <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
-            {claim.category}
-          </span>
-        ) : null}
-        <span
-          className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}
-        >
-          {formatDisplayDateNoYear(claim.expenseDate)}
-        </span>
-        <span
-          className={cn(
-            claimsTableColCenter,
-            bodyCellClass,
-            "whitespace-nowrap",
-          )}
-        >
-          ₹{claim.amount.toLocaleString("en-IN")}
-        </span>
-        {showStatus ? (
-          <span className={claimsTableColCenter}>
-            <StatusBadge status={status} compact className="mx-auto" />
-          </span>
-        ) : null}
-        <span className={claimsTableColChevron} aria-hidden>
-          ›
-        </span>
-      </button>
+      ) : null}
+      <span className={claimsTableColChevron} aria-hidden>
+        ›
+      </span>
     </div>
   );
 }

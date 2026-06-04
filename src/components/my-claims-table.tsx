@@ -67,8 +67,8 @@ export function MyClaimsTableRow(props: {
       >
         ₹{claim.amount.toLocaleString("en-IN")}
       </span>
-      <span className={claimsTableColCenter}>
-        <StatusBadge status={status} compact className="mx-auto" />
+      <span className={cn(claimsTableColCenter, "flex justify-center")}>
+        <StatusBadge status={status} compact />
       </span>
       <span className={claimsTableColChevron} aria-hidden>
         ›
