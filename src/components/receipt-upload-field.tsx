@@ -18,7 +18,7 @@ type ReceiptUploadFieldProps = {
 };
 
 const fieldShellBase =
-  "flex h-auto min-h-field flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] bg-white px-3 py-4 transition-[border-color] duration-200";
+  "flex h-field flex-row items-center justify-center gap-2 rounded-xl border-[1.5px] border-dotted bg-white px-3 transition-[border-color] duration-200";
 
 function ReceiptActionButton(props: {
   label: string;
@@ -43,7 +43,7 @@ function ReceiptActionButton(props: {
       >
         {props.children}
       </span>
-      <span className="text-sm font-semibold text-zinc-900">{props.label}</span>
+      <span className="text-sm font-medium text-zinc-900">{props.label}</span>
     </button>
   );
 }
@@ -51,7 +51,7 @@ function ReceiptActionButton(props: {
 function CameraIcon() {
   return (
     <svg
-      className="size-7"
+      className="size-5 shrink-0"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -71,7 +71,7 @@ function CameraIcon() {
 function GalleryIcon() {
   return (
     <svg
-      className="size-7"
+      className="size-5 shrink-0"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
