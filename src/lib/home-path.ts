@@ -1,12 +1,9 @@
 import type { UserRole } from "@prisma/client";
-import {
-  canAccessAdminPortal,
-  canAccessManagerPortal,
-} from "@/lib/access-roles";
+import { canAccessManagerPortal } from "@/lib/access-roles";
 
 export function getAppHomePathForRole(role: UserRole | string): string {
   const r = role as UserRole;
-  if (canAccessAdminPortal(r)) return "/admin/people";
+  if (r === "ADMIN") return "/employee";
   if (canAccessManagerPortal(r)) return "/manager";
   return "/employee";
 }

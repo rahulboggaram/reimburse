@@ -279,6 +279,13 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
         >
           {canAdmin ? (
             <>
+              <MenuLink
+                href="/employee"
+                onNavigate={closeMenu}
+                active={pathname === "/employee"}
+              >
+                New reimbursement
+              </MenuLink>
               {approvalsLink}
               {myReimbursementsLink}
               <MenuDivider />
