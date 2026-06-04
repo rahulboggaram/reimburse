@@ -211,24 +211,24 @@ export default function AdminPeoplePage() {
         </form>
       </Card>
 
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="min-w-0 text-lg font-semibold">All Employees</h2>
-        <Select
-          id="filter-people"
-          aria-label="Filter by role"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-          className="h-auto max-w-[10.5rem] shrink-0 rounded-full border-zinc-200 bg-size-[1rem] bg-position-[right_0.625rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-800 shadow-none ring-0 focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:max-w-none"
-        >
-          {ROLE_FILTER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-      </div>
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="min-w-0 text-lg font-semibold">All Employees</h2>
+          <Select
+            id="filter-people"
+            aria-label="Filter by role"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+            className="h-auto max-w-[10.5rem] shrink-0 rounded-full border-zinc-200 bg-size-[1rem] bg-position-[right_0.625rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-800 shadow-none ring-0 focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:max-w-none"
+          >
+            {ROLE_FILTER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-      <Card className="mb-4 space-y-4">
         <FloatingInput
           id="search-employee"
           label="Name or mobile number"
@@ -236,6 +236,7 @@ export default function AdminPeoplePage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
         {search.trim() ? (
           <p className="text-sm text-zinc-600">
             {filtered.length > 0 ? (
@@ -260,38 +261,36 @@ export default function AdminPeoplePage() {
             )}
           </p>
         ) : null}
-      </Card>
 
-      {loading ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
-      ) : employees.length === 0 ? (
-        <Card>
+        {loading ? (
+          <p className="text-sm text-zinc-500">Loading…</p>
+        ) : employees.length === 0 ? (
           <p className="text-sm text-zinc-600">No employees yet.</p>
-        </Card>
-      ) : (
-        <Card className="space-y-3">
-          <ActiveInactiveTabs value={tab} onChange={setTab} />
+        ) : (
+          <>
+            <ActiveInactiveTabs value={tab} onChange={setTab} />
 
-          {filtered.length === 0 ? (
-            <p className="text-sm text-zinc-600">
-              {tab === "active"
-                ? "No active employees match your search."
-                : "No inactive employees match your search."}
-            </p>
-          ) : (
-            <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white">
-              {filtered.map((employee) => (
-                <li key={employee.id}>
-                  <EmployeeListRow
-                    employee={employee}
-                    onOpen={() => setSelected(employee)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
+            {filtered.length === 0 ? (
+              <p className="text-sm text-zinc-600">
+                {tab === "active"
+                  ? "No active employees match your search."
+                  : "No inactive employees match your search."}
+              </p>
+            ) : (
+              <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border border-zinc-200 bg-white">
+                {filtered.map((employee) => (
+                  <li key={employee.id}>
+                    <EmployeeListRow
+                      employee={employee}
+                      onOpen={() => setSelected(employee)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </Card>
 
       <EmployeeDetailModal
         employee={selected}
