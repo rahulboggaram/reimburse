@@ -4,39 +4,55 @@ import { useId, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
 
-const shellClass =
-  "relative rounded-xl border border-zinc-200/80 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-800/20";
+type FieldVisualState = "idle" | "focused" | "filled";
 
-function floatingLabel(active: boolean) {
+function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
+  if (focused) return "focused";
+  if (hasValue) return "filled";
+  return "idle";
+}
+
+function shellClass(state: FieldVisualState, error?: boolean) {
+  if (error) {
+    return "relative rounded-xl border border-red-300 bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-200/60";
+  }
   return cn(
-    "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate bg-white px-0.5 leading-none transition-all duration-200 ease-out",
-    active
-      ? "top-0 -translate-y-1/2 text-xs font-medium text-emerald-800"
-      : "top-1/2 -translate-y-1/2 text-base font-normal text-zinc-500",
+    "relative rounded-xl border bg-white shadow-sm shadow-zinc-200/30 transition-[border-color,box-shadow] duration-200",
+    state === "focused" && "border-blue-600 ring-2 ring-blue-600/15",
+    (state === "idle" || state === "filled") && "border-zinc-300",
   );
 }
 
+function labelClass(state: FieldVisualState, floated: boolean) {
+  return cn(
+    "pointer-events-none absolute left-4 z-10 max-w-[calc(100%-2rem)] truncate bg-white px-0.5 leading-none transition-all duration-200 ease-out",
+    floated
+      ? "top-0 -translate-y-1/2 text-xs font-medium"
+      : "top-1/2 -translate-y-1/2 text-base font-normal text-zinc-500",
+    floated && state === "focused" && "text-blue-600",
+    floated && state === "filled" && "text-zinc-500",
+  );
+}
+
+const valueClass =
+  "text-base font-medium text-zinc-900";
+
 const inputClass =
-  "peer block h-field w-full rounded-xl border-0 bg-transparent px-4 pb-2.5 pt-5 text-base text-zinc-900 outline-none placeholder:text-transparent";
+  "block h-field w-full rounded-xl border-0 bg-transparent px-4 pb-2.5 pt-5 outline-none";
 
 function FieldWrap(props: {
   id: string;
   label: string;
-  active: boolean;
+  state: FieldVisualState;
+  floated: boolean;
   error?: boolean;
   children: React.ReactNode;
   hint?: React.ReactNode;
 }) {
   return (
     <div className="space-y-1">
-      <div
-        className={cn(
-          shellClass,
-          props.error &&
-            "border-red-300 focus-within:border-red-400 focus-within:ring-red-200/60",
-        )}
-      >
-        <label htmlFor={props.id} className={floatingLabel(props.active)}>
+      <div className={shellClass(props.state, props.error)}>
+        <label htmlFor={props.id} className={labelClass(props.state, props.floated)}>
           {props.label}
         </label>
         {props.children}
@@ -55,6 +71,15 @@ export function FieldError(props: { message?: string }) {
   );
 }
 
+function useFloatingFieldState(value: unknown) {
+  const [focused, setFocused] = useState(false);
+  const hasValue =
+    value !== undefined && value !== null && String(value).length > 0;
+  const floated = focused || hasValue;
+  const state = getFieldState(focused, hasValue);
+  return { focused, setFocused, hasValue, floated, state };
+}
+
 export function FloatingInput(
   props: React.ComponentProps<"input"> & {
     label: string;
@@ -68,7 +93,6 @@ export function FloatingInput(
     fieldError,
     className,
     id: idProp,
-    type,
     value,
     onFocus,
     onBlur,
@@ -76,72 +100,37 @@ export function FloatingInput(
   } = props;
   const autoId = useId();
   const id = idProp ?? autoId;
-  const [focused, setFocused] = useState(false);
-  const useStateLabel = type === "date" || type === "time";
-  const hasValue =
-    value !== undefined && value !== null && String(value).length > 0;
-  const active = useStateLabel ? focused || hasValue : false;
-
-  if (useStateLabel) {
-    return (
-      <FieldWrap
-        id={id}
-        label={label}
-        active={active}
-        error={error}
-        hint={<FieldError message={fieldError} />}
-      >
-        <input
-          {...inputProps}
-          type={type}
-          id={id}
-          value={value}
-          onFocus={(e) => {
-            setFocused(true);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
-          className={cn(inputClass, className)}
-        />
-      </FieldWrap>
-    );
-  }
+  const { setFocused, floated, state } = useFloatingFieldState(value);
+  const showValue = state === "focused" || state === "filled";
 
   return (
-    <div className="space-y-1">
-      <div
+    <FieldWrap
+      id={id}
+      label={label}
+      state={state}
+      floated={floated}
+      error={error}
+      hint={<FieldError message={fieldError} />}
+    >
+      <input
+        {...inputProps}
+        id={id}
+        value={value}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
         className={cn(
-          shellClass,
-          error &&
-            "border-red-300 focus-within:border-red-400 focus-within:ring-red-200/60",
+          inputClass,
+          showValue ? valueClass : "text-transparent caret-zinc-900",
+          className,
         )}
-      >
-        <input
-          {...inputProps}
-          type={type}
-          id={id}
-          value={value}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          placeholder=" "
-          className={cn(inputClass, "peer", className)}
-        />
-        <label
-          htmlFor={id}
-          className={cn(
-            floatingLabel(false),
-            "peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:font-medium peer-focus:text-emerald-800",
-            "peer-[:not(:placeholder-shown)]:top-0 peer-[:not(:placeholder-shown)]:-translate-y-1/2 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:font-medium peer-[:not(:placeholder-shown)]:text-emerald-800",
-          )}
-        >
-          {label}
-        </label>
-      </div>
-      <FieldError message={fieldError} />
-    </div>
+      />
+    </FieldWrap>
   );
 }
 
@@ -157,16 +146,15 @@ export function FloatingSelect(
     props;
   const autoId = useId();
   const id = idProp ?? autoId;
-  const [focused, setFocused] = useState(false);
-  const hasValue =
-    value !== undefined && value !== null && String(value).length > 0;
-  const active = focused || hasValue;
+  const { setFocused, floated, state } = useFloatingFieldState(value);
+  const showValue = state === "focused" || state === "filled";
 
   return (
     <FieldWrap
       id={id}
       label={label}
-      active={active}
+      state={state}
+      floated={floated}
       error={error}
       hint={<FieldError message={fieldError} />}
     >
@@ -184,7 +172,8 @@ export function FloatingSelect(
         }}
         className={cn(
           "h-field w-full rounded-xl border-0 bg-transparent py-0 pl-4 pr-12 shadow-none ring-0 focus-visible:ring-0",
-          active ? "pt-5 pb-2.5 text-zinc-900" : "text-transparent",
+          floated ? "pt-5 pb-2.5" : "",
+          showValue ? valueClass : "text-transparent",
           className,
         )}
       >
@@ -216,10 +205,8 @@ export function FloatingTextarea(
   const autoId = useId();
   const id = idProp ?? autoId;
   const ref = useRef<HTMLTextAreaElement>(null);
-  const [focused, setFocused] = useState(false);
-  const hasValue =
-    value !== undefined && value !== null && String(value).length > 0;
-  const active = focused || hasValue;
+  const { setFocused, floated, state } = useFloatingFieldState(value);
+  const showValue = state === "focused" || state === "filled";
 
   useLayoutEffect(() => {
     if (!autoResize || !ref.current) return;
@@ -232,7 +219,8 @@ export function FloatingTextarea(
     <FieldWrap
       id={id}
       label={label}
-      active={active}
+      state={state}
+      floated={floated}
       error={error}
       hint={<FieldError message={fieldError} />}
     >
@@ -257,10 +245,9 @@ export function FloatingTextarea(
           onChange?.(e);
         }}
         className={cn(
-          "block min-h-textarea w-full resize-none rounded-xl border-0 bg-transparent px-4 text-base leading-relaxed outline-none",
-          active
-            ? "pt-6 pb-3 text-zinc-900"
-            : "pt-5 pb-3 text-transparent caret-zinc-900 focus:text-zinc-900",
+          "block min-h-textarea w-full resize-none rounded-xl border-0 bg-transparent px-4 leading-relaxed outline-none",
+          floated ? "pt-6 pb-3" : "pt-5 pb-3",
+          showValue ? cn(valueClass, "text-base") : "text-transparent caret-zinc-900",
           className,
         )}
       />
