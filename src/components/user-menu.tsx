@@ -96,7 +96,7 @@ function AccountMenuTrigger(props: {
       aria-busy={props.loading || undefined}
       disabled={props.loading}
       onClick={props.onClick}
-      className="flex items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-50 disabled:cursor-wait"
+      className="flex items-center gap-1.5 rounded-full bg-card-bg py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-200 disabled:cursor-wait"
       aria-label="Open menu"
     >
       {props.loading ? (

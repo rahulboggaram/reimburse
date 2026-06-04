@@ -35,7 +35,7 @@ export function ActiveInactiveTabs(props: {
             className={cn(
               "rounded-lg px-4 py-2.5 text-sm font-semibold transition-all",
               selected
-                ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/80"
+                ? "bg-zinc-200 text-zinc-900"
                 : "text-zinc-500 hover:text-zinc-700",
             )}
           >

@@ -28,7 +28,7 @@ export function SegmentControl<T extends string>(props: {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 rounded-lg bg-white shadow-sm ring-1 ring-zinc-200/60 transition-[transform,width] duration-200 ease-out"
+        className="pointer-events-none absolute top-1 bottom-1 rounded-lg bg-card-bg shadow-sm ring-1 ring-zinc-200/60 transition-[transform,width] duration-200 ease-out"
         style={{
           width: `calc((100% - 8px) / ${count})`,
           transform: `translateX(calc(${index} * 100%))`,
