@@ -101,10 +101,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
 
   return (
     <div className="space-y-3">
-      <div className="space-y-0.5">
-        <Label>Receipt Photos</Label>
-        <p className="text-xs text-zinc-500">Add one or more photos</p>
-      </div>
+      <Label>Receipt Photos</Label>
 
       <div className="grid grid-cols-2 gap-2">
         <Button
