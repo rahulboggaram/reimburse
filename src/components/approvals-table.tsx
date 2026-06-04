@@ -3,16 +3,15 @@
 import { useMe } from "@/components/me-provider";
 import {
   approvalsTableGrid,
+  claimsTableColAmount,
+  claimsTableColCenter,
   claimsTableColCheckbox,
   claimsTableColChevron,
   claimsTableColStart,
   claimsTableHeaderClass,
   claimsTableRowClass,
 } from "@/components/claims-table-layout";
-import {
-  ClaimsTableMetaCell,
-  ClaimsTableMetaHeader,
-} from "@/components/claims-table-meta";
+import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDateNoYear } from "@/lib/dates";
@@ -68,7 +67,9 @@ export function ApprovalsTableHeader(props: {
       {showCategory ? (
         <span className={cn(claimsTableColStart, "truncate")}>Category</span>
       ) : null}
-      <ClaimsTableMetaHeader showStatus={showStatus} />
+      <span className={claimsTableColCenter}>Date</span>
+      <span className={claimsTableColAmount}>Amount</span>
+      {showStatus ? <span className={claimsTableColCenter}>Status</span> : null}
       <span className={claimsTableColChevron} aria-hidden />
     </div>
   );
@@ -134,12 +135,17 @@ export function ApprovalsTableRow(props: {
           {claim.category}
         </span>
       ) : null}
-      <ClaimsTableMetaCell
-        dateLabel={formatDisplayDateNoYear(claim.expenseDate)}
-        amountLabel={`₹${claim.amount.toLocaleString("en-IN")}`}
-        status={status}
-        showStatus={showStatus}
-      />
+      <span className={cn(claimsTableColCenter, bodyCellClass)}>
+        {formatDisplayDateNoYear(claim.expenseDate)}
+      </span>
+      <span className={cn(claimsTableColAmount, bodyCellClass, "font-semibold text-zinc-900")}>
+        ₹{claim.amount.toLocaleString("en-IN")}
+      </span>
+      {showStatus ? (
+        <span className={cn(claimsTableColCenter, "flex min-w-0 justify-center")}>
+          <StatusBadge status={status} compact className="max-w-full" />
+        </span>
+      ) : null}
       <span className={claimsTableColChevron} aria-hidden>
         ›
       </span>

@@ -2,16 +2,15 @@
 
 import { useMe } from "@/components/me-provider";
 import {
+  claimsTableColAmount,
+  claimsTableColCenter,
   claimsTableColChevron,
   claimsTableColStart,
   claimsTableGridWithStatus,
   claimsTableHeaderClass,
   claimsTableRowClass,
 } from "@/components/claims-table-layout";
-import {
-  ClaimsTableMetaCell,
-  ClaimsTableMetaHeader,
-} from "@/components/claims-table-meta";
+import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDateNoYear } from "@/lib/dates";
@@ -21,7 +20,9 @@ export function MyClaimsTableHeader() {
   return (
     <div className={claimsTableHeaderClass(claimsTableGridWithStatus)}>
       <span className={cn(claimsTableColStart, "truncate")}>Category</span>
-      <ClaimsTableMetaHeader />
+      <span className={claimsTableColCenter}>Date</span>
+      <span className={claimsTableColAmount}>Amount</span>
+      <span className={claimsTableColCenter}>Status</span>
       <span className={claimsTableColChevron} aria-hidden />
     </div>
   );
@@ -49,11 +50,25 @@ export function MyClaimsTableRow(props: {
       >
         {claim.category}
       </span>
-      <ClaimsTableMetaCell
-        dateLabel={formatDisplayDateNoYear(claim.expenseDate)}
-        amountLabel={`₹${claim.amount.toLocaleString("en-IN")}`}
-        status={status}
-      />
+      <span
+        className={cn(
+          claimsTableColCenter,
+          "text-sm text-zinc-600 tabular-nums",
+        )}
+      >
+        {formatDisplayDateNoYear(claim.expenseDate)}
+      </span>
+      <span
+        className={cn(
+          claimsTableColAmount,
+          "text-sm font-semibold text-zinc-900",
+        )}
+      >
+        ₹{claim.amount.toLocaleString("en-IN")}
+      </span>
+      <span className={cn(claimsTableColCenter, "flex justify-center")}>
+        <StatusBadge status={status} compact />
+      </span>
       <span className={claimsTableColChevron} aria-hidden>
         ›
       </span>

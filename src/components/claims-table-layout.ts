@@ -2,8 +2,9 @@ import { cn } from "@/lib/utils";
 
 const chevronCol = "1.25rem";
 const checkboxCol = "2rem";
-/** Date, amount, and status stacked in one column. */
-const metaCol = "max-content";
+const dateCol = "3.75rem";
+const amountCol = "5.5rem";
+const statusCol = "max-content";
 
 /** Checkbox column: narrow, left-aligned, always first. */
 export const claimsTableColCheckbox =
@@ -18,13 +19,15 @@ export function approvalsTableGrid(options: {
   showStatus?: boolean;
   selectable?: boolean;
 }) {
+  const showStatus = options.showStatus !== false;
   const showCategory = options.showCategory === true;
   const cols: string[] = [];
 
   if (options.selectable) cols.push(checkboxCol);
   cols.push("minmax(0,1fr)");
   if (showCategory) cols.push("minmax(0,0.85fr)");
-  cols.push(metaCol);
+  cols.push(dateCol, amountCol);
+  if (showStatus) cols.push(statusCol);
   cols.push(chevronCol);
 
   return cn("grid w-full items-center gap-x-2", buildGridTemplate(cols));
@@ -40,7 +43,7 @@ export function claimsTableHeaderClass(grid: string) {
 export function claimsTableRowClass(grid: string) {
   return cn(
     grid,
-    "min-h-[3.25rem] w-full border-b border-zinc-100 px-4 py-2 transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
+    "min-h-[2.75rem] w-full border-b border-zinc-100 px-4 py-2 transition-colors last:border-b-0 hover:bg-zinc-50 sm:px-5",
   );
 }
 
@@ -48,11 +51,10 @@ export const claimsTableColStart =
   "min-w-0 justify-self-stretch truncate text-left leading-snug";
 
 export const claimsTableColCenter =
-  "min-w-0 justify-self-stretch truncate text-center leading-snug";
+  "min-w-0 justify-self-stretch truncate text-center leading-snug whitespace-nowrap";
 
-/** Right column: date, amount, and status stacked vertically. */
-export const claimsTableColMeta =
-  "flex min-w-0 flex-col items-end justify-center gap-0.5 justify-self-end text-right leading-tight";
+export const claimsTableColAmount =
+  "min-w-0 justify-self-stretch text-right leading-snug tabular-nums whitespace-nowrap";
 
 export const claimsTableColChevron =
   "flex shrink-0 items-center justify-center justify-self-center text-base leading-none text-zinc-400";
@@ -60,5 +62,11 @@ export const claimsTableColChevron =
 /** My claims table (category, date, amount, status). */
 export const claimsTableGridWithStatus = cn(
   "grid w-full items-center gap-x-2",
-  buildGridTemplate(["minmax(0,1fr)", metaCol, chevronCol]),
+  buildGridTemplate([
+    "minmax(0,1fr)",
+    dateCol,
+    amountCol,
+    statusCol,
+    chevronCol,
+  ]),
 );
