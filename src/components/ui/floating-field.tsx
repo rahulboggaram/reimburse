@@ -15,16 +15,11 @@ function getFieldState(focused: boolean, hasValue: boolean): FieldVisualState {
   return "idle";
 }
 
-function normalShellClass(state: FieldVisualState) {
-  return cn(
-    "relative rounded-xl border-[1.5px] bg-white transition-[border-color] duration-200",
-    state === "focused" && "border-[1.5px] border-accent",
-    (state === "idle" || state === "filled") && "border-zinc-300",
-  );
+function normalShellClass(_state: FieldVisualState) {
+  return "relative rounded-xl border-0 bg-white transition-colors duration-200";
 }
 
-const errorFieldBorder =
-  "border-[1.5px] border-rose-800 bg-white transition-colors duration-200";
+const errorFieldShell = "relative rounded-xl border-0 bg-white transition-colors duration-200";
 
 function labelClass(
   state: FieldVisualState,
@@ -104,7 +99,7 @@ function FieldWrap(props: {
 
     if (hasMessage) {
       return (
-        <div className="overflow-hidden rounded-xl border-[1.5px] border-rose-800">
+        <div className="overflow-hidden rounded-xl">
           <div className="relative bg-white">
             {labelNode}
             {props.children}
@@ -119,7 +114,7 @@ function FieldWrap(props: {
     }
 
     return (
-      <div className={cn("relative rounded-xl", errorFieldBorder)}>
+      <div className={errorFieldShell}>
         {labelNode}
         {props.children}
       </div>

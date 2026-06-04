@@ -9,7 +9,7 @@ export function StatCard(props: {
   return (
     <div
       className={cn(
-        "rounded-2xl border-[1.5px] border-zinc-300 bg-transparent p-4",
+        "rounded-2xl bg-card-bg p-4",
         props.className,
       )}
     >

@@ -27,7 +27,7 @@ export function Select(
     <select
       {...rest}
       className={cn(
-        "flex h-field w-full appearance-none rounded-xl border border-zinc-200 bg-white bg-size-[1.375rem] bg-position-[right_1rem_center] bg-no-repeat py-3 pl-4 pr-12 text-base outline-none ring-zinc-900 focus-visible:ring-2",
+        "flex h-field w-full appearance-none rounded-xl border-0 bg-white bg-size-[1.375rem] bg-position-[right_1rem_center] bg-no-repeat py-3 pl-4 pr-12 text-base outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/15",
         isPlaceholderSelected ? "text-zinc-400" : "text-zinc-900",
         className,
       )}

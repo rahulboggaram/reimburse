@@ -16,13 +16,8 @@ type ReceiptUploadFieldProps = {
   error?: string | null;
 };
 
-const receiptButtonBorderStyle = {
-  borderWidth: "1.5px",
-  borderStyle: "dotted",
-} as const;
-
 const fieldShellBase =
-  "box-border flex h-field flex-row items-center justify-center gap-2 rounded-xl bg-white px-3 transition-[border-color] duration-200";
+  "box-border flex h-field flex-row items-center justify-center gap-2 rounded-xl border-0 bg-white px-3 transition-colors duration-200";
 
 function ReceiptActionButton(props: {
   label: string;
@@ -34,12 +29,9 @@ function ReceiptActionButton(props: {
     <button
       type="button"
       onClick={props.onClick}
-      style={receiptButtonBorderStyle}
       className={cn(
         fieldShellBase,
-        props.error
-          ? "border-rose-800"
-          : "border-zinc-300 hover:bg-zinc-50 active:bg-zinc-100 focus-visible:border-accent focus-visible:outline-none",
+        "hover:bg-zinc-50 active:bg-zinc-100 focus-visible:outline-none",
       )}
     >
       <span className="text-zinc-800">{props.children}</span>

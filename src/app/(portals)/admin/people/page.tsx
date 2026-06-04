@@ -219,7 +219,7 @@ export default function AdminPeoplePage() {
             aria-label="Filter by role"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-            className="h-auto max-w-[10.5rem] shrink-0 rounded-full border-zinc-200 bg-size-[1rem] bg-position-[right_0.625rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-800 shadow-none ring-0 focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:max-w-none"
+            className="h-auto max-w-[10.5rem] shrink-0 rounded-full border-0 bg-size-[1rem] bg-position-[right_0.625rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-800 shadow-none ring-0 focus-visible:ring-2 focus-visible:ring-zinc-900/20 sm:max-w-none"
           >
             {ROLE_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -277,7 +277,7 @@ export default function AdminPeoplePage() {
                   : "No inactive employees match your search."}
               </p>
             ) : (
-              <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl border-[1.5px] border-zinc-300 bg-white">
+              <ul className="divide-y divide-zinc-200 overflow-hidden rounded-xl bg-white">
                 {filtered.map((employee) => (
                   <li key={employee.id}>
                     <EmployeeListRow
