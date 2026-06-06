@@ -141,10 +141,13 @@ export default function AdminPeoplePage() {
 
   const filtered = useMemo(() => {
     const pool = tab === "active" ? activeEmployees : inactiveEmployees;
-    return pool.filter(
-      (employee) =>
-        matchesSearch(employee, search) && matchesRoleFilter(employee, roleFilter),
-    );
+    return pool
+      .filter(
+        (employee) =>
+          matchesSearch(employee, search) &&
+          matchesRoleFilter(employee, roleFilter),
+      )
+      .sort(compareEmployeesByName);
   }, [activeEmployees, inactiveEmployees, tab, search, roleFilter]);
 
   const searchNormalized = normalizePhone(search);
@@ -231,7 +234,7 @@ export default function AdminPeoplePage() {
             aria-label="Filter by role"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-            className="h-auto w-auto shrink-0 rounded-full border-0 bg-size-4 bg-position-[right_0.5rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-900 shadow-none ring-0 transition-colors hover:bg-zinc-200 focus-visible:ring-0"
+            className="box-border h-6 min-h-0 w-[4rem] max-w-[4rem] shrink-0 rounded-full border-0 bg-size-3 bg-position-[right_0.25rem_center] bg-white py-0 pl-2 pr-4 text-xs font-medium leading-none text-zinc-900 shadow-none ring-0 transition-colors hover:bg-zinc-200 focus-visible:ring-0 focus-visible:outline-none"
           >
             {ROLE_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
