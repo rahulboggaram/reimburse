@@ -234,9 +234,6 @@ export function ClaimDetailModal(props: {
             <p className="text-lg font-semibold text-zinc-900">
               {toTitleCase(claim.employeeName)}
             </p>
-            {employeeRole ? (
-              <p className="text-sm text-zinc-600">{employeeRole}</p>
-            ) : null}
             <p className="text-sm text-zinc-600">
               {employeeRole
                 ? `${claim.branch.name} · ${employeeRole}`
@@ -244,8 +241,7 @@ export function ClaimDetailModal(props: {
             </p>
           </div>
 
-          <div className="mt-8 space-y-1">
-            <p className="text-sm font-medium text-zinc-800">{claim.category}</p>
+          <div className="mt-8">
             <p className="text-sm leading-relaxed text-zinc-600">
               {claim.description}
             </p>
