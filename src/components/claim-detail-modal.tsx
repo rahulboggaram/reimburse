@@ -28,9 +28,13 @@ function payoutFailed(status: string | null) {
   );
 }
 
+function claimDetailReady(claim: SerializedClaim) {
+  return Boolean(claim.branch?.name?.trim());
+}
+
 function claimNeedsFullLoad(claim: SerializedClaim) {
   if (claim.queueList) return true;
-  if (!claim.branch?.name?.trim()) return true;
+  if (!claimDetailReady(claim)) return true;
   if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
     return false;
   }
@@ -50,7 +54,7 @@ function mergeClaimDetail(
   return {
     ...cached,
     ...stub,
-    branch: stub.branch.name.trim() ? stub.branch : cached.branch,
+    branch: stub.branch?.name?.trim() ? stub.branch : cached.branch,
     employee:
       stub.employee.phone || stub.employee.name
         ? stub.employee
@@ -105,7 +109,7 @@ export function ClaimDetailModal(props: {
     }
 
     const cached = claimFromCache(stub);
-    if (cached) {
+    if (cached && claimDetailReady(cached)) {
       setDetailClaim(cached);
       setLoadingDetail(false);
       return;
@@ -255,9 +259,9 @@ export function ClaimDetailModal(props: {
               {toTitleCase(claim.employeeName)}
             </p>
             <p className="text-sm text-zinc-600">
-              {employeeRole
+              {employeeRole && claim.branch?.name?.trim()
                 ? `${claim.branch.name} · ${employeeRole}`
-                : claim.branch.name}
+                : claim.branch?.name?.trim() || employeeRole || ""}
             </p>
           </div>
 
