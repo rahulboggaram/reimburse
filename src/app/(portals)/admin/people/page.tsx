@@ -219,7 +219,7 @@ export default function AdminPeoplePage() {
             aria-label="Filter by role"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-            className="h-6 min-h-0 max-h-6 w-auto max-w-[5.75rem] shrink-0 rounded-full border-0 bg-size-[0.625rem] bg-position-[right_0.3rem_center] bg-white py-0 pr-4 pl-1.5 text-[11px] font-medium leading-none text-zinc-900 shadow-none ring-0 transition-colors hover:bg-zinc-50 focus-visible:ring-0"
+            className="h-auto w-auto shrink-0 rounded-full border-0 bg-size-4 bg-position-[right_0.5rem_center] bg-white py-1.5 pr-8 pl-3 text-sm font-medium text-zinc-900 shadow-none ring-0 transition-colors hover:bg-zinc-200 focus-visible:ring-0"
           >
             {ROLE_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
