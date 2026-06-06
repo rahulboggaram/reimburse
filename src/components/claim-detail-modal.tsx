@@ -251,7 +251,7 @@ export function ClaimDetailModal(props: {
       <div className="space-y-8">
         <div>
           <div className="space-y-1 pt-4">
-            <p className="text-lg font-normal text-zinc-900">
+            <p className="text-sm font-medium leading-snug text-zinc-900">
               {toTitleCase(claim.employeeName)}
             </p>
             <p className="text-sm text-zinc-600">
