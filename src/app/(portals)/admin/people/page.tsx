@@ -228,7 +228,7 @@ export default function AdminPeoplePage() {
         </form>
       </Card>
 
-      <section className="mb-4 space-y-3">
+      <section className="mb-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 text-lg font-semibold text-zinc-900">
             All Employees
@@ -249,8 +249,10 @@ export default function AdminPeoplePage() {
             />
           </div>
         </div>
+      </section>
 
-        {searchOpen ? (
+      {searchOpen ? (
+        <Card className="mb-4 space-y-3">
           <FloatingInput
             id="search-employee"
             label="Name or mobile number"
@@ -259,33 +261,32 @@ export default function AdminPeoplePage() {
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
           />
-        ) : null}
-
-        {search.trim() ? (
-          <p className="text-sm text-zinc-600">
-            {filtered.length > 0 ? (
-              <>
-                Found <span className="font-medium">{filtered.length}</span>{" "}
-                employee{filtered.length === 1 ? "" : "s"}
-                {existsByPhone && matchByPhone?.active
-                  ? " — this number is on the list"
-                  : ""}
-                {existsByPhone && matchByPhone && !matchByPhone.active
-                  ? " — removed; add again with the form above to restore"
-                  : ""}
-              </>
-            ) : existsByPhone && matchByPhone && !matchByPhone.active ? (
-              <span className="text-amber-800">
-                This number was removed — use the form above to add them back
-              </span>
-            ) : (
-              <span className="text-amber-800">
-                No employee found — add them with the form above if needed
-              </span>
-            )}
-          </p>
-        ) : null}
-      </section>
+          {search.trim() ? (
+            <p className="text-sm text-zinc-600">
+              {filtered.length > 0 ? (
+                <>
+                  Found <span className="font-medium">{filtered.length}</span>{" "}
+                  employee{filtered.length === 1 ? "" : "s"}
+                  {existsByPhone && matchByPhone?.active
+                    ? " — this number is on the list"
+                    : ""}
+                  {existsByPhone && matchByPhone && !matchByPhone.active
+                    ? " — removed; add again with the form above to restore"
+                    : ""}
+                </>
+              ) : existsByPhone && matchByPhone && !matchByPhone.active ? (
+                <span className="text-amber-800">
+                  This number was removed — use the form above to add them back
+                </span>
+              ) : (
+                <span className="text-amber-800">
+                  No employee found — add them with the form above if needed
+                </span>
+              )}
+            </p>
+          ) : null}
+        </Card>
+      ) : null}
 
       <Card className="space-y-4">
         {loading ? (
@@ -303,7 +304,7 @@ export default function AdminPeoplePage() {
                   : "No inactive employees match your search."}
               </p>
             ) : (
-              <ul className="overflow-hidden rounded-xl">
+              <ul className="overflow-hidden rounded-xl bg-white">
                 {filtered.map((employee) => (
                   <li key={employee.id}>
                     <EmployeeListRow
