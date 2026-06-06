@@ -182,17 +182,9 @@ export function ClaimDetailModal(props: {
     payoutFailed(claim.payoutStatus);
 
   const receiptsTotal = claimReceiptCount(claim);
-  const showSubmitterRole =
-    props.variant === "admin" || props.variant === "approver";
-
-  function summarySecondLine() {
-    const branch = claim.branch.name;
-    if (!showSubmitterRole) return branch;
-    const role = claim.employee?.role
-      ? formatRole(claim.employee.role)
-      : null;
-    return role ? `${branch} · ${role}` : branch;
-  }
+  const employeeRole = claim.employee?.role
+    ? formatRole(claim.employee.role)
+    : null;
 
   async function decide(status: "APPROVED" | "REJECTED") {
     setError(null);
@@ -226,15 +218,10 @@ export function ClaimDetailModal(props: {
     }
   }
 
-  const modalSubtitle = showSubmitterRole
-    ? toTitleCase(claim.employeeName)
-    : undefined;
-
   return (
     <Modal
       open={props.open}
       onClose={props.onClose}
-      subtitle={modalSubtitle}
       headerLeading={
         <p className="text-3xl font-bold leading-tight font-tabular-nums tracking-tight text-zinc-900">
           ₹{claim.amount.toLocaleString("en-IN")}
@@ -243,11 +230,25 @@ export function ClaimDetailModal(props: {
     >
       <div className="space-y-8">
         <div>
-          <div className="space-y-1">
-            <p className="text-sm leading-relaxed text-zinc-900">
-              {claim.category}: {claim.description}
+          <div className="space-y-1 pt-4">
+            <p className="text-lg font-semibold text-zinc-900">
+              {toTitleCase(claim.employeeName)}
             </p>
-            <p className="text-sm text-zinc-600">{summarySecondLine()}</p>
+            {employeeRole ? (
+              <p className="text-sm text-zinc-600">{employeeRole}</p>
+            ) : null}
+            <p className="text-sm text-zinc-600">
+              {employeeRole
+                ? `${claim.branch.name} · ${employeeRole}`
+                : claim.branch.name}
+            </p>
+          </div>
+
+          <div className="mt-8 space-y-1">
+            <p className="text-sm font-medium text-zinc-800">{claim.category}</p>
+            <p className="text-sm leading-relaxed text-zinc-600">
+              {claim.description}
+            </p>
           </div>
         </div>
 
