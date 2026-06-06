@@ -28,12 +28,19 @@ export function RoleFilterPill<T extends string>(props: {
   onChange: (value: T) => void;
   options: { value: T; label: string }[];
   ariaLabel?: string;
+  /** Pill label when the default / “all” value is selected */
+  pillLabelWhenAll?: string;
+  allValue?: T;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
+  const allValue = props.allValue ?? props.options[0]?.value;
   const selected = props.options.find((option) => option.value === props.value);
-  const triggerLabel = selected?.label ?? "Filter";
+  const triggerLabel =
+    props.pillLabelWhenAll && props.value === allValue
+      ? props.pillLabelWhenAll
+      : (selected?.label ?? props.pillLabelWhenAll ?? "Filter");
 
   useEffect(() => {
     if (!open) return;
