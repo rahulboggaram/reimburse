@@ -27,15 +27,15 @@ export function SegmentControl<T extends string>(props: {
       role="tablist"
       aria-label={props.ariaLabel ?? "Options"}
       className={cn(
-        "relative w-full rounded-full bg-white p-1",
-        outlined && "shadow-sm ring-1 ring-zinc-200/90",
+        "relative w-full rounded-full p-1",
+        outlined ? "bg-white shadow-sm ring-1 ring-zinc-200/90" : "bg-zinc-200/70",
         props.className,
       )}
     >
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute top-1 bottom-1 rounded-full bg-zinc-100 transition-[transform,width] duration-200 ease-out",
+          "pointer-events-none absolute top-1 bottom-1 rounded-full bg-white transition-[transform,width] duration-200 ease-out",
           outlined && "shadow-sm ring-1 ring-zinc-200/70",
         )}
         style={{

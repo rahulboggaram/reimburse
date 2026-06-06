@@ -106,11 +106,12 @@ export function claimsTableHeaderClass(
 
 export function claimsTableRowClass(
   grid: string,
-  options?: { selectable?: boolean },
+  options?: { selectable?: boolean; selected?: boolean },
 ) {
   return cn(
     grid,
-    "relative w-full px-4 py-3 text-left transition-colors hover:bg-zinc-50/80 sm:px-5",
+    "relative w-full bg-white px-4 py-3 text-left transition-colors sm:px-5",
+    options?.selected ? "hover:bg-white" : "hover:bg-zinc-50/80",
     tableInsetDividerAfter(options?.selectable),
     "last:after:hidden",
   );
