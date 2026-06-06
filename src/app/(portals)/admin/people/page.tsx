@@ -234,6 +234,11 @@ export default function AdminPeoplePage() {
             All Employees
           </h2>
           <div className="flex shrink-0 items-center gap-2">
+            <PeopleSearchPill
+              open={searchOpen}
+              onToggle={() => setSearchOpen((current) => !current)}
+              active={Boolean(search.trim())}
+            />
             <RoleFilterPill
               value={roleFilter}
               onChange={setRoleFilter}
@@ -241,11 +246,6 @@ export default function AdminPeoplePage() {
               ariaLabel="Filter by role"
               pillLabelWhenAll="Filter"
               allValue="all"
-            />
-            <PeopleSearchPill
-              open={searchOpen}
-              onToggle={() => setSearchOpen((current) => !current)}
-              active={Boolean(search.trim())}
             />
           </div>
         </div>

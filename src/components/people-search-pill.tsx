@@ -41,6 +41,7 @@ export function PeopleSearchPill(props: {
       onClick={props.onToggle}
       className={cn(
         peoplePillTriggerClass,
+        "pl-2 pr-3",
         props.open && "bg-zinc-200",
         props.active && !props.open && "bg-zinc-200 hover:bg-zinc-300",
       )}
