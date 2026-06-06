@@ -239,7 +239,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       onNavigate={closeMenu}
       active={pathname === "/employee"}
     >
-      Create reimbursement
+      New Claim
     </MenuLink>
   );
 

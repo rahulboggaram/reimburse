@@ -116,7 +116,7 @@ export default function MyClaimsPage() {
         <EmployeeEmptyState
           title="No reimbursements yet"
           description="Submit your first reimbursement and track approval and payment here."
-          actionLabel="Create reimbursement"
+          actionLabel="New Claim"
           actionHref="/employee"
         />
       ) : (
