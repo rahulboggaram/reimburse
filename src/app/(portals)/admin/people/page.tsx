@@ -5,6 +5,7 @@ import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FloatingInput } from "@/components/ui/floating-field";
+import { PeopleSearchPill } from "@/components/people-search-pill";
 import { RoleFilterPill } from "@/components/role-filter-pill";
 import {
   EmployeeDetailModal,
@@ -106,6 +107,7 @@ export default function AdminPeoplePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [tab, setTab] = useState<"active" | "inactive">("active");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [selected, setSelected] = useState<EmployeeRecord | null>(null);
@@ -226,26 +228,38 @@ export default function AdminPeoplePage() {
         </form>
       </Card>
 
-      <Card className="space-y-4">
+      <section className="mb-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="min-w-0 text-lg font-semibold text-zinc-900">All Employees</h2>
-          <RoleFilterPill
-            value={roleFilter}
-            onChange={setRoleFilter}
-            options={ROLE_FILTER_OPTIONS}
-            ariaLabel="Filter by role"
-            pillLabelWhenAll="Filter"
-            allValue="all"
-          />
+          <h2 className="min-w-0 text-lg font-semibold text-zinc-900">
+            All Employees
+          </h2>
+          <div className="flex shrink-0 items-center gap-2">
+            <RoleFilterPill
+              value={roleFilter}
+              onChange={setRoleFilter}
+              options={ROLE_FILTER_OPTIONS}
+              ariaLabel="Filter by role"
+              pillLabelWhenAll="Filter"
+              allValue="all"
+            />
+            <PeopleSearchPill
+              open={searchOpen}
+              onToggle={() => setSearchOpen((current) => !current)}
+              active={Boolean(search.trim())}
+            />
+          </div>
         </div>
 
-        <FloatingInput
-          id="search-employee"
-          label="Name or mobile number"
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        {searchOpen ? (
+          <FloatingInput
+            id="search-employee"
+            label="Name or mobile number"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+        ) : null}
 
         {search.trim() ? (
           <p className="text-sm text-zinc-600">
@@ -271,7 +285,9 @@ export default function AdminPeoplePage() {
             )}
           </p>
         ) : null}
+      </section>
 
+      <Card className="space-y-4">
         {loading ? (
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : employees.length === 0 ? (

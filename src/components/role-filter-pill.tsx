@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { peoplePillTriggerClass } from "@/components/people-search-pill";
 
 function PillChevron(props: { open: boolean }) {
   return (
@@ -71,7 +72,7 @@ export function RoleFilterPill<T extends string>(props: {
         aria-haspopup="listbox"
         aria-label={props.ariaLabel ?? "Filter by role"}
         onClick={() => setOpen((current) => !current)}
-        className="flex items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-200"
+        className={peoplePillTriggerClass}
       >
         <span>{triggerLabel}</span>
         <PillChevron open={open} />
