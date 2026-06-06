@@ -74,6 +74,18 @@ function matchesRoleFilter(employee: EmployeeRecord, filter: RoleFilter) {
   }
 }
 
+function employeeDisplayName(employee: EmployeeRecord) {
+  const name = employee.name?.trim();
+  if (name) return name;
+  return formatPhoneDisplay(employee.phone);
+}
+
+function compareEmployeesByName(a: EmployeeRecord, b: EmployeeRecord) {
+  return employeeDisplayName(a).localeCompare(employeeDisplayName(b), undefined, {
+    sensitivity: "base",
+  });
+}
+
 type BranchOption = { id: string; name: string; active: boolean };
 
 export default function AdminPeoplePage() {
