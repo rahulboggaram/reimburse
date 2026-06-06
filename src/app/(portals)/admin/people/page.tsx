@@ -32,7 +32,7 @@ type RoleFilter =
   | "pending";
 
 const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
-  { value: "all", label: "All roles" },
+  { value: "all", label: "Filter" },
   { value: "employee", label: "Employees" },
   { value: "branch-manager", label: "Branch managers" },
   { value: "approver", label: "Approvers" },
