@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 export const peoplePillTriggerClass =
-  "flex items-center gap-1.5 rounded-full bg-white py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-200";
+  "flex items-center gap-1.5 rounded-full bg-card-bg py-1.5 pr-2 pl-3 text-sm font-medium text-zinc-900 transition-colors hover:bg-zinc-200";
 
 function SearchIcon() {
   return (
@@ -41,7 +41,8 @@ export function PeopleSearchPill(props: {
       onClick={props.onToggle}
       className={cn(
         peoplePillTriggerClass,
-        props.active && !props.open && "bg-zinc-100 hover:bg-zinc-200",
+        props.open && "bg-zinc-200",
+        props.active && !props.open && "bg-zinc-200 hover:bg-zinc-300",
       )}
     >
       <SearchIcon />
