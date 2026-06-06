@@ -23,6 +23,7 @@ export function ActiveInactiveTabs(props: {
       value={props.value}
       onChange={props.onChange}
       ariaLabel="Status"
+      outlined={false}
       className={props.className}
     />
   );
