@@ -25,13 +25,13 @@ export function SegmentControl<T extends string>(props: {
       role="tablist"
       aria-label={props.ariaLabel ?? "Options"}
       className={cn(
-        "relative w-full rounded-2xl bg-white p-1 ring-1 ring-zinc-200/90 shadow-sm",
+        "relative w-full rounded-full bg-white p-1 ring-1 ring-zinc-200/90 shadow-sm",
         props.className,
       )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 rounded-xl bg-zinc-100 shadow-sm ring-1 ring-zinc-200/70 transition-[transform,width] duration-200 ease-out"
+        className="pointer-events-none absolute top-1 bottom-1 rounded-full bg-zinc-100 shadow-sm ring-1 ring-zinc-200/70 transition-[transform,width] duration-200 ease-out"
         style={{
           width: `calc((100% - 8px) / ${count})`,
           transform: `translateX(calc(${index} * 100%))`,
