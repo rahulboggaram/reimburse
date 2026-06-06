@@ -212,14 +212,14 @@ export default function AdminPeoplePage() {
       </Card>
 
       <Card className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 text-lg font-semibold text-zinc-900">All Employees</h2>
           <Select
             id="filter-people"
             aria-label="Filter by role"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-            className="h-auto w-auto max-w-[9.5rem] shrink-0 rounded-full border-0 bg-size-4 bg-position-[right_0.5rem_center] bg-card-bg py-1.5 pr-7 pl-3 text-sm font-medium text-zinc-900 shadow-none ring-0 transition-colors hover:bg-zinc-200 focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+            className="h-auto w-auto max-w-[8.75rem] shrink-0 rounded-full border-0 bg-size-4 bg-position-[right_0.5rem_center] bg-white py-1.5 pr-7 pl-3 text-sm font-medium text-zinc-900 shadow-none ring-1 ring-zinc-200/80 transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-zinc-900/20"
           >
             {ROLE_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
