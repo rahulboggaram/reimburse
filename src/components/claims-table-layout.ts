@@ -5,42 +5,42 @@ const gridBase = "grid w-full items-center gap-x-4";
 
 export const claimsTableGridWithStatus = cn(
   gridBase,
-  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 export const claimsTableGridNoStatus = cn(
   gridBase,
-  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 export const claimsTableGridWithCategory = cn(
   gridBase,
-  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[minmax(0,1.2fr)_minmax(0,0.78fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 export const claimsTableGridWithCategoryAndStatus = cn(
   gridBase,
-  "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[minmax(0,1.2fr)_minmax(0,0.78fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 const claimsTableGridWithStatusSelectable = cn(
   gridBase,
-  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[2rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 const claimsTableGridNoStatusSelectable = cn(
   gridBase,
-  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[2rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 const claimsTableGridWithCategorySelectable = cn(
   gridBase,
-  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[2rem_minmax(0,1.2fr)_minmax(0,0.78fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 const claimsTableGridWithCategoryAndStatusSelectable = cn(
   gridBase,
-  "grid-cols-[2rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
+  "grid-cols-[2rem_minmax(0,1.2fr)_minmax(0,0.78fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_1.25rem]",
 );
 
 export function approvalsTableGrid(options: {
