@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ApprovalsEmptyState } from "@/components/approvals-empty-state";
 import {
   ApprovalsSelectionBar,
   ApprovalsTableHeader,
@@ -52,18 +53,6 @@ function cacheKey(tab: QueueTab) {
 
 function usesPaymentApproverTabs(role: string | undefined) {
   return role === "APPROVER" || role === "ADMIN";
-}
-
-function emptyMessage(tab: QueueTab, role: string | undefined) {
-  if (usesPaymentApproverTabs(role)) {
-    return tab === "waiting"
-      ? "No reimbursements waiting for payment approval."
-      : "No reimbursements sent to RazorpayX yet.";
-  }
-  if (tab === "waiting") {
-    return "No claims waiting for your approval.";
-  }
-  return "No approved claims in this list yet.";
 }
 
 function queueSegments(role: string | undefined) {
@@ -338,9 +327,7 @@ export default function ManagerPendingPage() {
       {loading ? (
         <p className="text-sm text-zinc-500">Loading…</p>
       ) : claims.length === 0 ? (
-        <Card>
-          <p className="text-sm text-zinc-600">{emptyMessage(tab, user?.role)}</p>
-        </Card>
+        <ApprovalsEmptyState tab={tab} role={user?.role} />
       ) : (
         <>
           {bulkSelectable ? (
