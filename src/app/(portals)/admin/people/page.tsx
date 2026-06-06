@@ -5,7 +5,7 @@ import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FloatingInput } from "@/components/ui/floating-field";
-import { Select } from "@/components/ui/select";
+import { RoleFilterPill } from "@/components/role-filter-pill";
 import {
   EmployeeDetailModal,
   EmployeeListRow,
@@ -229,19 +229,12 @@ export default function AdminPeoplePage() {
       <Card className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="min-w-0 text-lg font-semibold text-zinc-900">All Employees</h2>
-          <Select
-            id="filter-people"
-            aria-label="Filter by role"
+          <RoleFilterPill
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-            className="box-border h-6 min-h-0 w-[4rem] max-w-[4rem] shrink-0 rounded-full border-0 bg-size-3 bg-position-[right_0.25rem_center] bg-white py-0 pl-2 pr-4 text-xs font-medium leading-none text-zinc-900 shadow-none ring-0 transition-colors hover:bg-zinc-200 focus-visible:ring-0 focus-visible:outline-none"
-          >
-            {ROLE_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+            onChange={setRoleFilter}
+            options={ROLE_FILTER_OPTIONS}
+            ariaLabel="Filter by role"
+          />
         </div>
 
         <FloatingInput
