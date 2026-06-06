@@ -243,7 +243,9 @@ export function ClaimDetailModal(props: {
 
           <div className="mt-8">
             <p className="text-sm leading-relaxed text-zinc-600">
-              {claim.description}
+              {claim.description.trim()
+                ? `${claim.category} · ${claim.description}`
+                : claim.category}
             </p>
           </div>
         </div>
