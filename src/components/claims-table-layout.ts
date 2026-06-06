@@ -74,19 +74,52 @@ export function approvalsTableGrid(options: {
     : claimsTableGridNoStatus;
 }
 
-export function claimsTableHeaderClass(grid: string) {
+const tableInsetDividerAfter = (selectable?: boolean) =>
+  cn(
+    "after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-zinc-200/90",
+    selectable
+      ? "after:left-[calc(1rem+2rem+1rem)] sm:after:left-[calc(1.25rem+2rem+1rem)]"
+      : "after:left-4 sm:after:left-5",
+    "after:right-4 sm:after:right-5",
+  );
+
+export const claimsTableHeaderLabelClass =
+  "text-xs font-medium capitalize text-zinc-700";
+
+export const claimsTableBodyCellClass =
+  "text-sm font-normal text-zinc-500";
+
+export const claimsTableBodyNumericClass =
+  "text-sm font-normal text-zinc-500 tabular-nums";
+
+export function claimsTableHeaderClass(
+  grid: string,
+  options?: { selectable?: boolean },
+) {
   return cn(
     grid,
-    "border-b border-zinc-200 bg-zinc-50 px-4 py-2.5 text-xs font-medium tracking-wide text-zinc-500 uppercase sm:px-5",
+    "relative px-4 py-2.5 sm:px-5",
+    tableInsetDividerAfter(options?.selectable),
+    claimsTableHeaderLabelClass,
   );
 }
 
-export function claimsTableRowClass(grid: string) {
+export function claimsTableRowClass(
+  grid: string,
+  options?: { selectable?: boolean },
+) {
   return cn(
     grid,
-    "w-full border-b border-zinc-200 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-zinc-50/80 sm:px-5",
+    "relative w-full px-4 py-3 text-left transition-colors hover:bg-zinc-50/80 sm:px-5",
+    tableInsetDividerAfter(options?.selectable),
+    "last:after:hidden",
   );
 }
+
+/** Inset row divider for non-grid list rows (e.g. People employee list). */
+export const listRowInsetDividerClass = cn(
+  "relative after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-zinc-200/90 after:left-4 after:right-4 last:after:hidden sm:after:left-5 sm:after:right-5",
+);
 
 export const claimsTableColCheckbox =
   "flex shrink-0 items-center justify-center justify-self-center";

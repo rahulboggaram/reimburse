@@ -2,6 +2,8 @@
 
 import { useMe } from "@/components/me-provider";
 import {
+  claimsTableBodyCellClass,
+  claimsTableBodyNumericClass,
   claimsTableColCenter,
   claimsTableColChevron,
   claimsTableColStart,
@@ -54,17 +56,15 @@ export function MyClaimsTableRow(props: {
       )}
     >
       <span
-        className={cn(
-          claimsTableColStart,
-          "truncate text-sm font-medium text-zinc-900",
-        )}
+        className={cn(claimsTableColStart, claimsTableBodyCellClass, "truncate")}
       >
         {claim.category}
       </span>
       <span
         className={cn(
           claimsTableColCenter,
-          "text-sm whitespace-nowrap text-zinc-600 tabular-nums",
+          claimsTableBodyNumericClass,
+          "whitespace-nowrap",
         )}
       >
         {formatDisplayDateNoYear(claim.expenseDate)}
@@ -72,7 +72,8 @@ export function MyClaimsTableRow(props: {
       <span
         className={cn(
           claimsTableColCenter,
-          "text-sm font-semibold whitespace-nowrap text-zinc-900 tabular-nums",
+          claimsTableBodyNumericClass,
+          "whitespace-nowrap",
         )}
       >
         ₹{claim.amount.toLocaleString("en-IN")}

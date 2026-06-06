@@ -9,6 +9,8 @@ import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { listRowInsetDividerClass } from "@/components/claims-table-layout";
+import { cn } from "@/lib/utils";
 
 export type EmployeeRecord = {
   id: string;
@@ -36,12 +38,18 @@ export function EmployeeListRow(props: {
     <button
       type="button"
       onClick={props.onOpen}
-      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50"
+      className={cn(
+        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50 sm:px-5",
+        listRowInsetDividerClass,
+      )}
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p
-            className={`truncate font-medium ${employee.name ? "text-zinc-900" : "text-zinc-500"}`}
+            className={cn(
+              "truncate text-sm font-normal",
+              employee.name ? "text-zinc-500" : "text-zinc-400",
+            )}
           >
             {displayName}
           </p>

@@ -4,6 +4,8 @@ import { useMe } from "@/components/me-provider";
 import { ClaimsTableCheckbox } from "@/components/claims-table-checkbox";
 import {
   approvalsTableGrid,
+  claimsTableBodyCellClass,
+  claimsTableBodyNumericClass,
   claimsTableColCenter,
   claimsTableColCheckbox,
   claimsTableColChevron,
@@ -17,12 +19,6 @@ import { claimDisplayStatus } from "@/lib/claim-display-status";
 import { formatDisplayDateNoYear } from "@/lib/dates";
 import { TextLinkButton } from "@/components/text-link";
 import { cn } from "@/lib/utils";
-
-const employeeCellClass =
-  "truncate text-sm font-semibold text-zinc-900";
-
-const bodyCellClass =
-  "text-sm font-normal text-zinc-600 tabular-nums";
 
 function stopRowClick(event: React.MouseEvent) {
   event.stopPropagation();
@@ -58,7 +54,7 @@ export function ApprovalsTableHeader(props: {
   });
 
   return (
-    <div className={claimsTableHeaderClass(grid)}>
+    <div className={claimsTableHeaderClass(grid, { selectable: props.selectable })}>
       {props.selectable ? (
         <span className={claimsTableColCheckbox}>
           <ClaimsTableCheckbox
@@ -92,21 +88,27 @@ function rowCells(props: {
   const { claim, showStatus, showCategory, status } = props;
   return (
     <>
-      <span className={cn(claimsTableColStart, employeeCellClass)}>
+      <span className={cn(claimsTableColStart, claimsTableBodyCellClass, "truncate")}>
         {claim.employeeName}
       </span>
       {showCategory ? (
-        <span className={cn(claimsTableColStart, bodyCellClass, "truncate")}>
+        <span className={cn(claimsTableColStart, claimsTableBodyCellClass, "truncate")}>
           {claim.category}
         </span>
       ) : null}
-      <span className={cn(claimsTableColCenter, bodyCellClass, "whitespace-nowrap")}>
+      <span
+        className={cn(
+          claimsTableColCenter,
+          claimsTableBodyNumericClass,
+          "whitespace-nowrap",
+        )}
+      >
         {formatDisplayDateNoYear(claim.expenseDate)}
       </span>
       <span
         className={cn(
           claimsTableColCenter,
-          bodyCellClass,
+          claimsTableBodyNumericClass,
           "whitespace-nowrap",
         )}
       >
@@ -143,6 +145,10 @@ export function ApprovalsTableRow(props: {
     showStatus,
     selectable: props.selectable,
   });
+  const rowClass = cn(
+    claimsTableRowClass(grid, { selectable: props.selectable }),
+    "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+  );
 
   if (props.selectable) {
     return (
@@ -156,10 +162,7 @@ export function ApprovalsTableRow(props: {
             props.onOpen();
           }
         }}
-        className={cn(
-          claimsTableRowClass(grid),
-          "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
-        )}
+        className={rowClass}
       >
         <span
           className={claimsTableColCheckbox}
@@ -189,10 +192,7 @@ export function ApprovalsTableRow(props: {
           props.onOpen();
         }
       }}
-      className={cn(
-        claimsTableRowClass(grid),
-        "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
-      )}
+      className={rowClass}
     >
       {rowCells({ claim, showStatus, showCategory, status })}
     </div>
