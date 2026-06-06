@@ -41,6 +41,7 @@ type FieldErrors = {
 
 export function ReimbursementForm(props: {
   title: string;
+  titleClassName?: string;
   submitLabel: string;
   initial?: ReimbursementFormValues;
   claimId?: string;
@@ -216,7 +217,7 @@ export function ReimbursementForm(props: {
   return (
     <>
     <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
-      <PageHeading title={props.title} />
+      <PageHeading title={props.title} titleClassName={props.titleClassName} />
 
       <Card className="space-y-5">
         {error ? (

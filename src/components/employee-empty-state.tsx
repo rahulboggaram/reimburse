@@ -7,6 +7,7 @@ export function EmployeeEmptyState(props: {
   description: string;
   actionLabel: string;
   actionHref: string;
+  actionClassName?: string;
   className?: string;
 }) {
   return (
@@ -28,7 +29,10 @@ export function EmployeeEmptyState(props: {
       </p>
       <Link
         href={props.actionHref}
-        className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+        className={cn(
+          "mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800",
+          props.actionClassName,
+        )}
       >
         {props.actionLabel}
       </Link>

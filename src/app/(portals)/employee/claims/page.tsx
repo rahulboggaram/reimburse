@@ -118,6 +118,7 @@ export default function MyClaimsPage() {
           description="Submit your first reimbursement and track approval and payment here."
           actionLabel="New Claim"
           actionHref="/employee"
+          actionClassName="font-bold"
         />
       ) : (
         <>

@@ -12,6 +12,7 @@ export function PageHeading(props: {
   info?: string;
   as?: "h1" | "h2";
   className?: string;
+  titleClassName?: string;
   /** Show account menu (name + arrow) aligned with the title. Default true. */
   accountMenu?: boolean;
 }) {
@@ -31,7 +32,9 @@ export function PageHeading(props: {
     >
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-1.5">
-          <Heading className={headingClass}>{toTitleCase(props.title)}</Heading>
+          <Heading className={cn(headingClass, props.titleClassName)}>
+            {toTitleCase(props.title)}
+          </Heading>
           {props.info ? <PageInfoTip text={props.info} /> : null}
         </div>
         {props.description ? (

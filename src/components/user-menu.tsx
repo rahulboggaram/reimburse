@@ -21,6 +21,7 @@ function MenuLink(props: {
   children: React.ReactNode;
   onNavigate: () => void;
   active?: boolean;
+  className?: string;
 }) {
   return (
     <Link
@@ -30,6 +31,7 @@ function MenuLink(props: {
       className={cn(
         "block px-4 py-2.5 text-sm font-medium hover:bg-zinc-50",
         props.active ? "bg-zinc-100 text-zinc-900" : "text-zinc-800",
+        props.className,
       )}
       onClick={props.onNavigate}
     >
@@ -238,6 +240,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       href="/employee"
       onNavigate={closeMenu}
       active={pathname === "/employee"}
+      className="font-bold"
     >
       New Claim
     </MenuLink>

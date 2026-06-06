@@ -20,6 +20,7 @@ export function EmployeeHomePage() {
       <RejectedClaimsSection />
       <ReimbursementForm
         title="New Claim"
+        titleClassName="font-bold"
         submitLabel="Submit for approval"
       />
     </>
