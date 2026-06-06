@@ -232,6 +232,7 @@ export function EmployeeProfileForm(props: {
                   </TextLinkButton>
                   <Button
                     type="button"
+                    size="sm"
                     disabled={saving}
                     onClick={() => saveProfile({ redirect: false })}
                   >
@@ -314,6 +315,7 @@ export function EmployeeProfileForm(props: {
                 </TextLinkButton>
                 <Button
                   type="button"
+                  size="sm"
                   disabled={saving}
                   onClick={() => saveProfile({ redirect: false })}
                 >

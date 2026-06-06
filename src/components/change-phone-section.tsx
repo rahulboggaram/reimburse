@@ -133,18 +133,9 @@ export function ChangePhoneSection(props: {
                 value={newPhoneInput}
                 onChange={(e) => setNewPhoneInput(e.target.value)}
               />
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="submit" disabled={loading} className="sm:flex-1">
+              <div className="flex items-center justify-end gap-4">
+                <Button type="submit" size="sm" disabled={loading}>
                   {loading ? <LoadingText>Sending</LoadingText> : "Send OTP"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={close}
-                  disabled={loading}
-                  className="sm:flex-1"
-                >
-                  Cancel
                 </Button>
               </div>
             </form>
@@ -169,18 +160,16 @@ export function ChangePhoneSection(props: {
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
               />
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="submit" disabled={loading} className="sm:flex-1">
-                  {loading ? <LoadingText>Updating</LoadingText> : "Confirm new number"}
-                </Button>
-                <Button
+              <div className="flex items-center justify-end gap-4">
+                <TextLinkButton
                   type="button"
-                  variant="outline"
                   onClick={resetFlow}
                   disabled={loading}
-                  className="sm:flex-1"
                 >
                   Use a different number
+                </TextLinkButton>
+                <Button type="submit" size="sm" disabled={loading}>
+                  {loading ? <LoadingText>Updating</LoadingText> : "Confirm new number"}
                 </Button>
               </div>
             </form>
