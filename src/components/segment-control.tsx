@@ -24,11 +24,14 @@ export function SegmentControl<T extends string>(props: {
     <div
       role="tablist"
       aria-label={props.ariaLabel ?? "Options"}
-      className={cn("relative w-full rounded-xl bg-zinc-200/80 p-1", props.className)}
+      className={cn(
+        "relative w-full rounded-2xl bg-white p-1 ring-1 ring-zinc-200/90 shadow-sm",
+        props.className,
+      )}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1 bottom-1 rounded-lg bg-card-bg shadow-sm ring-1 ring-zinc-200/60 transition-[transform,width] duration-200 ease-out"
+        className="pointer-events-none absolute top-1 bottom-1 rounded-xl bg-zinc-100 shadow-sm ring-1 ring-zinc-200/70 transition-[transform,width] duration-200 ease-out"
         style={{
           width: `calc((100% - 8px) / ${count})`,
           transform: `translateX(calc(${index} * 100%))`,
@@ -50,7 +53,7 @@ export function SegmentControl<T extends string>(props: {
               aria-selected={selected}
               onClick={() => props.onChange(option.id)}
               className={cn(
-                "rounded-lg px-2 py-2.5 text-center text-sm font-semibold transition-colors sm:px-3",
+                "rounded-xl px-2 py-2.5 text-center text-sm font-semibold transition-colors sm:px-3",
                 selected ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-700",
               )}
             >
