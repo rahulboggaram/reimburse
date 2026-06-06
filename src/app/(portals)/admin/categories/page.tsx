@@ -12,6 +12,7 @@ import {
   invalidateAdminCategories,
   invalidateFormBootstrap,
 } from "@/lib/admin-fetch";
+import { TextLinkButton } from "@/components/text-link";
 import { useCachedQuery } from "@/lib/use-cached-query";
 
 type Category = {
@@ -150,17 +151,14 @@ export default function AdminCategoriesPage() {
                       <p className="text-sm font-medium text-zinc-900">
                         {category.name}
                       </p>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
+                      <TextLinkButton
                         onClick={() => {
                           if (!confirmDisableCategory(category.name)) return;
                           void setCategoryActive(category.id, false);
                         }}
                       >
                         Disable
-                      </Button>
+                      </TextLinkButton>
                     </li>
                   ))}
                 </ul>
@@ -177,14 +175,11 @@ export default function AdminCategoriesPage() {
                     <p className="text-sm font-medium text-zinc-900">
                       {category.name}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
+                    <TextLinkButton
                       onClick={() => setCategoryActive(category.id, true)}
                     >
                       Enable
-                    </Button>
+                    </TextLinkButton>
                   </li>
                 ))}
               </ul>

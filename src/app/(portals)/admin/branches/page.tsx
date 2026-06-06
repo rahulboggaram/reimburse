@@ -12,6 +12,7 @@ import {
   invalidateFormBootstrap,
 } from "@/lib/admin-fetch";
 import { PageHeading } from "@/components/page-heading";
+import { TextLinkButton } from "@/components/text-link";
 import { useCachedQuery } from "@/lib/use-cached-query";
 
 type Branch = {
@@ -148,17 +149,14 @@ export default function AdminBranchesPage() {
                       <p className="text-sm font-medium text-zinc-900">
                         {branch.name}
                       </p>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
+                      <TextLinkButton
                         onClick={() => {
                           if (!confirmDisableBranch(branch.name)) return;
                           void setBranchActive(branch.id, false);
                         }}
                       >
                         Disable
-                      </Button>
+                      </TextLinkButton>
                     </li>
                   ))}
                 </ul>
@@ -175,14 +173,11 @@ export default function AdminBranchesPage() {
                     <p className="text-sm font-medium text-zinc-900">
                       {branch.name}
                     </p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
+                    <TextLinkButton
                       onClick={() => setBranchActive(branch.id, true)}
                     >
                       Enable
-                    </Button>
+                    </TextLinkButton>
                   </li>
                 ))}
               </ul>
