@@ -135,18 +135,18 @@ export default function AdminCategoriesPage() {
         <p className="text-sm text-zinc-500">Loading categories…</p>
       ) : (
         <div className="space-y-3">
-          <Card className="space-y-3">
+          <Card className="space-y-4">
             <ActiveInactiveTabs value={tab} onChange={setTab} />
 
             {tab === "active" ? (
               activeCategories.length === 0 ? (
                 <p className="text-sm text-zinc-600">No active categories.</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="divide-y divide-zinc-200">
                   {activeCategories.map((category) => (
                     <li
                       key={category.id}
-                      className="flex items-center justify-between gap-3"
+                      className="flex items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0"
                     >
                       <p className="text-sm font-medium text-zinc-900">
                         {category.name}
