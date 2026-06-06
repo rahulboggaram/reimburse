@@ -306,6 +306,7 @@ export default function ManagerPendingPage() {
         value={tab}
         onChange={handleTabChange}
         ariaLabel="Approval queue"
+        outlined={false}
         className="mb-5"
       />
 
