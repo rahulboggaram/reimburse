@@ -118,7 +118,7 @@ export function claimsTableRowClass(
 
 /** Inset row divider for non-grid list rows (e.g. People employee list). */
 export const listRowInsetDividerClass = cn(
-  "relative after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-zinc-200/90 after:left-4 after:right-4 last:after:hidden sm:after:left-5 sm:after:right-5",
+  "relative after:pointer-events-none after:absolute after:bottom-0 after:h-px after:bg-zinc-900 after:left-4 after:right-4 last:after:hidden sm:after:left-5 sm:after:right-5",
 );
 
 export const claimsTableColCheckbox =
