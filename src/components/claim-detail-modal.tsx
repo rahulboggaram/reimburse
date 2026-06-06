@@ -30,6 +30,7 @@ function payoutFailed(status: string | null) {
 
 function claimNeedsFullLoad(claim: SerializedClaim) {
   if (claim.queueList) return true;
+  if (!claim.branch?.name?.trim()) return true;
   if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
     return false;
   }
@@ -42,15 +43,34 @@ function cacheClaimDetail(claim: SerializedClaim) {
   claimDetailCache.set(claim.id, claim);
 }
 
-function claimFromCache(stub: SerializedClaim): SerializedClaim | null {
-  const cached = claimDetailCache.get(stub.id);
-  if (!cached) return null;
+function mergeClaimDetail(
+  cached: SerializedClaim,
+  stub: SerializedClaim,
+): SerializedClaim {
   return {
     ...cached,
     ...stub,
-    receipts: cached.receipts,
-    receiptCount: cached.receipts.length,
+    branch: stub.branch.name.trim() ? stub.branch : cached.branch,
+    employee:
+      stub.employee.phone || stub.employee.name
+        ? stub.employee
+        : cached.employee,
+    approver: stub.approver.name?.trim() ? stub.approver : cached.approver,
+    paymentApprover: stub.paymentApprover.name?.trim()
+      ? stub.paymentApprover
+      : cached.paymentApprover,
+    receipts: cached.receipts.length > 0 ? cached.receipts : stub.receipts,
+    receiptCount:
+      cached.receipts.length > 0
+        ? cached.receipts.length
+        : (stub.receiptCount ?? cached.receiptCount),
   };
+}
+
+function claimFromCache(stub: SerializedClaim): SerializedClaim | null {
+  const cached = claimDetailCache.get(stub.id);
+  if (!cached) return null;
+  return mergeClaimDetail(cached, stub);
 }
 
 export function ClaimDetailModal(props: {
