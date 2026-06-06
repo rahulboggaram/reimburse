@@ -48,7 +48,7 @@ export function EmployeeListRow(props: {
           <p
             className={cn(
               "truncate text-sm font-normal",
-              employee.name ? "text-zinc-500" : "text-zinc-400",
+              employee.name ? "text-zinc-900" : "text-zinc-400",
             )}
           >
             {displayName}
@@ -59,7 +59,7 @@ export function EmployeeListRow(props: {
             </span>
           ) : null}
         </div>
-        <p className="mt-0.5 truncate text-sm text-zinc-500">
+        <p className="mt-0.5 truncate text-sm text-zinc-900">
           {formatPhoneDisplay(employee.phone)}
           {employee.signedUp
             ? ` · ${employee.claimCount} claim${employee.claimCount === 1 ? "" : "s"}`
