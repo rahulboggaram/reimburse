@@ -39,7 +39,7 @@ export function EmployeeListRow(props: {
       type="button"
       onClick={props.onOpen}
       className={cn(
-        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-zinc-50 sm:px-5",
+        "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white sm:px-5",
         listRowInsetDividerClass,
       )}
     >

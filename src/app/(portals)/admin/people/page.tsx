@@ -303,7 +303,7 @@ export default function AdminPeoplePage() {
                   : "No inactive employees match your search."}
               </p>
             ) : (
-              <ul className="overflow-hidden rounded-xl bg-white">
+              <ul className="overflow-hidden rounded-xl">
                 {filtered.map((employee) => (
                   <li key={employee.id}>
                     <EmployeeListRow

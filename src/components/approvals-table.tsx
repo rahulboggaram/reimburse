@@ -146,10 +146,7 @@ export function ApprovalsTableRow(props: {
     selectable: props.selectable,
   });
   const rowClass = cn(
-    claimsTableRowClass(grid, {
-      selectable: props.selectable,
-      selected: props.selected,
-    }),
+    claimsTableRowClass(grid, { selectable: props.selectable }),
     "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
   );
 
