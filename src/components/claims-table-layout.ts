@@ -98,7 +98,7 @@ export function claimsTableHeaderClass(
 ) {
   return cn(
     grid,
-    "relative px-4 py-2.5 sm:px-5",
+    "relative bg-zinc-200/70 px-4 py-2.5 sm:px-5",
     tableInsetDividerAfter(options?.selectable),
     claimsTableHeaderLabelClass,
   );
