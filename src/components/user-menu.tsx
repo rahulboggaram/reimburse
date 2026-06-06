@@ -240,7 +240,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       href="/employee"
       onNavigate={closeMenu}
       active={pathname === "/employee"}
-      className="font-bold"
     >
       New Claim
     </MenuLink>
