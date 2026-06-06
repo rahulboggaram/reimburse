@@ -55,7 +55,7 @@ export default function AdminClaimsPage() {
   return (
     <>
       <PageHeading title="All reimbursements" className="mb-4" />
-      <div className="mb-4 space-y-1.5">
+      <Card className="mb-4 space-y-1.5">
         <Label htmlFor="filter-employee">Filter by employee</Label>
         <Select
           id="filter-employee"
@@ -69,7 +69,7 @@ export default function AdminClaimsPage() {
             </option>
           ))}
         </Select>
-      </div>
+      </Card>
 
       {loading && claims.length === 0 ? (
         <p className="text-sm text-zinc-500">Loading reimbursements…</p>
