@@ -49,10 +49,10 @@ export function StatusBadge(props: {
     <span
       title={label}
       className={cn(
-        "inline-flex max-w-full items-center rounded-full font-semibold",
+        "inline-flex max-w-full items-center rounded-full",
         compact
-          ? "whitespace-nowrap px-2 py-0.5 text-[11px] leading-tight"
-          : "px-3 py-1.5 text-sm leading-normal",
+          ? "whitespace-nowrap px-2 py-0.5 text-[11px] font-medium leading-tight"
+          : "px-3 py-1.5 text-sm font-semibold leading-normal",
         useCapitalize && "capitalize",
         styles[key] ?? styles[raw] ?? styles[label] ?? neutralStyle,
         props.className,

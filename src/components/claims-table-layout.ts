@@ -87,10 +87,10 @@ export const claimsTableHeaderLabelClass =
   "text-xs font-medium capitalize text-zinc-600";
 
 export const claimsTableBodyCellClass =
-  "text-sm font-normal text-zinc-900";
+  "text-sm font-medium text-zinc-900";
 
 export const claimsTableBodyNumericClass =
-  "text-sm font-normal text-zinc-900 tabular-nums";
+  "text-sm font-medium text-zinc-900 tabular-nums";
 
 export function claimsTableHeaderClass(
   grid: string,

@@ -47,7 +47,7 @@ export function EmployeeListRow(props: {
         <div className="flex items-center gap-2">
           <p
             className={cn(
-              "truncate text-sm font-normal",
+              "truncate text-sm font-medium",
               employee.name ? "text-zinc-900" : "text-zinc-400",
             )}
           >
