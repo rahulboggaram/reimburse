@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function EmployeeEmptyState(props: {
@@ -11,9 +10,9 @@ export function EmployeeEmptyState(props: {
   className?: string;
 }) {
   return (
-    <Card
+    <div
       className={cn(
-        "flex flex-col items-center px-6 py-10 text-center",
+        "flex flex-col items-center px-6 py-16 text-center sm:py-24",
         props.className,
       )}
     >
@@ -36,6 +35,6 @@ export function EmployeeEmptyState(props: {
       >
         {props.actionLabel}
       </Link>
-    </Card>
+    </div>
   );
 }
