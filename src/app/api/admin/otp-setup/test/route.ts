@@ -1,5 +1,6 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { normalizePhone } from "@/lib/phone";
+import { getAisensyOtpConfig } from "@/lib/aisensy-otp";
 import { sendWhatsappOtp, SmsConfigError, SmsDeliveryError } from "@/lib/sms";
 import { getWhatsappOtpConfig } from "@/lib/whatsapp-otp";
 import { z } from "zod";
@@ -13,12 +14,13 @@ export async function POST(request: Request) {
   const session = await requireAdminAccess();
   if (session instanceof Response) return session;
 
-  const config = getWhatsappOtpConfig();
-  if (!config.configured) {
+  const aisensy = getAisensyOtpConfig();
+  const meta = getWhatsappOtpConfig();
+  if (!aisensy.configured && !meta.configured) {
     return Response.json(
       {
         error:
-          "WhatsApp env vars missing on the server. Add them on Vercel (or .env locally), then redeploy.",
+          "OTP delivery not configured. Add AiSensy (AISENSY_API_KEY + AISENSY_CAMPAIGN_NAME) or Meta WHATSAPP_* vars on Vercel, then redeploy.",
       },
       { status: 503 },
     );
@@ -41,8 +43,9 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       phone,
-      message:
-        "Test code sent on WhatsApp. If you do not receive it, add this number under Meta → API Setup → To (when app is In development).",
+      message: aisensy.configured
+        ? "Test code sent on WhatsApp via AiSensy. Check your phone in a few seconds."
+        : "Test code sent on WhatsApp. If you do not receive it, add this number under Meta → API Setup → To (when app is In development).",
     });
   } catch (err) {
     if (err instanceof SmsConfigError) {

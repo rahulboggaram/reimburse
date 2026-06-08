@@ -1,4 +1,6 @@
-/** OTP delivery via WhatsApp, SMS (MSG91), or Twilio when OTP_MOCK is false. */
+/** OTP delivery via AiSensy/Meta WhatsApp, SMS (MSG91), or Twilio when OTP_MOCK is false. */
+
+import { sendAisensyOtp, getAisensyOtpConfig } from "@/lib/aisensy-otp";
 
 export type OtpDeliveryChannel = "whatsapp" | "sms";
 
@@ -16,9 +18,12 @@ export class SmsDeliveryError extends Error {
   }
 }
 
-type OtpProvider = "whatsapp" | "msg91" | "twilio";
+type OtpProvider = "aisensy" | "whatsapp" | "msg91" | "twilio";
 
 function resolveProvider(): OtpProvider | null {
+  if (getAisensyOtpConfig().configured) {
+    return "aisensy";
+  }
   if (
     process.env.WHATSAPP_ACCESS_TOKEN?.trim() &&
     process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() &&
@@ -42,7 +47,9 @@ function resolveProvider(): OtpProvider | null {
 export function getOtpDeliveryChannel(): OtpDeliveryChannel | null {
   const provider = resolveProvider();
   if (!provider) return null;
-  return provider === "whatsapp" ? "whatsapp" : "sms";
+  return provider === "aisensy" || provider === "whatsapp"
+    ? "whatsapp"
+    : "sms";
 }
 
 export function isSmsConfigured(): boolean {
@@ -193,14 +200,26 @@ async function sendViaTwilio(phoneE164: string, body: string) {
   }
 }
 
-/** Send login OTP via WhatsApp template (admin test / scripts). */
+/** Send login OTP via WhatsApp (AiSensy or Meta — admin test / scripts). */
 export async function sendWhatsappOtp(phoneE164: string, otp: string) {
-  if (resolveProvider() !== "whatsapp") {
-    throw new SmsConfigError(
-      "WhatsApp is not configured. Set WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, and WHATSAPP_OTP_TEMPLATE_NAME.",
-    );
+  const provider = resolveProvider();
+  if (provider === "aisensy") {
+    try {
+      await sendAisensyOtp(phoneE164, otp);
+    } catch (err) {
+      throw new SmsDeliveryError(
+        err instanceof Error ? err.message : "AiSensy could not send OTP.",
+      );
+    }
+    return;
   }
-  await sendViaWhatsapp(phoneE164, otp);
+  if (provider === "whatsapp") {
+    await sendViaWhatsapp(phoneE164, otp);
+    return;
+  }
+  throw new SmsConfigError(
+    "WhatsApp is not configured. Set AISENSY_API_KEY + AISENSY_CAMPAIGN_NAME, or Meta WHATSAPP_* vars.",
+  );
 }
 
 /** Send OTP in live mode (WhatsApp or SMS). Caller should guard with isSmsConfigured(). */
@@ -208,12 +227,23 @@ export async function sendOtpSms(phoneE164: string, otp: string, smsBody: string
   const provider = resolveProvider();
   if (!provider) {
     throw new SmsConfigError(
-      "OTP delivery is not configured. Add WhatsApp, MSG91, or Twilio env vars, or set OTP_MOCK=true.",
+      "OTP delivery is not configured. Add AiSensy, WhatsApp, MSG91, or Twilio env vars, or set OTP_MOCK=true.",
     );
   }
 
+  if (provider === "aisensy") {
+    try {
+      await sendAisensyOtp(phoneE164, otp);
+    } catch (err) {
+      throw new SmsDeliveryError(
+        err instanceof Error ? err.message : "AiSensy could not send OTP.",
+      );
+    }
+    return;
+  }
+
   if (provider === "whatsapp") {
-    await sendWhatsappOtp(phoneE164, otp);
+    await sendViaWhatsapp(phoneE164, otp);
     return;
   }
 

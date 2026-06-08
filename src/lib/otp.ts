@@ -47,7 +47,7 @@ export async function createOtpChallenge(phone: string) {
   if (!isSmsConfigured()) {
     await prisma.otpChallenge.deleteMany({ where: { phone } });
     throw new SmsConfigError(
-      "Live OTP is on but delivery is not configured. Add WhatsApp, MSG91, or Twilio keys on Vercel, or set OTP_MOCK=true.",
+      "Live OTP is on but delivery is not configured. Add AiSensy, WhatsApp, MSG91, or Twilio keys on Vercel, or set OTP_MOCK=true.",
     );
   }
 

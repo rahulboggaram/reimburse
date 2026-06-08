@@ -1,3 +1,4 @@
+import { getAisensyOtpConfig, type AisensyOtpConfig } from "@/lib/aisensy-otp";
 import { isOtpMockMode } from "@/lib/otp";
 import { getOtpDeliveryChannel } from "@/lib/sms";
 
@@ -92,10 +93,29 @@ export type WhatsappSetupStatus = {
   channel: string | null;
   sender: PhoneProbe | null;
   ready: boolean;
+  provider: "aisensy" | "meta" | null;
+  aisensy: AisensyOtpConfig | null;
 };
 
 export async function getWhatsappSetupStatus(): Promise<WhatsappSetupStatus> {
   const config = getWhatsappOtpConfig();
+  const aisensy = getAisensyOtpConfig();
+
+  if (aisensy.configured) {
+    return {
+      config,
+      channel: config.mockMode ? null : getOtpDeliveryChannel(),
+      sender: {
+        ok: true,
+        displayPhoneNumber: "AiSensy (WhatsApp)",
+        status: "CONNECTED",
+      },
+      ready: !config.mockMode,
+      provider: "aisensy",
+      aisensy,
+    };
+  }
+
   const sender = config.configured ? await probeWhatsappSender() : null;
   const ready =
     !config.mockMode &&
@@ -108,5 +128,7 @@ export async function getWhatsappSetupStatus(): Promise<WhatsappSetupStatus> {
     channel: config.mockMode ? null : getOtpDeliveryChannel(),
     sender,
     ready,
+    provider: config.configured ? "meta" : null,
+    aisensy: null,
   };
 }

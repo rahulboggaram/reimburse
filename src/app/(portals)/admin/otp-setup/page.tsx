@@ -26,6 +26,12 @@ type SetupStatus = {
     codeVerificationStatus?: string;
     error?: string;
   } | null;
+  provider: "aisensy" | "meta" | null;
+  aisensy: {
+    configured: boolean;
+    campaignName: string | null;
+    templateParamCount: number;
+  } | null;
   vercelVars: Record<string, string>;
 };
 
@@ -95,8 +101,8 @@ export default function AdminOtpSetupPage() {
   return (
     <div className="space-y-6">
       <PageHeading
-        title="WhatsApp login (Meta)"
-        description="Connect live OTP for reimburse-jade.vercel.app"
+        title="WhatsApp login"
+        description="Connect live OTP via AiSensy or Meta for reimburse-jade.vercel.app"
       />
 
       {error ? (
@@ -132,17 +138,31 @@ export default function AdminOtpSetupPage() {
                 }
               />
               <StatusRow
-                ok={status.config.configured}
-                label="WhatsApp env vars present"
+                ok={
+                  status.provider === "aisensy"
+                    ? Boolean(status.aisensy?.configured)
+                    : status.config.configured
+                }
+                label={
+                  status.provider === "aisensy"
+                    ? "AiSensy API configured"
+                    : "WhatsApp env vars present"
+                }
                 detail={
-                  status.config.configured
-                    ? `Template: ${status.config.templateName} · language: ${status.config.languageCode}`
-                    : "Add token, phone number ID, and template name on Vercel."
+                  status.provider === "aisensy"
+                    ? `Campaign: ${status.aisensy?.campaignName ?? "—"}`
+                    : status.config.configured
+                      ? `Template: ${status.config.templateName} · language: ${status.config.languageCode}`
+                      : "Add AiSensy keys or Meta token, phone number ID, and template name on Vercel."
                 }
               />
               <StatusRow
                 ok={status.sender?.ok === true}
-                label="Meta accepts your sender number"
+                label={
+                  status.provider === "aisensy"
+                    ? "AiSensy sender ready"
+                    : "Meta accepts your sender number"
+                }
                 detail={
                   status.sender?.ok
                     ? [
@@ -221,7 +241,35 @@ export default function AdminOtpSetupPage() {
           </Card>
 
           <Card className="space-y-2 p-5 text-sm text-zinc-600">
-            <h2 className="font-semibold text-zinc-900">Open in Meta</h2>
+            <h2 className="font-semibold text-zinc-900">
+              {status.provider === "aisensy" ? "AiSensy setup" : "Open in Meta"}
+            </h2>
+            {status.provider === "aisensy" ? (
+              <ul className="list-inside list-disc space-y-1">
+                <li>
+                  <a
+                    href="https://app.aisensy.com/"
+                    className="font-medium text-zinc-900 underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    app.aisensy.com
+                  </a>{" "}
+                  → create an Authentication template → API Campaign → set live
+                </li>
+                <li>Manage → copy API Key → paste as AISENSY_API_KEY on Vercel</li>
+                <li>
+                  Campaign name must match AISENSY_CAMPAIGN_NAME exactly (case
+                  sensitive)
+                </li>
+                <li>
+                  If test send fails, open Test Campaign in AiSensy and check how
+                  many values templateParams needs — set AISENSY_TEMPLATE_PARAM_COUNT
+                  to 1 or 2
+                </li>
+              </ul>
+            ) : null}
+            {status.provider !== "aisensy" ? (
             <ul className="space-y-1">
               <li>
                 <a
@@ -256,8 +304,10 @@ export default function AdminOtpSetupPage() {
                 (reimburse_login_otp)
               </li>
             </ul>
+            ) : null}
           </Card>
 
+          {status.provider !== "aisensy" ? (
           <Card className="space-y-2 p-5 text-sm text-zinc-600">
             <h2 className="font-semibold text-zinc-900">Meta checklist</h2>
             <ol className="list-decimal space-y-2 pl-5">
@@ -298,6 +348,7 @@ export default function AdminOtpSetupPage() {
               <code className="text-xs">en</code>).
             </p>
           </Card>
+          ) : null}
         </>
       ) : null}
     </div>
