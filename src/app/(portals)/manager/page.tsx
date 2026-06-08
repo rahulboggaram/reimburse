@@ -365,6 +365,7 @@ export default function ManagerPendingPage() {
               {showApproveAll ? (
                 <Button
                   className="w-full"
+                  size="sm"
                   disabled={bulkBusy || selectedCount === 0}
                   onClick={() =>
                     void runBulk(
@@ -383,6 +384,7 @@ export default function ManagerPendingPage() {
               {showPayAll ? (
                 <Button
                   className="w-full"
+                  size="sm"
                   variant={showApproveAll ? "outline" : "default"}
                   disabled={bulkBusy || selectedCount === 0}
                   onClick={() =>

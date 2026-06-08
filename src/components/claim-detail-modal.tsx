@@ -325,7 +325,7 @@ export function ClaimDetailModal(props: {
             ) : null}
             <Button
               className="w-full"
-              size="lg"
+              size="sm"
               disabled={deciding}
               onClick={() => decide("APPROVED")}
             >
@@ -334,7 +334,7 @@ export function ClaimDetailModal(props: {
             <Button
               variant="outline"
               className="w-full border-red-200 text-red-700 hover:bg-red-50"
-              size="lg"
+              size="sm"
               disabled={deciding}
               onClick={() => decide("REJECTED")}
             >
@@ -355,7 +355,7 @@ export function ClaimDetailModal(props: {
             ) : null}
             <Button
               className="w-full"
-              size="lg"
+              size="sm"
               disabled={paying}
               onClick={payClaim}
             >
@@ -377,7 +377,7 @@ export function ClaimDetailModal(props: {
             ) : null}
             <Button
               className="w-full"
-              size="lg"
+              size="sm"
               disabled={paying}
               onClick={() => payClaim()}
             >
