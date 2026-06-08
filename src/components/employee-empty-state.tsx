@@ -17,7 +17,7 @@ export function EmployeeEmptyState(props: {
       )}
     >
       <div className="mb-5" aria-hidden>
-        <span className="font-brand text-3xl text-zinc-500">₹</span>
+        <span className="font-brand text-3xl text-zinc-900">₹</span>
       </div>
       <p className="text-base font-semibold text-zinc-900">{props.title}</p>
       <p className="mt-1 max-w-xs text-sm leading-relaxed text-zinc-500">
