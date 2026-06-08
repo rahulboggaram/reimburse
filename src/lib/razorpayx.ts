@@ -50,6 +50,78 @@ export function getRazorpayMockEnv():
   return "invalid";
 }
 
+export type RazorpaySetupStatus = {
+  mockEnv: ReturnType<typeof getRazorpayMockEnv>;
+  config: RazorpayConfig;
+  mode: "mock" | "test" | "live" | "unconfigured";
+  ready: boolean;
+  probe: { ok: boolean; error?: string } | null;
+};
+
+export async function getRazorpaySetupStatus(): Promise<RazorpaySetupStatus> {
+  const mockEnv = getRazorpayMockEnv();
+  const config = getRazorpayConfig();
+
+  if (config.mock) {
+    return {
+      mockEnv,
+      config: { ...config, keySecret: "" },
+      mode: "mock",
+      ready: true,
+      probe: { ok: true },
+    };
+  }
+
+  const hasKeys = Boolean(
+    config.keyId && config.keySecret && config.accountNumber,
+  );
+  if (!hasKeys) {
+    return {
+      mockEnv,
+      config: { ...config, keySecret: "" },
+      mode: "unconfigured",
+      ready: false,
+      probe: null,
+    };
+  }
+
+  const mode = config.keyId.startsWith("rzp_live_") ? "live" : "test";
+  const probe = await probeRazorpayConnection();
+
+  return {
+    mockEnv,
+    config: { ...config, keySecret: "" },
+    mode,
+    ready: probe.ok,
+    probe,
+  };
+}
+
+export async function probeRazorpayConnection(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const config = getRazorpayConfig();
+  if (config.mock) return { ok: true };
+  if (!config.keyId || !config.keySecret || !config.accountNumber) {
+    return { ok: false, error: "Missing API keys or account number." };
+  }
+
+  try {
+    await razorpayRequest<{ items?: unknown[] }>(
+      config,
+      "/payouts?count=1",
+      { method: "GET" },
+    );
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not reach RazorpayX.",
+    };
+  }
+}
+
 export function getRazorpayConfig(): RazorpayConfig {
   const keyId = (process.env.RAZORPAYX_KEY_ID ?? "").trim();
   const keySecret = (process.env.RAZORPAYX_KEY_SECRET ?? "").trim();

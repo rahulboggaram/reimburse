@@ -129,6 +129,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       "/admin/reports",
       "/admin/analytics",
       "/admin/otp-setup",
+      "/admin/razorpay-setup",
       "/admin/branches",
       "/admin/categories",
     ];
@@ -353,6 +354,13 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
                 active={pathname.startsWith("/admin/otp-setup")}
               >
                 WhatsApp login
+              </MenuLink>
+              <MenuLink
+                href="/admin/razorpay-setup"
+                onNavigate={closeMenu}
+                active={pathname.startsWith("/admin/razorpay-setup")}
+              >
+                Razorpay payouts
               </MenuLink>
               {profileLink}
               <MenuDivider />
