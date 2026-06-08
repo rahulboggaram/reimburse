@@ -74,10 +74,7 @@ export function ApprovalsEmptyState(props: {
 
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center sm:py-24">
-      <div
-        className="mb-5 flex size-16 items-center justify-center rounded-2xl bg-card-bg ring-1 ring-zinc-200/80"
-        aria-hidden
-      >
+      <div className="mb-5" aria-hidden>
         <EmptyQueueIcon />
       </div>
       <p className="text-base font-semibold text-zinc-900">{title}</p>
