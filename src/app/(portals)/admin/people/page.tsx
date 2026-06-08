@@ -27,6 +27,7 @@ import { useCachedQuery } from "@/lib/use-cached-query";
 type RoleFilter =
   | "all"
   | "employee"
+  | "accountant"
   | "branch-manager"
   | "approver"
   | "admin"
@@ -36,6 +37,7 @@ type RoleFilter =
 const ROLE_FILTER_OPTIONS: { value: RoleFilter; label: string }[] = [
   { value: "all", label: "All roles" },
   { value: "employee", label: "Employees" },
+  { value: "accountant", label: "Accountants" },
   { value: "branch-manager", label: "Branch managers" },
   { value: "approver", label: "Approvers" },
   { value: "admin", label: "Admins" },
@@ -61,6 +63,8 @@ function matchesRoleFilter(employee: EmployeeRecord, filter: RoleFilter) {
   switch (filter) {
     case "employee":
       return employee.role === "EMPLOYEE";
+    case "accountant":
+      return employee.role === "ACCOUNTANT";
     case "branch-manager":
       return employee.role === "BRANCH_MANAGER";
     case "approver":

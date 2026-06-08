@@ -1,5 +1,8 @@
 import type { SessionUser } from "@/lib/session";
-import { canAccessManagerPortal } from "@/lib/session";
+import {
+  canAccessAdminPortal,
+  canAccessManagerPortal,
+} from "@/lib/session";
 
 type ClaimForReceiptAccess = {
   employeeId: string;
@@ -12,8 +15,8 @@ export function canViewClaimReceipts(
   claim: ClaimForReceiptAccess,
 ): boolean {
   const isOwner = claim.employeeId === session.id;
-  if (session.role === "EMPLOYEE") return isOwner;
-  if (session.role === "ADMIN") return true;
+  if (canAccessAdminPortal(session)) return true;
+  if (!canAccessManagerPortal(session)) return isOwner;
   if (canAccessManagerPortal(session)) {
     return (
       claim.approverId === session.id ||

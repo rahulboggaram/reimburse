@@ -7,6 +7,7 @@ import {
 } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import {
+  adminSelfServiceSentWhere,
   approverPaymentSentWhere,
   approverPaymentWaitingWhere,
   orgPaymentWaitingWhere,
@@ -45,10 +46,7 @@ function queueWhere(
         ],
       };
     }
-    return {
-      approverId: session.id,
-      status: { in: ["APPROVED", "PAID"] },
-    };
+    return adminSelfServiceSentWhere(session.id);
   }
 
   return tab === "waiting"
@@ -60,7 +58,10 @@ function queueOrderBy(
   session: { role: string },
   tab: QueueTab,
 ): Prisma.ReimbursementOrderByWithRelationInput[] {
-  if (tab === "approved" && session.role === "APPROVER") {
+  if (
+    tab === "approved" &&
+    (session.role === "APPROVER" || session.role === "ADMIN")
+  ) {
     return [{ payoutInitiatedAt: "desc" }, { updatedAt: "desc" }];
   }
   if (tab === "approved") {

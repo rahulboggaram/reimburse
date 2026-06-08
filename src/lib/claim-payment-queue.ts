@@ -33,17 +33,30 @@ export function approverPaymentWaitingWhere(
   };
 }
 
+/**
+ * Admin submit-and-pay claims skip branch approval and the manual payment queue.
+ * They belong on the “Sent to Razorpay” tab only.
+ */
+function excludeAdminSubmitterFromPaymentQueue(): Prisma.ReimbursementWhereInput {
+  return { employee: { role: { not: "ADMIN" } } };
+}
+
 /** Reimbursements awaiting Razorpay payout (optionally scoped to one branch). */
 export function orgPaymentWaitingWhere(
   branchId?: string | null,
 ): Prisma.ReimbursementWhereInput {
   return {
-    status: "APPROVED",
-    paidAt: null,
-    ...(branchId ? { branchId } : {}),
-    OR: [
-      { razorpayPayoutId: null },
-      { payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] } },
+    AND: [
+      excludeAdminSubmitterFromPaymentQueue(),
+      {
+        status: "APPROVED",
+        paidAt: null,
+        ...(branchId ? { branchId } : {}),
+        OR: [
+          { razorpayPayoutId: null },
+          { payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] } },
+        ],
+      },
     ],
   };
 }
@@ -87,5 +100,17 @@ export function approverPaymentSentWhere(
         ],
       },
     ],
+  };
+}
+
+/** Admin’s own submit-and-pay claims — shown on “Sent to Razorpay”, not the payment queue. */
+export function adminSelfServiceSentWhere(
+  adminId: string,
+): Prisma.ReimbursementWhereInput {
+  return {
+    employeeId: adminId,
+    approverId: adminId,
+    paymentApproverId: adminId,
+    status: { in: ["APPROVED", "PAID"] },
   };
 }

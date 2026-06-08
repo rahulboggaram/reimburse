@@ -9,6 +9,7 @@ import { invalidateClientCache } from "@/lib/client-cache";
 import { warmNavCaches } from "@/lib/warm-nav-cache";
 import {
   canAccessManagerPortal,
+  canAccessReports,
   canViewOwnReimbursements,
 } from "@/lib/access-roles";
 import type { UserRole } from "@prisma/client";
@@ -128,8 +129,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       "/admin/activity",
       "/admin/reports",
       "/admin/analytics",
-      "/admin/otp-setup",
-      "/admin/razorpay-setup",
       "/admin/branches",
       "/admin/categories",
     ];
@@ -217,7 +216,9 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     );
   }
 
-  const canAdmin = resolvedUser.role === "ADMIN";
+  const role = resolvedUser.role as UserRole;
+  const canAdmin = role === "ADMIN";
+  const canReports = canAccessReports(role);
   const canApprove =
     resolvedUser.role === "ADMIN" ||
     resolvedUser.role === "BRANCH_MANAGER" ||
@@ -242,7 +243,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
     </MenuLink>
   ) : null;
 
-  const role = resolvedUser.role as UserRole;
   const showMyReimbursements =
     canViewOwnReimbursements(resolvedUser) || canAccessManagerPortal(role);
 
@@ -255,7 +255,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
         pathname.startsWith("/employee/refile")
       }
     >
-      My Reimbursements
+      My Claims
     </MenuLink>
   ) : null;
 
@@ -268,6 +268,16 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
       Profile
     </MenuLink>
   );
+
+  const reportsLink = canReports ? (
+    <MenuLink
+      href="/admin/reports"
+      onNavigate={closeMenu}
+      active={pathname.startsWith("/admin/reports")}
+    >
+      Reports
+    </MenuLink>
+  ) : null;
 
   const logoutButton = (
     <button
@@ -334,13 +344,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
               >
                 Activity
               </MenuLink>
-              <MenuLink
-                href="/admin/reports"
-                onNavigate={closeMenu}
-                active={pathname.startsWith("/admin/reports")}
-              >
-                Reports
-              </MenuLink>
+              {reportsLink}
               <MenuLink
                 href="/admin/analytics"
                 onNavigate={closeMenu}
@@ -348,20 +352,15 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
               >
                 Insights
               </MenuLink>
-              <MenuLink
-                href="/admin/otp-setup"
-                onNavigate={closeMenu}
-                active={pathname.startsWith("/admin/otp-setup")}
-              >
-                WhatsApp login
-              </MenuLink>
-              <MenuLink
-                href="/admin/razorpay-setup"
-                onNavigate={closeMenu}
-                active={pathname.startsWith("/admin/razorpay-setup")}
-              >
-                Razorpay payouts
-              </MenuLink>
+              {profileLink}
+              <MenuDivider />
+              {logoutButton}
+            </>
+          ) : canReports ? (
+            <>
+              {newReimbursementLink}
+              {myReimbursementsLink}
+              {reportsLink}
               {profileLink}
               <MenuDivider />
               {logoutButton}

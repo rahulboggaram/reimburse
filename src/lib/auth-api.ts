@@ -1,4 +1,5 @@
 import type { UserRole } from "@prisma/client";
+import { canAccessReports } from "@/lib/access-roles";
 import {
   canAccessAdminPortal,
   canAccessEmployeePortal,
@@ -75,6 +76,15 @@ export async function requireAdminAccess(): Promise<SessionUser | Response> {
   const session = await requireSession();
   if (session instanceof Response) return session;
   if (!canAccessAdminPortal(session)) {
+    return jsonError("You do not have access.", 403);
+  }
+  return session;
+}
+
+export async function requireReportsAccess(): Promise<SessionUser | Response> {
+  const session = await requireSession();
+  if (session instanceof Response) return session;
+  if (!canAccessReports(session.role)) {
     return jsonError("You do not have access.", 403);
   }
   return session;

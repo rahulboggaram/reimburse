@@ -93,7 +93,7 @@ export default function MyClaimsPage() {
   if (meLoading || !user || !canViewOwnReimbursements(user)) {
     return (
       <div className="space-y-4">
-        <PageHeading title="My Reimbursements" />
+        <PageHeading title="My Claims" />
         <MyClaimsLoadingSkeleton />
       </div>
     );
@@ -105,7 +105,7 @@ export default function MyClaimsPage() {
   return (
     <>
       <PageHeading
-        title="My Reimbursements"
+        title="My Claims"
         className={waitingForClaims || claims.length === 0 ? "mb-5" : "mb-4"}
       />
       <RejectedClaimsSection onChanged={() => loadClaims(true)} />

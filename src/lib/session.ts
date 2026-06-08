@@ -48,6 +48,7 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
 
 const VALID_ROLES: UserRole[] = [
   "EMPLOYEE",
+  "ACCOUNTANT",
   "BRANCH_MANAGER",
   "APPROVER",
   "ADMIN",

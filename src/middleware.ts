@@ -6,6 +6,7 @@ import {
   canAccessAdminPortal,
   canAccessEmployeePortal,
   canAccessManagerPortal,
+  canAccessReports,
 } from "@/lib/access-roles";
 import { getAppHomePathForRole } from "@/lib/home-path";
 
@@ -21,6 +22,7 @@ function secret() {
 
 const VALID_ROLES: UserRole[] = [
   "EMPLOYEE",
+  "ACCOUNTANT",
   "BRANCH_MANAGER",
   "APPROVER",
   "ADMIN",
@@ -137,8 +139,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/admin")) {
+    const reportsPath =
+      pathname === "/admin/reports" || pathname.startsWith("/admin/reports/");
+    if (reportsPath && canAccessReports(claims.role)) {
+      return NextResponse.next();
+    }
     if (!canAccessAdminPortal(claims.role)) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL(homeForClaims(claims), request.url));
     }
   }
 

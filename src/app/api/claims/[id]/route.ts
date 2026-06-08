@@ -2,7 +2,10 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
-import { canAccessManagerPortal } from "@/lib/session";
+import {
+  canAccessAdminPortal,
+  canAccessManagerPortal,
+} from "@/lib/session";
 
 export async function GET(
   _request: Request,
@@ -22,12 +25,16 @@ export async function GET(
   }
 
   const isOwner = claim.employeeId === session.id;
-  const isAdmin = session.role === "ADMIN";
+  const isAdmin = canAccessAdminPortal(session);
   const isAssignedApprover =
     canAccessManagerPortal(session) &&
     (claim.approverId === session.id || claim.paymentApproverId === session.id);
 
-  if (session.role === "EMPLOYEE" && !isOwner) {
+  if (
+    !canAccessAdminPortal(session) &&
+    !canAccessManagerPortal(session) &&
+    !isOwner
+  ) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 

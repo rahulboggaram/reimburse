@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { requireAdminAccess } from "@/lib/auth-api";
+import { requireReportsAccess } from "@/lib/auth-api";
 import { formatDisplayDate, formatDisplayDateTime } from "@/lib/dates";
 import { formatPhoneDisplay } from "@/lib/phone";
 import {
@@ -49,7 +49,7 @@ function inRange(date: Date | null | undefined, range: DateRangeFilter) {
 }
 
 export async function GET(request: Request) {
-  const session = await requireAdminAccess();
+  const session = await requireReportsAccess();
   if (session instanceof Response) return session;
 
   const { searchParams } = new URL(request.url);

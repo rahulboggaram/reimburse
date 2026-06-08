@@ -80,13 +80,12 @@ export default function AdminClaimsPage() {
         </Card>
       ) : (
         <Card className="overflow-hidden p-0">
-          <ApprovalsTableHeader showCategory showStatus />
+          <ApprovalsTableHeader showStatus />
           <div>
             {filtered.map((claim) => (
               <ApprovalsTableRow
                 key={claim.id}
                 claim={claim}
-                showCategory
                 showStatus
                 onOpen={() => setSelected(claim)}
               />

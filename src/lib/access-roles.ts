@@ -3,6 +3,7 @@ import type { UserRole } from "@prisma/client";
 /** Roles an admin can assign on the People screen. */
 export const ASSIGNABLE_ROLES = [
   "EMPLOYEE",
+  "ACCOUNTANT",
   "BRANCH_MANAGER",
   "APPROVER",
   "ADMIN",
@@ -10,6 +11,7 @@ export const ASSIGNABLE_ROLES = [
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   EMPLOYEE: "Employee",
+  ACCOUNTANT: "Accountant",
   BRANCH_MANAGER: "Branch Manager",
   APPROVER: "Payment Approver",
   ADMIN: "Admin",
@@ -23,6 +25,10 @@ export function canAccessAdminPortal(role: UserRole): boolean {
   return role === "ADMIN";
 }
 
+export function canAccessReports(role: UserRole): boolean {
+  return role === "ADMIN" || role === "ACCOUNTANT";
+}
+
 export function canAccessManagerPortal(role: UserRole): boolean {
   return (
     role === "ADMIN" || role === "BRANCH_MANAGER" || role === "APPROVER"
@@ -31,6 +37,11 @@ export function canAccessManagerPortal(role: UserRole): boolean {
 
 export function canAccessEmployeePortal(_role: UserRole): boolean {
   return true;
+}
+
+/** Submits reimbursements and tracks only their own claims (not approvals). */
+export function isReimbursementSubmitterRole(role: UserRole): boolean {
+  return role === "EMPLOYEE" || role === "ACCOUNTANT";
 }
 
 /** Who may open My Reimbursements and list their own claims. */

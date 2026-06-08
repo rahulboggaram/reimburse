@@ -11,6 +11,7 @@ datasource db {
 
 enum UserRole {
   EMPLOYEE
+  ACCOUNTANT
   BRANCH_MANAGER
   APPROVER
   ADMIN

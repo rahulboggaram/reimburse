@@ -19,10 +19,13 @@ type ReceiptUploadFieldProps = {
 const fieldShellBase =
   "box-border flex h-field flex-row items-center justify-center gap-2 rounded-xl border-0 bg-white px-3 transition-colors duration-200";
 
+/** Photos only — avoids the extra “camera vs gallery” sheet on many phones. */
+const GALLERY_ACCEPT =
+  "image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp";
+
 function ReceiptActionButton(props: {
   label: string;
   onClick: () => void;
-  error?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -110,6 +113,41 @@ function GalleryIcon() {
   );
 }
 
+function ReceiptGalleryButton(props: {
+  label: string;
+  inputId: string;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onFilesSelected: (files: FileList | null) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        fieldShellBase,
+        "relative cursor-pointer hover:bg-zinc-50 active:bg-zinc-100",
+      )}
+    >
+      <input
+        ref={props.inputRef}
+        id={props.inputId}
+        type="file"
+        accept={GALLERY_ACCEPT}
+        multiple
+        className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+        onChange={(e) => {
+          props.onFilesSelected(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <span className="pointer-events-none inline-flex items-center justify-center text-zinc-800">
+        <GalleryIcon />
+      </span>
+      <span className="pointer-events-none text-center text-sm font-medium leading-none text-zinc-500">
+        {props.label}
+      </span>
+    </label>
+  );
+}
+
 export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
   const baseId = useId();
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -148,7 +186,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
   }
 
   const displayError = props.error ?? localError;
-  const hasError = Boolean(displayError);
+  const galleryInputId = `${baseId}-gallery`;
 
   return (
     <div className="space-y-3">
@@ -158,18 +196,16 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
         <div className="grid grid-cols-2 gap-3">
           <ReceiptActionButton
             label="Take photo"
-            error={hasError}
             onClick={() => cameraRef.current?.click()}
           >
             <CameraIcon />
           </ReceiptActionButton>
-          <ReceiptActionButton
+          <ReceiptGalleryButton
             label="From gallery"
-            error={hasError}
-            onClick={() => galleryRef.current?.click()}
-          >
-            <GalleryIcon />
-          </ReceiptActionButton>
+            inputId={galleryInputId}
+            inputRef={galleryRef}
+            onFilesSelected={addFiles}
+          />
         </div>
         {displayError ? (
           <div className="-mt-px rounded-b-xl bg-rose-50 px-4 py-2.5">
@@ -186,18 +222,6 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
         type="file"
         accept="image/*"
         capture="environment"
-        multiple
-        className="sr-only"
-        onChange={(e) => {
-          addFiles(e.target.files);
-          e.target.value = "";
-        }}
-      />
-      <input
-        ref={galleryRef}
-        id={`${baseId}-gallery`}
-        type="file"
-        accept="image/*"
         multiple
         className="sr-only"
         onChange={(e) => {
