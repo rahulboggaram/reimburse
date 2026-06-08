@@ -4,6 +4,7 @@ import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import { normalizePhone, formatPhoneDisplay } from "@/lib/phone";
 import { adminCreateEmployeeSchema } from "@/lib/validators";
 import { isProfileComplete } from "@/lib/user-profile";
+import { userRoleRequiresBranch } from "@/lib/user-branch";
 
 export async function GET() {
   const session = await requireAdminAccess();
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   const body = adminCreateEmployeeSchema.safeParse(await request.json());
   if (!body.success) {
     return Response.json(
-      { error: "Enter a valid mobile number and select a branch." },
+      { error: "Enter a valid mobile number, role, and branch." },
       { status: 400 },
     );
   }
@@ -62,11 +63,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid mobile number" }, { status: 400 });
   }
 
-  const branch = await prisma.branch.findFirst({
-    where: { id: body.data.branchId, active: true },
-    select: { id: true },
-  });
-  if (!branch) {
+  const role = body.data.role;
+  const needsBranch = userRoleRequiresBranch(role);
+  const branch = needsBranch
+    ? await prisma.branch.findFirst({
+        where: { id: body.data.branchId, active: true },
+        select: { id: true },
+      })
+    : null;
+  if (needsBranch && !branch) {
     return Response.json({ error: "Select an active branch." }, { status: 400 });
   }
 
@@ -84,8 +89,8 @@ export async function POST(request: Request) {
       where: { id: existing.id },
       data: {
         active: true,
-        role: "EMPLOYEE",
-        branchId: branch.id,
+        role,
+        branchId: branch?.id ?? null,
       },
     });
 
@@ -103,9 +108,9 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         phone,
-        role: "EMPLOYEE",
+        role,
         active: true,
-        branchId: branch.id,
+        branchId: branch?.id ?? null,
       },
     });
 
