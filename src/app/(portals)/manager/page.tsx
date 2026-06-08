@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApprovalsEmptyState } from "@/components/approvals-empty-state";
 import {
-  ApprovalsSelectionBar,
   ApprovalsTableHeader,
   ApprovalsTableRow,
 } from "@/components/approvals-table";
@@ -82,7 +81,6 @@ export default function ManagerPendingPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
 
   const isApprover = user?.role === "APPROVER";
@@ -143,42 +141,12 @@ export default function ManagerPendingPage() {
     tab === "waiting" &&
     (isApprover || isAdmin) &&
     (counts?.paymentWaiting ?? 0) > 0;
-  const bulkSelectable = tab === "waiting" && (showApproveAll || showPayAll);
-  const selectedCount = claims.filter((c) => selectedIds.has(c.id)).length;
-  const allSelected =
-    claims.length > 0 && claims.every((c) => selectedIds.has(c.id));
-  const someSelected = claims.some((c) => selectedIds.has(c.id));
-
-  useEffect(() => {
-    if (!bulkSelectable) {
-      setSelectedIds(new Set());
-      return;
-    }
-    setSelectedIds(new Set(claims.map((c) => c.id)));
-  }, [claims, bulkSelectable]);
-
-  function toggleClaimSelection(claimId: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(claimId)) next.delete(claimId);
-      else next.add(claimId);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(claims.map((c) => c.id)));
-    }
-  }
-
-  function handleTabChange(next: QueueTab) {
+  const bulkActionsVisible = tab === "waiting" && (showApproveAll || showPayAll);
+  const bulkClaimIds = claims.map((c) => c.id);
+  const bulkCount = bulkClaimIds.length;
     if (next === tab) return;
     setTab(next);
     setSelected(null);
-    setSelectedIds(new Set());
     const cached = readTabCache(next);
     if (cached) {
       setClaims(cached.claims);
@@ -253,7 +221,7 @@ export default function ManagerPendingPage() {
   ) {
     if (bulkBusy) return;
     if (claimIds.length === 0) {
-      setBulkMessage("Select at least one reimbursement.");
+      setBulkMessage("Nothing in the queue to process.");
       return;
     }
     if (!window.confirm(confirmText)) return;
@@ -284,7 +252,6 @@ export default function ManagerPendingPage() {
         msg += ` ${partial} approved but payout needs attention.`;
       }
       setBulkMessage(msg);
-      setSelectedIds(new Set());
       await refreshQueue();
     } catch {
       setBulkMessage("Something went wrong. Try again.");
@@ -292,10 +259,6 @@ export default function ManagerPendingPage() {
       setBulkBusy(false);
     }
   }
-
-  const selectedIdList = claims
-    .filter((c) => selectedIds.has(c.id))
-    .map((c) => c.id);
 
   return (
     <>
@@ -331,20 +294,10 @@ export default function ManagerPendingPage() {
         <ApprovalsEmptyState tab={tab} role={user?.role} />
       ) : (
         <>
-          {bulkSelectable ? (
-            <ApprovalsSelectionBar
-              allSelected={allSelected}
-              onToggleAll={toggleSelectAll}
-            />
-          ) : null}
           <Card className="overflow-hidden p-0">
             <ApprovalsTableHeader
               showStatus={showStatus}
               showCategory={tab === "approved"}
-              selectable={bulkSelectable}
-              allSelected={allSelected}
-              someSelected={someSelected}
-              onToggleAll={toggleSelectAll}
             />
           <div>
             {claims.map((claim) => (
@@ -353,32 +306,27 @@ export default function ManagerPendingPage() {
                 claim={claim}
                 showStatus={showStatus}
                 showCategory={tab === "approved"}
-                selectable={bulkSelectable}
-                selected={selectedIds.has(claim.id)}
-                onToggleSelect={() => toggleClaimSelection(claim.id)}
                 onOpen={() => setSelected(claim)}
               />
             ))}
           </div>
-          {bulkSelectable ? (
+          {bulkActionsVisible ? (
             <div className="space-y-2 border-t border-zinc-200 bg-zinc-50/80 px-4 py-4 sm:px-5">
               {showApproveAll ? (
                 <Button
                   className="w-full"
                   size="sm"
-                  disabled={bulkBusy || selectedCount === 0}
+                  disabled={bulkBusy || bulkCount === 0}
                   onClick={() =>
                     void runBulk(
                       "/api/claims/bulk-decide",
-                      selectedIdList,
-                      `Approve ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"}? Unchecked items will stay in the queue.`,
-                      "Nothing selected to approve.",
+                      bulkClaimIds,
+                      `Approve all ${bulkCount} reimbursement${bulkCount === 1 ? "" : "s"} in this queue?`,
+                      "Nothing in the queue to approve.",
                     )
                   }
                 >
-                  {bulkBusy
-                    ? "Working…"
-                    : `Approve selected (${selectedCount})`}
+                  {bulkBusy ? "Working…" : `Approve all (${bulkCount})`}
                 </Button>
               ) : null}
               {showPayAll ? (
@@ -386,17 +334,17 @@ export default function ManagerPendingPage() {
                   className="w-full"
                   size="sm"
                   variant={showApproveAll ? "outline" : "default"}
-                  disabled={bulkBusy || selectedCount === 0}
+                  disabled={bulkBusy || bulkCount === 0}
                   onClick={() =>
                     void runBulk(
                       "/api/claims/bulk-pay",
-                      selectedIdList,
-                      `Pay ${selectedCount} selected reimbursement${selectedCount === 1 ? "" : "s"} via Razorpay? Unchecked items will stay in the queue.`,
-                      "Nothing selected to pay.",
+                      bulkClaimIds,
+                      `Pay all ${bulkCount} reimbursement${bulkCount === 1 ? "" : "s"} via Razorpay?`,
+                      "Nothing in the queue to pay.",
                     )
                   }
                 >
-                  {bulkBusy ? "Working…" : `Pay selected (${selectedCount})`}
+                  {bulkBusy ? "Working…" : `Pay all (${bulkCount})`}
                 </Button>
               ) : null}
             </div>
