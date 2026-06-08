@@ -59,7 +59,9 @@ export function ReimbursementForm(props: {
   const [categories, setCategories] = useState<ExpenseCategory[]>(
     () => cachedBootstrap?.categories ?? [],
   );
-  const [loadingOptions, setLoadingOptions] = useState(() => !cachedBootstrap);
+  const [loadingOptions, setLoadingOptions] = useState(
+    () => (cachedBootstrap?.categories ?? []).length === 0,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
@@ -251,7 +253,7 @@ export function ReimbursementForm(props: {
           className="font-tabular-nums"
         />
 
-        {loadingOptions ? (
+        {categories.length === 0 && loadingOptions ? (
           <p className="text-sm text-zinc-500">Loading categories…</p>
         ) : categories.length === 0 ? (
           <p className="text-sm text-amber-800">
@@ -311,7 +313,6 @@ export function ReimbursementForm(props: {
         aria-busy={submitting}
         disabled={
           submitting ||
-          loadingOptions ||
           missingBranch ||
           categories.length === 0
         }

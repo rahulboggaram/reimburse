@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MeProvider } from "@/components/me-provider";
 import { ReimburseBrand } from "@/components/reimburse-brand";
+import { fetchFormBootstrap } from "@/lib/admin-fetch";
 import type { SessionUser } from "@/lib/session";
 
 const PREFETCH_ROUTES = [
@@ -26,6 +27,12 @@ export function AppShell(props: {
       router.prefetch(route);
     }
   }, [router]);
+
+  useEffect(() => {
+    if (props.initialUser?.profileComplete) {
+      void fetchFormBootstrap();
+    }
+  }, [props.initialUser?.id, props.initialUser?.profileComplete]);
 
   return (
     <MeProvider initialUser={props.initialUser}>

@@ -11,6 +11,8 @@ export const adminAnalyticsCacheKey = (days: number) =>
 export const FORM_BOOTSTRAP_KEY = "form-bootstrap";
 
 const TTL_MS = 5 * 60 * 1000;
+/** Categories and branch rarely change; admins invalidate this cache when they do. */
+const FORM_BOOTSTRAP_TTL_MS = 24 * 60 * 60 * 1000;
 
 export function fetchAdminUsers<T = unknown>() {
   return fetchClientCache<T>(ADMIN_USERS_KEY, () =>
@@ -96,7 +98,7 @@ export function invalidateAdminClaims() {
 export function fetchFormBootstrap<T = unknown>() {
   return fetchClientCache<T>(FORM_BOOTSTRAP_KEY, () =>
     fetch("/api/app/bootstrap").then((r) => readJson<T>(r)),
-    TTL_MS,
+    FORM_BOOTSTRAP_TTL_MS,
   );
 }
 

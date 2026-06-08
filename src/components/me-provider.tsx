@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { readJson } from "@/lib/api";
+import { fetchFormBootstrap } from "@/lib/admin-fetch";
 import type { SessionUser } from "@/lib/session";
 
 export type MeUser = {
@@ -72,6 +73,12 @@ export function MeProvider(props: {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (user?.profileComplete) {
+      void fetchFormBootstrap();
+    }
+  }, [user?.id, user?.profileComplete]);
 
   useEffect(() => {
     if (props.initialUser) {
