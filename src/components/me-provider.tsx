@@ -48,12 +48,25 @@ export function MeProvider(props: {
 
   const refreshMe = useCallback(async () => {
     try {
-      const res = await fetch("/api/auth/me");
-      const data = res.ok
-        ? await readJson<{ user: MeUser | null }>(res)
-        : { user: null };
-      setUser(data.user);
+      async function fetchMeOnce(): Promise<{ ok: boolean; user: MeUser | null }> {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) return { ok: false, user: null };
+        const data = await readJson<{ user: MeUser | null }>(res);
+        return { ok: true, user: data.user };
+      }
+
+      const first = await fetchMeOnce();
+      if (!first.ok) {
+        // Cookie re-issue (e.g. after saving profile) can take a tick to become visible
+        // to subsequent requests. Retry once to avoid flickering into a logged-out state.
+        await new Promise((r) => setTimeout(r, 250));
+        const second = await fetchMeOnce();
+        setUser(second.user);
+      } else {
+        setUser(first.user);
+      }
     } catch {
+      // If refresh fails completely, assume logged out after one stable fetch cycle.
       setUser(null);
     } finally {
       setLoading(false);
