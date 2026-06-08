@@ -144,6 +144,9 @@ export default function ManagerPendingPage() {
   const bulkActionsVisible = tab === "waiting" && (showApproveAll || showPayAll);
   const bulkClaimIds = claims.map((c) => c.id);
   const bulkCount = bulkClaimIds.length;
+  const showCategory = tab === "approved" && user?.role === "BRANCH_MANAGER";
+
+  function handleTabChange(next: QueueTab) {
     if (next === tab) return;
     setTab(next);
     setSelected(null);
@@ -297,7 +300,7 @@ export default function ManagerPendingPage() {
           <Card className="overflow-hidden p-0">
             <ApprovalsTableHeader
               showStatus={showStatus}
-              showCategory={tab === "approved"}
+              showCategory={showCategory}
             />
           <div>
             {claims.map((claim) => (
@@ -305,7 +308,7 @@ export default function ManagerPendingPage() {
                 key={claim.id}
                 claim={claim}
                 showStatus={showStatus}
-                showCategory={tab === "approved"}
+                showCategory={showCategory}
                 onOpen={() => setSelected(claim)}
               />
             ))}
