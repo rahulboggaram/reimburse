@@ -265,7 +265,10 @@ export default function AdminPeoplePage() {
             </p>
           ) : null}
           {error ? (
-            <p className="text-sm text-red-700" role="alert">
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            >
               {error}
             </p>
           ) : null}
