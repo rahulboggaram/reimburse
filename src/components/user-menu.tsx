@@ -7,7 +7,6 @@ import { useMe } from "@/components/me-provider";
 import type { MeUser } from "@/components/me-provider";
 import { invalidateClientCache } from "@/lib/client-cache";
 import { warmNavCaches } from "@/lib/warm-nav-cache";
-import { userDisplayLabel } from "@/lib/user-profile";
 import {
   canAccessManagerPortal,
   canViewOwnReimbursements,
@@ -42,17 +41,6 @@ function MenuLink(props: {
 
 function MenuDivider() {
   return <div className="my-1 border-t border-zinc-100" role="separator" />;
-}
-
-function MenuUserHeader(props: { name: string }) {
-  return (
-    <>
-      <div className="px-4 py-2.5">
-        <p className="truncate text-sm font-bold text-zinc-900">{props.name}</p>
-      </div>
-      <MenuDivider />
-    </>
-  );
 }
 
 function sessionToMeUser(user: SessionUser): MeUser {
@@ -120,7 +108,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
 
   const resolvedUser =
     user ?? (props.initialUser ? sessionToMeUser(props.initialUser) : null);
-  const label = resolvedUser ? userDisplayLabel(resolvedUser) : "";
   const showLoading = loading && !resolvedUser;
 
   useEffect(() => {
