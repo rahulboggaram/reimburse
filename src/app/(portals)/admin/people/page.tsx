@@ -110,7 +110,7 @@ export default function AdminPeoplePage() {
     [branches],
   );
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState<UserRole>("EMPLOYEE");
+  const [role, setRole] = useState<UserRole | "">("");
   const [branchId, setBranchId] = useState("");
   const needsBranch = userRoleRequiresBranch(role);
   const [saving, setSaving] = useState(false);
@@ -169,6 +169,7 @@ export default function AdminPeoplePage() {
 
   async function addEmployee(event: React.FormEvent) {
     event.preventDefault();
+    if (!role) return;
     setError(null);
     setSaving(true);
     try {
@@ -179,7 +180,7 @@ export default function AdminPeoplePage() {
       });
       await readJson(response);
       setPhone("");
-      setRole("EMPLOYEE");
+      setRole("");
       setBranchId("");
       setTab("active");
       await loadEmployees(true);
@@ -230,8 +231,11 @@ export default function AdminPeoplePage() {
             label="Role"
             required
             value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
+            onChange={(e) =>
+              setRole(e.target.value ? (e.target.value as UserRole) : "")
+            }
           >
+            <option value="">Select role</option>
             {ASSIGNABLE_ROLES.map((option) => (
               <option key={option} value={option}>
                 {formatRole(option)}
@@ -270,6 +274,7 @@ export default function AdminPeoplePage() {
             size="sm"
             disabled={
               saving ||
+              !role ||
               (needsBranch && (!branchId || activeBranches.length === 0))
             }
           >
