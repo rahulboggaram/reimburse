@@ -101,7 +101,6 @@ export default function AdminReportsPage() {
               </div>
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
                 className="shrink-0"
                 disabled={downloading !== null}
