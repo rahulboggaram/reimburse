@@ -59,6 +59,7 @@ export default function AdminClaimsPage() {
         <Label htmlFor="filter-employee">Filter by employee</Label>
         <Select
           id="filter-employee"
+          fieldSize="sm"
           value={filterEmployeeId}
           onChange={(e) => setFilterEmployeeId(e.target.value)}
         >
