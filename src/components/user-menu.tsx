@@ -194,7 +194,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
             role="menu"
             className="absolute top-[calc(100%+6px)] right-0 z-30 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
           >
-            <MenuUserHeader name={label} />
             <MenuLink
               href="/employee/onboarding"
               onNavigate={closeMenu}
@@ -292,7 +291,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
           role="menu"
           className="absolute top-[calc(100%+6px)] right-0 z-30 max-h-[70vh] w-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
         >
-          <MenuUserHeader name={label} />
           {canAdmin ? (
             <>
               {newReimbursementLink}
