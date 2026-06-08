@@ -102,6 +102,7 @@ export default function AdminReportsPage() {
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 className="shrink-0"
                 disabled={downloading !== null}
                 onClick={() => downloadReport(report.id)}
