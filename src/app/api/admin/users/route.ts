@@ -51,12 +51,23 @@ export async function POST(request: Request) {
 
   const body = adminCreateEmployeeSchema.safeParse(await request.json());
   if (!body.success) {
-    return Response.json({ error: "Enter a valid mobile number." }, { status: 400 });
+    return Response.json(
+      { error: "Enter a valid mobile number and select a branch." },
+      { status: 400 },
+    );
   }
 
   const phone = normalizePhone(body.data.phone);
   if (!phone) {
     return Response.json({ error: "Invalid mobile number" }, { status: 400 });
+  }
+
+  const branch = await prisma.branch.findFirst({
+    where: { id: body.data.branchId, active: true },
+    select: { id: true },
+  });
+  if (!branch) {
+    return Response.json({ error: "Select an active branch." }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { phone } });
@@ -74,6 +85,7 @@ export async function POST(request: Request) {
       data: {
         active: true,
         role: "EMPLOYEE",
+        branchId: branch.id,
       },
     });
 
@@ -93,6 +105,7 @@ export async function POST(request: Request) {
         phone,
         role: "EMPLOYEE",
         active: true,
+        branchId: branch.id,
       },
     });
 

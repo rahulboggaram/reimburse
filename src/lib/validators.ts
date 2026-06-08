@@ -29,6 +29,7 @@ export const employeeProfileSchema = z.object({
 
 export const adminCreateEmployeeSchema = z.object({
   phone: z.string().min(10).max(20),
+  branchId: z.string().min(1),
 });
 
 /** Claim form fields (branch comes from the user's People profile). */

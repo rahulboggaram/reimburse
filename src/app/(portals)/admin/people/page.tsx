@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { ActiveInactiveTabs } from "@/components/active-inactive-tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FloatingInput } from "@/components/ui/floating-field";
+import { FloatingInput, FloatingSelect } from "@/components/ui/floating-field";
 import { PeopleSearchPill } from "@/components/people-search-pill";
 import { RoleFilterPill } from "@/components/role-filter-pill";
 import {
@@ -103,7 +103,12 @@ export default function AdminPeoplePage() {
   );
   const employees = employeesData ?? [];
   const branches = branchesData ?? [];
+  const activeBranches = useMemo(
+    () => branches.filter((branch) => branch.active),
+    [branches],
+  );
   const [phone, setPhone] = useState("");
+  const [branchId, setBranchId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -166,10 +171,11 @@ export default function AdminPeoplePage() {
       const response = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, branchId }),
       });
       await readJson(response);
       setPhone("");
+      setBranchId("");
       setTab("active");
       await loadEmployees(true);
     } catch (err) {
@@ -217,12 +223,36 @@ export default function AdminPeoplePage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
+          <FloatingSelect
+            id="branch"
+            label="Branch"
+            required
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+            disabled={activeBranches.length === 0}
+          >
+            <option value="">Select branch</option>
+            {activeBranches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+          </FloatingSelect>
+          {activeBranches.length === 0 ? (
+            <p className="text-sm text-zinc-600">
+              Add an active branch before inviting employees.
+            </p>
+          ) : null}
           {error ? (
             <p className="text-sm text-red-700" role="alert">
               {error}
             </p>
           ) : null}
-          <Button type="submit" size="sm" disabled={saving}>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={saving || !branchId || activeBranches.length === 0}
+          >
             {saving ? "Adding…" : "Add employee"}
           </Button>
         </form>
