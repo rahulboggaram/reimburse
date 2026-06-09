@@ -207,6 +207,8 @@ export async function fetchPayoutById(payoutId: string) {
   });
 }
 
+export const PAYOUT_NARRATION = "Reimbursement";
+
 export function sanitizeNarration(text: string) {
   return text.replace(/[^a-zA-Z0-9 ]/g, " ").trim().slice(0, 30);
 }
@@ -276,7 +278,7 @@ export async function createReimbursementPayout(input: {
         purpose: "refund",
         queue_if_low_balance: true,
         reference_id: payoutReferenceId(input.claimId),
-        narration: sanitizeNarration(`Reimburse ${input.category}`),
+        narration: sanitizeNarration(PAYOUT_NARRATION),
         notes: {
           claim_id: input.claimId,
           employee_id: input.employeeId,
