@@ -187,8 +187,12 @@ export default function AdminRazorpaySetupPage() {
                 Razorpay → Webhooks (live) → URL{" "}
                 <code className="text-xs break-all">{status.webhookUrl}</code>
                 <br />
-                Events: payout.processed, payout.failed, payout.queued → copy
-                secret to <code className="text-xs">RAZORPAYX_WEBHOOK_SECRET</code>
+                Events: payout.processed, payout.failed, payout.queued
+                <br />
+                <strong>Secret field:</strong> you type your own password (Razorpay
+                does not generate one) — use the same value in{" "}
+                <code className="text-xs">RAZORPAYX_WEBHOOK_SECRET</code> on
+                Vercel, or leave both blank
               </li>
               <li>
                 Return here — status should show{" "}

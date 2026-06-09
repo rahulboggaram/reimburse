@@ -165,4 +165,4 @@ RAZORPAYX_PAYOUT_MODE="IMPS"
 
 **Webhooks (optional, for live status updates):** in RazorpayX dashboard, add webhook URL  
 `https://your-domain.com/api/webhooks/razorpayx`  
-Events: `payout.processed`, `payout.failed`, `payout.queued`. Set `RAZORPAYX_WEBHOOK_SECRET` to the secret shown in the dashboard.
+Events: `payout.processed`, `payout.failed`, `payout.queued`. In the **Secret** field, type any password you choose (Razorpay does not generate one). Paste the same value into `RAZORPAYX_WEBHOOK_SECRET` on Vercel — or leave both blank.

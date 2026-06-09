@@ -16,7 +16,8 @@ export async function GET() {
       RAZORPAYX_ACCOUNT_NUMBER:
         "(Live Customer Identifier — Banking → Customer Identifier)",
       RAZORPAYX_PAYOUT_MODE: "IMPS",
-      RAZORPAYX_WEBHOOK_SECRET: "(Live webhook secret — required for production)",
+      RAZORPAYX_WEBHOOK_SECRET:
+        "(optional — pick any password in Razorpay webhook setup, paste same here)",
     },
     webhookUrl: "https://reimburse-jade.vercel.app/api/webhooks/razorpayx",
   });
