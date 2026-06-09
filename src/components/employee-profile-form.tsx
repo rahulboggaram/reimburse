@@ -15,7 +15,7 @@ import {
 } from "@/lib/client-cache";
 import { PageHeading } from "@/components/page-heading";
 import { TextLinkButton } from "@/components/text-link";
-import { RoleBadge } from "@/components/role-badge";
+import { ProfileTag, RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +79,7 @@ export function EmployeeProfileForm(props: {
   const [ifscCode, setIfscCode] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [accessRole, setAccessRole] = useState<string>("");
+  const [branchName, setBranchName] = useState<string | null>(null);
 
   const [savedName, setSavedName] = useState("");
   const [savedIfscCode, setSavedIfscCode] = useState("");
@@ -98,6 +99,7 @@ export function EmployeeProfileForm(props: {
         ifscCode: string | null;
         bankAccountNumber: string | null;
         accessRole: string;
+        branchName: string | null;
       }>(res);
     })
       .then((data) => {
@@ -110,6 +112,7 @@ export function EmployeeProfileForm(props: {
         setIfscCode(loadedIfsc);
         setBankAccountNumber(loadedAccount);
         setAccessRole(data.accessRole);
+        setBranchName(data.branchName);
 
         setSavedName(loadedName);
         setSavedIfscCode(loadedIfsc);
@@ -274,7 +277,10 @@ export function EmployeeProfileForm(props: {
 
         {!isOnboarding ? (
           <ProfileCardBlock>
-            <RoleBadge role={accessRole || "Employee"} />
+            <div className="flex flex-wrap items-center gap-2">
+              <RoleBadge role={accessRole || "Employee"} />
+              {branchName ? <ProfileTag>{branchName}</ProfileTag> : null}
+            </div>
           </ProfileCardBlock>
         ) : null}
       </Card>

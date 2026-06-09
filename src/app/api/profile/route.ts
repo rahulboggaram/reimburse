@@ -22,12 +22,14 @@ export async function GET() {
       bankAccountNumber: true,
       phone: true,
       role: true,
+      branch: { select: { name: true } },
     },
   });
 
   return Response.json({
     ...user,
     accessRole: user ? formatRole(user.role) : "Employee",
+    branchName: user?.branch?.name ?? null,
   });
 }
 
