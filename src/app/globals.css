@@ -140,9 +140,9 @@ body {
 }
 
 .brand-gold-shine-wordmark {
-  animation: brand-gold-shimmer-pass 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: brand-gold-shimmer-pass 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .brand-gold-shine-tagline {
-  animation: brand-gold-shimmer-pass 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
+  animation: brand-gold-shimmer-pass 3s cubic-bezier(0.4, 0, 0.2, 1) 1.6s forwards;
 }
