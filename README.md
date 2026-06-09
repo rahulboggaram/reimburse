@@ -146,7 +146,7 @@ MSG91 or Twilio SMS — see `.env.example`.
 
 1. Sign up at [RazorpayX](https://razorpay.com/x/) and complete KYC.
 2. In the dashboard, go to **My Account & Settings → Developer Controls** and generate **Test** API keys.
-3. Copy your **Customer Identifier / account number** (Banking → Customer Identifier) — this is `RAZORPAYX_ACCOUNT_NUMBER`, not an employee’s bank account.
+3. Copy your **RazorpayX source account** into `RAZORPAYX_ACCOUNT_NUMBER` — **Current Account number** from Settings → Banking (IDFC etc.), or Customer Identifier if you use RazorpayX Lite. Not an employee’s bank account.
 4. Add funds to your RazorpayX test account (required before payouts work).
 5. Edit `.env`:
 

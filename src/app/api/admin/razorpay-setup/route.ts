@@ -14,7 +14,7 @@ export async function GET() {
       RAZORPAYX_KEY_ID: "rzp_live_... (Live keys — Developer Controls → Generate Live Key)",
       RAZORPAYX_KEY_SECRET: "(live secret from the same key pair)",
       RAZORPAYX_ACCOUNT_NUMBER:
-        "(Live Customer Identifier — Banking → Customer Identifier)",
+        "(Current Account no. from Settings → Banking, or Lite Customer Identifier)",
       RAZORPAYX_PAYOUT_MODE: "IMPS",
       RAZORPAYX_WEBHOOK_SECRET:
         "(optional — pick any password in Razorpay webhook setup, paste same here)",

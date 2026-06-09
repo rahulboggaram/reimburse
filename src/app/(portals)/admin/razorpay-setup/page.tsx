@@ -176,8 +176,10 @@ export default function AdminRazorpaySetupPage() {
                 <strong>Live mode</strong> → generate <strong>Live API keys</strong>
               </li>
               <li>
-                <strong>Banking → Customer Identifier</strong> (live account) →
-                copy into <code className="text-xs">RAZORPAYX_ACCOUNT_NUMBER</code>
+                <strong>Settings → Banking</strong> → copy your{" "}
+                <strong>Current Account</strong> number (e.g. IDFC account) into{" "}
+                <code className="text-xs">RAZORPAYX_ACCOUNT_NUMBER</code>. Only
+                RazorpayX Lite uses a separate Customer Identifier.
               </li>
               <li>
                 Vercel → Reimburse → Settings → Environment Variables → paste
