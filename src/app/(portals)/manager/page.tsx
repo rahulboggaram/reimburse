@@ -14,6 +14,7 @@ import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
 import { readJson } from "@/lib/api";
+import { isAdminApprovalQueueClaim } from "@/lib/claim-decide-access";
 import {
   fetchClientCache,
   invalidateClientCache,
@@ -78,6 +79,7 @@ export default function ManagerPendingPage() {
   const [loading, setLoading] = useState(() => !readTabCache("waiting"));
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
   const [counts, setCounts] = useState<ActionCounts | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -135,21 +137,66 @@ export default function ManagerPendingPage() {
     );
   }, [loadTab, loadActionCounts, tab, applyTabPayload, wantsCounts]);
 
-  const showApproveAll =
-    isAdmin && tab === "waiting" && (counts?.adminPending ?? 0) > 0;
-  const showPayAll =
-    tab === "waiting" &&
-    (isApprover || isAdmin) &&
-    (counts?.paymentWaiting ?? 0) > 0;
-  const bulkActionsVisible = tab === "waiting" && (showApproveAll || showPayAll);
-  const bulkClaimIds = claims.map((c) => c.id);
-  const bulkCount = bulkClaimIds.length;
+  const hasApprovableInQueue = claims.some((claim) =>
+    isAdminApprovalQueueClaim({
+      status: claim.status,
+      approverId: claim.approverId,
+      employee: claim.employee,
+      approver: claim.approver,
+    }),
+  );
+  const hasPayableInQueue = claims.some((claim) => claim.status === "APPROVED");
+  const showSelectable =
+    tab === "waiting" && (isApprover || isAdmin) && claims.length > 0;
+  const showApproveSelected =
+    isAdmin && tab === "waiting" && hasApprovableInQueue;
+  const showPaySelected =
+    tab === "waiting" && (isApprover || isAdmin) && hasPayableInQueue;
+  const bulkActionsVisible =
+    tab === "waiting" && (showApproveSelected || showPaySelected);
+
+  const selectedClaims = claims.filter((claim) => selectedIds.has(claim.id));
+  const selectedApproveIds = selectedClaims
+    .filter((claim) =>
+      isAdminApprovalQueueClaim({
+        status: claim.status,
+        approverId: claim.approverId,
+        employee: claim.employee,
+        approver: claim.approver,
+      }),
+    )
+    .map((claim) => claim.id);
+  const selectedPayIds = selectedClaims
+    .filter((claim) => claim.status === "APPROVED")
+    .map((claim) => claim.id);
+
+  const allSelected =
+    claims.length > 0 && selectedIds.size === claims.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
   const showCategory = tab === "approved" && user?.role === "BRANCH_MANAGER";
+
+  function toggleClaimSelection(claimId: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(claimId)) next.delete(claimId);
+      else next.add(claimId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((current) =>
+      current.size === claims.length
+        ? new Set()
+        : new Set(claims.map((claim) => claim.id)),
+    );
+  }
 
   function handleTabChange(next: QueueTab) {
     if (next === tab) return;
     setTab(next);
     setSelected(null);
+    setSelectedIds(new Set());
     const cached = readTabCache(next);
     if (cached) {
       setClaims(cached.claims);
@@ -255,6 +302,7 @@ export default function ManagerPendingPage() {
         msg += ` ${partial} approved but payout needs attention.`;
       }
       setBulkMessage(msg);
+      setSelectedIds(new Set());
       await refreshQueue();
     } catch {
       setBulkMessage("Something went wrong. Try again.");
@@ -301,6 +349,10 @@ export default function ManagerPendingPage() {
             <ApprovalsTableHeader
               showStatus={showStatus}
               showCategory={showCategory}
+              selectable={showSelectable}
+              allSelected={allSelected}
+              someSelected={someSelected}
+              onToggleAll={toggleSelectAll}
             />
           <div>
             {claims.map((claim) => (
@@ -309,45 +361,52 @@ export default function ManagerPendingPage() {
                 claim={claim}
                 showStatus={showStatus}
                 showCategory={showCategory}
+                selectable={showSelectable}
+                selected={selectedIds.has(claim.id)}
+                onToggleSelect={() => toggleClaimSelection(claim.id)}
                 onOpen={() => setSelected(claim)}
               />
             ))}
           </div>
           {bulkActionsVisible ? (
             <div className="space-y-2 border-t border-zinc-200 bg-zinc-50/80 px-4 py-4 sm:px-5">
-              {showApproveAll ? (
+              {showApproveSelected ? (
                 <Button
                   className="w-full"
                   size="sm"
-                  disabled={bulkBusy || bulkCount === 0}
+                  disabled={bulkBusy || selectedApproveIds.length === 0}
                   onClick={() =>
                     void runBulk(
                       "/api/claims/bulk-decide",
-                      bulkClaimIds,
-                      `Approve all ${bulkCount} reimbursement${bulkCount === 1 ? "" : "s"} in this queue?`,
-                      "Nothing in the queue to approve.",
+                      selectedApproveIds,
+                      `Approve ${selectedApproveIds.length} selected reimbursement${selectedApproveIds.length === 1 ? "" : "s"}?`,
+                      "Nothing selected to approve.",
                     )
                   }
                 >
-                  {bulkBusy ? "Working…" : `Approve all (${bulkCount})`}
+                  {bulkBusy
+                    ? "Working…"
+                    : `Approve selected (${selectedApproveIds.length})`}
                 </Button>
               ) : null}
-              {showPayAll ? (
+              {showPaySelected ? (
                 <Button
                   className="w-full"
                   size="sm"
-                  variant={showApproveAll ? "outline" : "default"}
-                  disabled={bulkBusy || bulkCount === 0}
+                  variant={showApproveSelected ? "outline" : "default"}
+                  disabled={bulkBusy || selectedPayIds.length === 0}
                   onClick={() =>
                     void runBulk(
                       "/api/claims/bulk-pay",
-                      bulkClaimIds,
-                      `Pay all ${bulkCount} reimbursement${bulkCount === 1 ? "" : "s"} via Razorpay?`,
-                      "Nothing in the queue to pay.",
+                      selectedPayIds,
+                      `Pay ${selectedPayIds.length} selected reimbursement${selectedPayIds.length === 1 ? "" : "s"} via Razorpay?`,
+                      "Nothing selected to pay.",
                     )
                   }
                 >
-                  {bulkBusy ? "Working…" : `Pay all (${bulkCount})`}
+                  {bulkBusy
+                    ? "Working…"
+                    : `Pay selected (${selectedPayIds.length})`}
                 </Button>
               ) : null}
             </div>

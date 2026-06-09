@@ -6,11 +6,13 @@ import {
   claimsTableBodyCellClass,
   claimsTableBodyNumericClass,
   claimsTableColCenter,
+  claimsTableColCheckbox,
   claimsTableColChevron,
   claimsTableColStart,
   claimsTableHeaderClass,
   claimsTableRowClass,
 } from "@/components/claims-table-layout";
+import { ClaimsTableCheckbox } from "@/components/claims-table-checkbox";
 import { StatusBadge } from "@/components/status-badge";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimDisplayStatus } from "@/lib/claim-display-status";
@@ -20,13 +22,28 @@ import { cn } from "@/lib/utils";
 export function ApprovalsTableHeader(props: {
   showStatus?: boolean;
   showCategory?: boolean;
+  selectable?: boolean;
+  allSelected?: boolean;
+  someSelected?: boolean;
+  onToggleAll?: () => void;
 }) {
   const showStatus = props.showStatus !== false;
   const showCategory = props.showCategory === true;
-  const grid = approvalsTableGrid({ showCategory, showStatus });
+  const selectable = props.selectable === true;
+  const grid = approvalsTableGrid({ showCategory, showStatus, selectable });
 
   return (
-    <div className={claimsTableHeaderClass(grid)}>
+    <div className={claimsTableHeaderClass(grid, { selectable })}>
+      {selectable ? (
+        <span className={claimsTableColCheckbox}>
+          <ClaimsTableCheckbox
+            checked={props.allSelected}
+            indeterminate={props.someSelected}
+            onChange={props.onToggleAll}
+            aria-label="Select all reimbursements"
+          />
+        </span>
+      ) : null}
       <span className={cn(claimsTableColStart, "truncate")}>Employee</span>
       {showCategory ? (
         <span className={cn(claimsTableColStart, "truncate")}>Category</span>
@@ -46,13 +63,17 @@ export function ApprovalsTableRow(props: {
   onOpen: () => void;
   showStatus?: boolean;
   showCategory?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const { claim } = props;
   const { user } = useMe();
   const showStatus = props.showStatus !== false;
   const showCategory = props.showCategory === true;
+  const selectable = props.selectable === true;
   const status = claimDisplayStatus(claim, user?.role);
-  const grid = approvalsTableGrid({ showCategory, showStatus });
+  const grid = approvalsTableGrid({ showCategory, showStatus, selectable });
 
   return (
     <div
@@ -66,10 +87,24 @@ export function ApprovalsTableRow(props: {
         }
       }}
       className={cn(
-        claimsTableRowClass(grid),
+        claimsTableRowClass(grid, { selectable }),
         "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+        selectable && props.selected && "bg-white",
       )}
     >
+      {selectable ? (
+        <span
+          className={claimsTableColCheckbox}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <ClaimsTableCheckbox
+            checked={props.selected}
+            onChange={props.onToggleSelect}
+            aria-label={`Select ${claim.employeeName}`}
+          />
+        </span>
+      ) : null}
       <span className={cn(claimsTableColStart, claimsTableBodyCellClass, "truncate")}>
         {claim.employeeName}
       </span>
