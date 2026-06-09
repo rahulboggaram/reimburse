@@ -108,9 +108,10 @@ export async function probeRazorpayConnection(): Promise<{
   }
 
   try {
+    const account = encodeURIComponent(config.accountNumber);
     await razorpayRequest<{ items?: unknown[] }>(
       config,
-      "/payouts?count=1",
+      `/payouts?account_number=${account}&count=1`,
       { method: "GET" },
     );
     return { ok: true };

@@ -151,8 +151,13 @@ export default function AdminRazorpaySetupPage() {
             </pre>
           </Card>
 
-          <Card className="space-y-2 p-5 text-sm text-zinc-600">
-            <h2 className="font-semibold text-zinc-900">Razorpay dashboard</h2>
+          <Card className="space-y-3 p-5 text-sm text-zinc-600">
+            <h2 className="font-semibold text-zinc-900">Go live checklist</h2>
+            <p>
+              Test keys (<code className="text-xs">rzp_test_</code>) use fake
+              money. Live keys (<code className="text-xs">rzp_live_</code>) send
+              real IMPS transfers to employee bank accounts.
+            </p>
             <ol className="list-decimal space-y-2 pl-5">
               <li>
                 <a
@@ -163,24 +168,45 @@ export default function AdminRazorpaySetupPage() {
                 >
                   RazorpayX
                 </a>{" "}
-                → complete KYC → add balance to your payout account
+                → complete <strong>KYC</strong> → add balance to your{" "}
+                <strong>live</strong> payout account
               </li>
               <li>
-                <strong>My Account &amp; Settings → Developer Controls</strong>{" "}
-                → generate API keys (start with <strong>Test</strong>, then Live
-                when ready)
+                <strong>Developer Controls</strong> → switch to{" "}
+                <strong>Live mode</strong> → generate <strong>Live API keys</strong>
               </li>
               <li>
-                <strong>Banking → Customer Identifier</strong> → copy account
-                number (not an employee bank account)
+                <strong>Banking → Customer Identifier</strong> (live account) →
+                copy into <code className="text-xs">RAZORPAYX_ACCOUNT_NUMBER</code>
               </li>
               <li>
-                Webhook URL:{" "}
-                <code className="text-xs">{status.webhookUrl}</code>
+                Vercel → Reimburse → Settings → Environment Variables → paste
+                all variables above → <strong>Redeploy</strong>
+              </li>
+              <li>
+                Razorpay → Webhooks (live) → URL{" "}
+                <code className="text-xs break-all">{status.webhookUrl}</code>
                 <br />
-                Events: payout.processed, payout.failed, payout.queued
+                Events: payout.processed, payout.failed, payout.queued → copy
+                secret to <code className="text-xs">RAZORPAYX_WEBHOOK_SECRET</code>
+              </li>
+              <li>
+                Return here — status should show{" "}
+                <strong>Razorpay live — real money</strong> with a green API
+                connection check
               </li>
             </ol>
+            {status.mode === "test" ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                You are on <strong>test mode</strong> right now. Swap to live
+                keys on Vercel to move real money.
+              </p>
+            ) : null}
+            {status.mode === "live" ? (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
+                Live mode is active — payouts use real money.
+              </p>
+            ) : null}
           </Card>
 
           <Card className="space-y-2 p-5 text-sm text-zinc-600">

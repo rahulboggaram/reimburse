@@ -11,11 +11,12 @@ export async function GET() {
     ...status,
     vercelVars: {
       RAZORPAYX_MOCK: "false",
-      RAZORPAYX_KEY_ID: "(rzp_test_... or rzp_live_... from Razorpay dashboard)",
-      RAZORPAYX_KEY_SECRET: "(secret from same key pair)",
-      RAZORPAYX_ACCOUNT_NUMBER: "(Customer Identifier — Banking in RazorpayX)",
+      RAZORPAYX_KEY_ID: "rzp_live_... (Live keys — Developer Controls → Generate Live Key)",
+      RAZORPAYX_KEY_SECRET: "(live secret from the same key pair)",
+      RAZORPAYX_ACCOUNT_NUMBER:
+        "(Live Customer Identifier — Banking → Customer Identifier)",
       RAZORPAYX_PAYOUT_MODE: "IMPS",
-      RAZORPAYX_WEBHOOK_SECRET: "(from Razorpay webhook settings)",
+      RAZORPAYX_WEBHOOK_SECRET: "(Live webhook secret — required for production)",
     },
     webhookUrl: "https://reimburse-jade.vercel.app/api/webhooks/razorpayx",
   });
