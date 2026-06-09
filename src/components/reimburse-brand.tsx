@@ -63,7 +63,7 @@ export function ReimburseBrand() {
       aria-label="Reimburse home"
     >
       <span
-        className="relative flex flex-col items-center gap-1 overflow-hidden"
+        className="relative flex flex-col items-center gap-1"
         key={shineCycle}
       >
         <span className={cn(wordmarkClass, "text-zinc-900")}>Reimburse</span>
@@ -76,7 +76,6 @@ export function ReimburseBrand() {
             aria-hidden
             className="pointer-events-none absolute inset-0 flex flex-col items-center gap-1"
           >
-            <span className="brand-gold-shine-sheen" />
             <span className={cn(wordmarkClass, "brand-gold-shine-wordmark")}>
               Reimburse
             </span>
