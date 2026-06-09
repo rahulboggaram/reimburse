@@ -26,10 +26,61 @@ async function findActiveUserForBranch(
   });
 }
 
+export async function describeClaimRoutingReadiness(
+  submitter: Submitter,
+  branchId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const branch = await prisma.branch.findUnique({
+    where: { id: branchId },
+    select: { name: true },
+  });
+  const branchLabel = branch?.name ?? "your branch";
+
+  if (submitter.role === "ADMIN") {
+    return { ok: true };
+  }
+
+  if (submitter.role === "APPROVER") {
+    const admin = await findActiveUserForBranch("ADMIN", branchId);
+    if (!admin) {
+      return {
+        ok: false,
+        error: `No admin is assigned to ${branchLabel} yet. Ask your admin to fix this in People.`,
+      };
+    }
+    return { ok: true };
+  }
+
+  const [branchManager, paymentApprover] = await Promise.all([
+    findActiveUserForBranch("BRANCH_MANAGER", branchId),
+    findActiveUserForBranch("APPROVER", branchId),
+  ]);
+
+  if (!branchManager) {
+    return {
+      ok: false,
+      error: `No branch manager assigned for ${branchLabel} yet. Ask your admin to add one in People.`,
+    };
+  }
+  if (!paymentApprover) {
+    return {
+      ok: false,
+      error: `No payment approver assigned for ${branchLabel} yet. Ask your admin to add a Payment Approver to this branch in People.`,
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function resolveClaimRouting(
   submitter: Submitter,
   branchId: string,
 ): Promise<{ routing: ClaimRouting } | { error: string }> {
+  const readiness = await describeClaimRoutingReadiness(submitter, branchId);
+  if (!readiness.ok) {
+    return { error: readiness.error };
+  }
+
   if (submitter.role === "ADMIN") {
     return {
       routing: {
@@ -44,9 +95,7 @@ export async function resolveClaimRouting(
   if (submitter.role === "APPROVER") {
     const admin = await findActiveUserForBranch("ADMIN", branchId);
     if (!admin) {
-      return {
-        error: "No admin is assigned to this branch yet.",
-      };
+      return { error: "No admin is assigned to this branch yet." };
     }
 
     const paymentApprover = await findActiveUserForBranch(
@@ -65,18 +114,10 @@ export async function resolveClaimRouting(
     };
   }
 
-  const [branchManager, paymentApprover] = await Promise.all([
-    findActiveUserForBranch("BRANCH_MANAGER", branchId),
-    findActiveUserForBranch("APPROVER", branchId),
-  ]);
-
-  if (!branchManager) {
-    return { error: "No branch manager assigned for this branch yet." };
-  }
-  if (!paymentApprover) {
-    return {
-      error: "No payment approver assigned for this branch yet.",
-    };
+  const branchManager = await findActiveUserForBranch("BRANCH_MANAGER", branchId);
+  const paymentApprover = await findActiveUserForBranch("APPROVER", branchId);
+  if (!branchManager || !paymentApprover) {
+    return { error: "Could not assign approvers for this branch." };
   }
 
   return {

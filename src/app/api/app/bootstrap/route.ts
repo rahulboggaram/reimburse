@@ -1,5 +1,7 @@
 import { requireSession } from "@/lib/auth-api";
+import { describeClaimRoutingReadiness } from "@/lib/claim-routing";
 import { prisma } from "@/lib/db";
+import { isReimbursementSubmitterRole } from "@/lib/access-roles";
 
 export async function GET() {
   try {
@@ -15,6 +17,7 @@ export async function GET() {
       prisma.user.findUnique({
         where: { id: session.id },
         select: {
+          role: true,
           branchId: true,
           branch: { select: { id: true, name: true, active: true } },
         },
@@ -26,8 +29,24 @@ export async function GET() {
         ? { id: user.branch.id, name: user.branch.name }
         : null;
 
+    let submitBlockReason: string | null = null;
+    if (
+      user &&
+      user.branchId &&
+      user.branch?.active &&
+      isReimbursementSubmitterRole(user.role)
+    ) {
+      const readiness = await describeClaimRoutingReadiness(
+        { id: session.id, role: user.role },
+        user.branchId,
+      );
+      if (!readiness.ok) {
+        submitBlockReason = readiness.error;
+      }
+    }
+
     return Response.json(
-      { categories, userBranch },
+      { categories, userBranch, submitBlockReason },
       {
         headers: {
           "Cache-Control": "private, max-age=60",

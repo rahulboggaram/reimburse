@@ -52,9 +52,13 @@ export function ReimbursementForm(props: {
   const cachedBootstrap = readFormBootstrapCache<{
     categories: ExpenseCategory[];
     userBranch: { id: string; name: string } | null;
+    submitBlockReason?: string | null;
   }>();
   const [userBranch, setUserBranch] = useState(
     () => cachedBootstrap?.userBranch ?? null,
+  );
+  const [submitBlockReason, setSubmitBlockReason] = useState<string | null>(
+    () => cachedBootstrap?.submitBlockReason ?? null,
   );
   const [categories, setCategories] = useState<ExpenseCategory[]>(
     () => cachedBootstrap?.categories ?? [],
@@ -78,10 +82,12 @@ export function ReimbursementForm(props: {
     void fetchFormBootstrap<{
       categories: ExpenseCategory[];
       userBranch: { id: string; name: string } | null;
+      submitBlockReason?: string | null;
     }>()
       .then((data) => {
         setCategories(data.categories);
         setUserBranch(data.userBranch);
+        setSubmitBlockReason(data.submitBlockReason ?? null);
       })
       .catch(() => setError("Could not load form options."))
       .finally(() => setLoadingOptions(false));
@@ -192,6 +198,7 @@ export function ReimbursementForm(props: {
   }
 
   const missingBranch = !loadingOptions && !userBranch;
+  const blockedFromSubmit = Boolean(submitBlockReason);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -201,6 +208,11 @@ export function ReimbursementForm(props: {
       setError(
         "No branch is assigned to your account. Ask your admin to set one in People.",
       );
+      return;
+    }
+
+    if (submitBlockReason) {
+      setError(submitBlockReason);
       return;
     }
 
@@ -235,6 +247,12 @@ export function ReimbursementForm(props: {
           <p className="text-sm text-amber-800">
             No branch is assigned to your account yet. Ask your admin to set one
             in People before you submit.
+          </p>
+        ) : null}
+
+        {submitBlockReason ? (
+          <p className="text-sm text-amber-800" role="status">
+            {submitBlockReason}
           </p>
         ) : null}
 
@@ -314,6 +332,7 @@ export function ReimbursementForm(props: {
         disabled={
           submitting ||
           missingBranch ||
+          blockedFromSubmit ||
           categories.length === 0
         }
       >
