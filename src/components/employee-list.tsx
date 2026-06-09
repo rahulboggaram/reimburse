@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
+import { findBranchStaff, type BranchStaffMember } from "@/lib/branch-staff";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { listRowInsetDividerClass } from "@/components/claims-table-layout";
@@ -66,9 +67,16 @@ export function EmployeeListRow(props: {
             : " · Pending signup"}
         </p>
       </div>
-      <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
-        {formatRole(employee.role)}
-      </span>
+      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+        {employee.branchName ? (
+          <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
+            {employee.branchName}
+          </span>
+        ) : null}
+        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
+          {formatRole(employee.role)}
+        </span>
+      </div>
       <span className="shrink-0 text-lg text-zinc-400" aria-hidden>
         ›
       </span>
@@ -76,8 +84,13 @@ export function EmployeeListRow(props: {
   );
 }
 
+function staffLabel(person: BranchStaffMember | null, fallback: string) {
+  return person?.name?.trim() || fallback;
+}
+
 export function EmployeeDetailModal(props: {
   employee: EmployeeRecord | null;
+  people: EmployeeRecord[];
   open: boolean;
   onClose: () => void;
   branches: { id: string; name: string; active: boolean }[];
@@ -96,6 +109,10 @@ export function EmployeeDetailModal(props: {
   }, [employee.id, employee.role, employee.branchId]);
 
   const needsBranch = userRoleRequiresBranch(role);
+  const branchStaff = findBranchStaff(props.people, branchId || employee.branchId);
+  const branchLabel =
+    props.branches.find((branch) => branch.id === (branchId || employee.branchId))
+      ?.name ?? employee.branchName;
 
   function commitUpdate(nextRole: UserRole, nextBranchId: string | null) {
     const nextNeedsBranch = userRoleRequiresBranch(nextRole);
@@ -181,6 +198,40 @@ export function EmployeeDetailModal(props: {
             </div>
           ) : null}
         </div>
+
+        {branchLabel ? (
+          <div className="rounded-xl border border-zinc-200 bg-white p-3 text-sm">
+            <p className="font-medium text-zinc-900">{branchLabel} setup</p>
+            <ul className="mt-2 space-y-1 text-zinc-600">
+              <li>
+                Branch manager:{" "}
+                {branchStaff.branchManager ? (
+                  <span className="font-medium text-zinc-900">
+                    {staffLabel(branchStaff.branchManager, "Assigned")}
+                  </span>
+                ) : (
+                  <span className="text-amber-800">Not assigned</span>
+                )}
+              </li>
+              <li>
+                Payment approver:{" "}
+                {branchStaff.paymentApprover ? (
+                  <span className="font-medium text-zinc-900">
+                    {staffLabel(branchStaff.paymentApprover, "Assigned")}
+                  </span>
+                ) : (
+                  <span className="text-amber-800">Not assigned</span>
+                )}
+              </li>
+            </ul>
+            {!branchStaff.paymentApprover || !branchStaff.branchManager ? (
+              <p className="mt-2 text-xs text-amber-800">
+                Employees on this branch cannot submit claims until both roles
+                are assigned on the same branch.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         <Button
           variant="outline"

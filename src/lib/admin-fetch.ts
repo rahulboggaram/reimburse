@@ -95,9 +95,14 @@ export function invalidateAdminClaims() {
   invalidateClientCache(ADMIN_CLAIMS_KEY);
 }
 
-export function fetchFormBootstrap<T = unknown>() {
+export function fetchFormBootstrap<T = unknown>(options?: { fresh?: boolean }) {
+  if (options?.fresh) {
+    invalidateClientCache(FORM_BOOTSTRAP_KEY);
+  }
   return fetchClientCache<T>(FORM_BOOTSTRAP_KEY, () =>
-    fetch("/api/app/bootstrap").then((r) => readJson<T>(r)),
+    fetch("/api/app/bootstrap", { cache: "no-store" }).then((r) =>
+      readJson<T>(r),
+    ),
     FORM_BOOTSTRAP_TTL_MS,
   );
 }

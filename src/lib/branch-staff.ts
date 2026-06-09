@@ -1,11 +1,39 @@
 import type { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
-type BranchStaffMember = {
+export type BranchStaffMember = {
+  id?: string;
+  name?: string | null;
   role: UserRole | string;
   branchId: string | null;
   active: boolean;
 };
+
+export function findBranchStaff(
+  people: BranchStaffMember[],
+  branchId: string | null | undefined,
+) {
+  if (!branchId) {
+    return { branchManager: null, paymentApprover: null };
+  }
+
+  return {
+    branchManager:
+      people.find(
+        (person) =>
+          person.active &&
+          person.role === "BRANCH_MANAGER" &&
+          person.branchId === branchId,
+      ) ?? null,
+    paymentApprover:
+      people.find(
+        (person) =>
+          person.active &&
+          person.role === "APPROVER" &&
+          person.branchId === branchId,
+      ) ?? null,
+  };
+}
 
 export function listHasPaymentApproverForBranch(
   people: BranchStaffMember[],

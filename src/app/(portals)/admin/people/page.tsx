@@ -26,6 +26,7 @@ import {
   fetchAdminBranches,
   fetchAdminUsers,
   invalidateAdminUsers,
+  invalidateFormBootstrap,
 } from "@/lib/admin-fetch";
 import { readJson } from "@/lib/api";
 import { useCachedQuery } from "@/lib/use-cached-query";
@@ -214,6 +215,7 @@ export default function AdminPeoplePage() {
       setPendingAdd(null);
       setApproverModalOpen(false);
       setTab("active");
+      invalidateFormBootstrap();
       await loadEmployees(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add person.");
@@ -272,6 +274,7 @@ export default function AdminPeoplePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: update.role, branchId: update.branchId }),
     });
+    invalidateFormBootstrap();
     await loadEmployees(true);
   }
 
@@ -440,6 +443,7 @@ export default function AdminPeoplePage() {
 
       <EmployeeDetailModal
         employee={selected}
+        people={employees}
         open={selected !== null}
         onClose={() => setSelected(null)}
         branches={branches}

@@ -58,7 +58,7 @@ export function ReimbursementForm(props: {
     () => cachedBootstrap?.userBranch ?? null,
   );
   const [submitBlockReason, setSubmitBlockReason] = useState<string | null>(
-    () => cachedBootstrap?.submitBlockReason ?? null,
+    null,
   );
   const [categories, setCategories] = useState<ExpenseCategory[]>(
     () => cachedBootstrap?.categories ?? [],
@@ -83,7 +83,7 @@ export function ReimbursementForm(props: {
       categories: ExpenseCategory[];
       userBranch: { id: string; name: string } | null;
       submitBlockReason?: string | null;
-    }>()
+    }>({ fresh: true })
       .then((data) => {
         setCategories(data.categories);
         setUserBranch(data.userBranch);
