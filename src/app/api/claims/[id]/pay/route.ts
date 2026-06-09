@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
+import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { initiateClaimPayout, refreshPayoutIfInProgress } from "@/lib/payouts";
 import { getRazorpayConfig } from "@/lib/razorpayx";
@@ -8,6 +9,7 @@ const employeeForPayoutSelect = {
   id: true,
   name: true,
   phone: true,
+  role: true,
   ifscCode: true,
   bankAccountNumber: true,
   razorpayContactId: true,
@@ -43,7 +45,10 @@ export async function POST(
       { status: 409 },
     );
   }
-  if (session.role === "APPROVER" && claim.paymentApproverId !== session.id) {
+  if (
+    session.role === "APPROVER" &&
+    !canPaymentApproverAccessClaim(session, claim)
+  ) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 

@@ -35,6 +35,7 @@ const users = [
 ];
 
 const defaultBranches = [
+  "Head Office",
   "Anantapur",
   "Avalahalli",
   "Chikkaballapur",
@@ -92,13 +93,21 @@ async function main() {
     });
   }
 
+  const headOffice = await prisma.branch.findUnique({
+    where: { name: "Head Office" },
+    select: { id: true },
+  });
   const chintamani = await prisma.branch.findUnique({
     where: { name: "Chintamani" },
     select: { id: true },
   });
-  const demoBranchId = chintamani?.id ?? null;
 
   for (const user of users) {
+    const branchId =
+      user.role === UserRole.ADMIN || user.role === UserRole.APPROVER
+        ? (headOffice?.id ?? null)
+        : (chintamani?.id ?? null);
+
     await prisma.user.upsert({
       where: { phone: user.phone },
       update: {
@@ -106,13 +115,13 @@ async function main() {
         role: user.role,
         ifscCode: user.ifscCode,
         bankAccountNumber: user.bankAccountNumber,
-        branchId: demoBranchId,
+        branchId,
         active: true,
       },
       create: {
         ...user,
         active: true,
-        branchId: demoBranchId,
+        branchId,
       },
     });
   }

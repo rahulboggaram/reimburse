@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
+import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { syncPayoutForClaim } from "@/lib/payouts";
 
@@ -17,7 +18,7 @@ export async function POST(
       id: true,
       employeeId: true,
       razorpayPayoutId: true,
-      paymentApproverId: true,
+      employee: { select: { role: true } },
     },
   });
   if (!existing) {
@@ -28,7 +29,7 @@ export async function POST(
   const isAdmin = session.role === "ADMIN";
   const isPaymentApprover =
     session.role === "APPROVER" &&
-    existing.paymentApproverId === session.id;
+    canPaymentApproverAccessClaim(session, existing);
 
   if (!isOwner && !isAdmin && !isPaymentApprover) {
     return Response.json({ error: "You do not have access." }, { status: 403 });

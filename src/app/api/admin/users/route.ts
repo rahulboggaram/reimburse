@@ -2,8 +2,6 @@ import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
 import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import { normalizePhone, formatPhoneDisplay } from "@/lib/phone";
-import { isReimbursementSubmitterRole } from "@/lib/access-roles";
-import { branchHasPaymentApprover } from "@/lib/branch-staff";
 import { adminCreateEmployeeSchema } from "@/lib/validators";
 import { isProfileComplete } from "@/lib/user-profile";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
@@ -70,48 +68,11 @@ export async function POST(request: Request) {
   const branch = needsBranch
     ? await prisma.branch.findFirst({
         where: { id: body.data.branchId, active: true },
-        select: { id: true, name: true },
+        select: { id: true },
       })
     : null;
   if (needsBranch && !branch) {
     return Response.json({ error: "Select an active branch." }, { status: 400 });
-  }
-
-  if (branch && isReimbursementSubmitterRole(role)) {
-    const hasApprover = await branchHasPaymentApprover(branch.id);
-    if (!hasApprover) {
-      const assignId = body.data.assignPaymentApproverUserId;
-      if (!assignId) {
-        return Response.json(
-          {
-            error: `No payment approver assigned for ${branch.name} yet. Assign one to continue.`,
-          },
-          { status: 422 },
-        );
-      }
-
-      const assignee = await prisma.user.findFirst({
-        where: { id: assignId, active: true },
-      });
-      if (!assignee) {
-        return Response.json(
-          { error: "Could not assign payment approver." },
-          { status: 400 },
-        );
-      }
-
-      await prisma.user.update({
-        where: { id: assignId },
-        data: { role: "APPROVER", branchId: branch.id },
-      });
-
-      await logPlatformActivity({
-        type: "APPROVER_ENABLED",
-        actorId: session.id,
-        targetUserId: assignId,
-        summary: `${displayName(session.name, session.phone)} assigned ${displayName(assignee.name, assignee.phone)} as payment approver for ${branch.name}`,
-      });
-    }
   }
 
   const existing = await prisma.user.findUnique({ where: { phone } });

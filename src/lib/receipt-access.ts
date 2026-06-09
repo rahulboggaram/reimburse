@@ -1,3 +1,4 @@
+import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import type { SessionUser } from "@/lib/session";
 import {
   canAccessAdminPortal,
@@ -7,7 +8,7 @@ import {
 type ClaimForReceiptAccess = {
   employeeId: string;
   approverId: string;
-  paymentApproverId: string;
+  employee?: { role: string } | null;
 };
 
 export function canViewClaimReceipts(
@@ -17,11 +18,11 @@ export function canViewClaimReceipts(
   const isOwner = claim.employeeId === session.id;
   if (canAccessAdminPortal(session)) return true;
   if (!canAccessManagerPortal(session)) return isOwner;
+  if (session.role === "APPROVER") {
+    return canPaymentApproverAccessClaim(session, claim);
+  }
   if (canAccessManagerPortal(session)) {
-    return (
-      claim.approverId === session.id ||
-      claim.paymentApproverId === session.id
-    );
+    return claim.approverId === session.id;
   }
   return isOwner;
 }

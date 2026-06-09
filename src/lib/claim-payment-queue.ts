@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { paymentApproverClaimFilter } from "@/lib/payment-approver";
 
 export const FAILED_PAYOUT_STATUSES = [
   "failed",
@@ -7,20 +8,13 @@ export const FAILED_PAYOUT_STATUSES = [
   "reversed",
 ] as const;
 
-function approverAssigned(sessionId: string) {
-  return {
-    paymentApproverId: sessionId,
-    employeeId: { not: sessionId },
-  };
-}
-
-/** Payment approver queue — approved, not yet sent to Razorpay (or payout failed). */
+/** Payment approver queue — all approved branch claims except own and admin. */
 export function approverPaymentWaitingWhere(
   sessionId: string,
 ): Prisma.ReimbursementWhereInput {
   return {
     AND: [
-      approverAssigned(sessionId),
+      paymentApproverClaimFilter(sessionId),
       { status: "APPROVED" },
       { paidAt: null },
       {
@@ -81,7 +75,7 @@ export function approverPaymentSentWhere(
 ): Prisma.ReimbursementWhereInput {
   return {
     AND: [
-      approverAssigned(sessionId),
+      paymentApproverClaimFilter(sessionId),
       {
         OR: [
           { status: "PAID" },

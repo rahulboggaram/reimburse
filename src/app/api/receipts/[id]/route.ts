@@ -18,7 +18,7 @@ export async function GET(
         select: {
           employeeId: true,
           approverId: true,
-          paymentApproverId: true,
+          employee: { select: { role: true } },
         },
       },
     },

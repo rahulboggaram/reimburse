@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
+import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import {
   canAccessAdminPortal,
   canAccessManagerPortal,
@@ -26,9 +27,12 @@ export async function GET(
 
   const isOwner = claim.employeeId === session.id;
   const isAdmin = canAccessAdminPortal(session);
-  const isAssignedApprover =
+  const isBranchManager =
+    canAccessManagerPortal(session) && claim.approverId === session.id;
+  const isPaymentApprover =
     canAccessManagerPortal(session) &&
-    (claim.approverId === session.id || claim.paymentApproverId === session.id);
+    canPaymentApproverAccessClaim(session, claim);
+  const isAssignedApprover = isBranchManager || isPaymentApprover;
 
   if (
     !canAccessAdminPortal(session) &&

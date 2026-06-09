@@ -1,5 +1,4 @@
 import type { UserRole } from "@prisma/client";
-import { prisma } from "@/lib/db";
 
 export type BranchStaffMember = {
   id?: string;
@@ -14,7 +13,7 @@ export function findBranchStaff(
   branchId: string | null | undefined,
 ) {
   if (!branchId) {
-    return { branchManager: null, paymentApprover: null };
+    return { branchManager: null };
   }
 
   return {
@@ -25,32 +24,5 @@ export function findBranchStaff(
           person.role === "BRANCH_MANAGER" &&
           person.branchId === branchId,
       ) ?? null,
-    paymentApprover:
-      people.find(
-        (person) =>
-          person.active &&
-          person.role === "APPROVER" &&
-          person.branchId === branchId,
-      ) ?? null,
   };
-}
-
-export function listHasPaymentApproverForBranch(
-  people: BranchStaffMember[],
-  branchId: string,
-) {
-  return people.some(
-    (person) =>
-      person.active &&
-      person.role === "APPROVER" &&
-      person.branchId === branchId,
-  );
-}
-
-export async function branchHasPaymentApprover(branchId: string) {
-  const approver = await prisma.user.findFirst({
-    where: { role: "APPROVER", active: true, branchId },
-    select: { id: true },
-  });
-  return Boolean(approver);
 }
