@@ -6,7 +6,9 @@ import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { FloatingTextarea } from "@/components/ui/floating-field";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
 import { formatRole } from "@/lib/access-roles";
@@ -212,6 +214,10 @@ export function ClaimDetailModal(props: {
 
   async function decide(status: "APPROVED" | "REJECTED") {
     setError(null);
+    if (status === "REJECTED" && !rejectionReason.trim()) {
+      setError("Please add a reason for rejection.");
+      return;
+    }
     setDeciding(true);
     try {
       const response = await fetch(`/api/claims/${claim.id}/decide`, {
@@ -310,14 +316,21 @@ export function ClaimDetailModal(props: {
 
         {user && canDecideReimbursement(user, claim) ? (
           <div className="space-y-4">
-            <FloatingTextarea
-              id="rejection-reason"
-              label="Reason for rejection"
-              rows={2}
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="resize-none"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Reason for rejection</Label>
+              <Textarea
+                id="rejection-reason"
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain why this claim is being rejected"
+                className={cn(
+                  "min-h-textarea resize-none py-3",
+                  "border-[1.5px] border-zinc-300",
+                  "focus-visible:border-accent focus-visible:ring-accent/20",
+                )}
+              />
+            </div>
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}
