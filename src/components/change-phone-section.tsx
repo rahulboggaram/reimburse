@@ -98,7 +98,7 @@ export function ChangePhoneSection(props: {
         </p>
         {!open ? (
           <TextLinkButton onClick={() => setOpen(true)} className="shrink-0">
-            Change mobile number
+            Edit
           </TextLinkButton>
         ) : (
           <TextLinkButton onClick={close} className="shrink-0">
