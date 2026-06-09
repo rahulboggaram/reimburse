@@ -97,6 +97,16 @@ export function EmployeeDetailModal(props: {
 
   const needsBranch = userRoleRequiresBranch(role);
 
+  function commitUpdate(nextRole: UserRole, nextBranchId: string | null) {
+    const nextNeedsBranch = userRoleRequiresBranch(nextRole);
+    if (nextNeedsBranch && !nextBranchId) return;
+    void props.onUpdate({
+      id: employee.id,
+      role: nextRole,
+      branchId: nextNeedsBranch ? nextBranchId : null,
+    });
+  }
+
   return (
     <Modal
       open={props.open}
@@ -130,14 +140,11 @@ export function EmployeeDetailModal(props: {
                 setRole(nextRole);
 
                 const nextNeedsBranch = userRoleRequiresBranch(nextRole);
-                const nextBranchId = nextNeedsBranch ? branchId || null : null;
                 if (!nextNeedsBranch) setBranchId("");
-
-                props.onUpdate({
-                  id: employee.id,
-                  role: nextRole,
-                  branchId: nextBranchId,
-                });
+                commitUpdate(
+                  nextRole,
+                  nextNeedsBranch ? branchId || null : null,
+                );
               }}
             >
               {ASSIGNABLE_ROLES.map((role) => (
@@ -156,15 +163,14 @@ export function EmployeeDetailModal(props: {
                 value={branchId}
                 onChange={(e) => {
                   const next = e.target.value;
+                  if (!next) return;
                   setBranchId(next);
-                  props.onUpdate({
-                    id: employee.id,
-                    role,
-                    branchId: next ? next : null,
-                  });
+                  commitUpdate(role, next);
                 }}
               >
-                <option value="">Select branch</option>
+                <option value="" disabled>
+                  Select branch
+                </option>
                 {props.branches.map((branch) => (
                   <option key={branch.id} value={branch.id} disabled={!branch.active}>
                     {branch.name}

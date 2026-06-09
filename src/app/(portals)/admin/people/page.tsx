@@ -13,7 +13,13 @@ import {
   type EmployeeRecord,
 } from "@/components/employee-list";
 import type { UserRole } from "@prisma/client";
-import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
+import {
+  ASSIGNABLE_ROLES,
+  formatRole,
+  isReimbursementSubmitterRole,
+} from "@/lib/access-roles";
+import { AssignPaymentApproverModal } from "@/components/assign-payment-approver-modal";
+import { listHasPaymentApproverForBranch } from "@/lib/branch-staff";
 import { formatPhoneDisplay, normalizePhone } from "@/lib/phone";
 import { PageHeading } from "@/components/page-heading";
 import {
@@ -94,6 +100,12 @@ function compareEmployeesByName(a: EmployeeRecord, b: EmployeeRecord) {
 
 type BranchOption = { id: string; name: string; active: boolean };
 
+type PendingAdd = {
+  phone: string;
+  role: UserRole;
+  branchId: string;
+};
+
 export default function AdminPeoplePage() {
   const {
     data: employeesData,
@@ -122,6 +134,15 @@ export default function AdminPeoplePage() {
   const [tab, setTab] = useState<"active" | "inactive">("active");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [selected, setSelected] = useState<EmployeeRecord | null>(null);
+  const [approverModalOpen, setApproverModalOpen] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
+
+  const phoneNormalized = useMemo(() => normalizePhone(phone), [phone]);
+  const canAdd =
+    Boolean(phoneNormalized) &&
+    Boolean(role) &&
+    Boolean(branchId) &&
+    activeBranches.length > 0;
 
   async function loadEmployees(fresh = false) {
     setError(null);
@@ -169,28 +190,76 @@ export default function AdminPeoplePage() {
     : undefined;
   const existsByPhone = Boolean(matchByPhone);
 
-  async function addEmployee(event: React.FormEvent) {
-    event.preventDefault();
-    if (!role) return;
-    setError(null);
+  async function completeAdd(
+    payload: PendingAdd,
+    assignPaymentApproverUserId?: string,
+  ) {
     setSaving(true);
+    setError(null);
     try {
       const response = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, role, branchId }),
+        body: JSON.stringify({
+          phone: payload.phone,
+          role: payload.role,
+          branchId: payload.branchId,
+          assignPaymentApproverUserId,
+        }),
       });
       await readJson(response);
       setPhone("");
       setRole("");
       setBranchId("");
+      setPendingAdd(null);
+      setApproverModalOpen(false);
       setTab("active");
       await loadEmployees(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add employee.");
+      setError(err instanceof Error ? err.message : "Could not add person.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function addEmployee(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+
+    if (!phoneNormalized) {
+      setError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!role) {
+      setError("Select a role.");
+      return;
+    }
+    if (!branchId) {
+      setError("Select a branch.");
+      return;
+    }
+
+    const payload: PendingAdd = {
+      phone: phoneNormalized,
+      role,
+      branchId,
+    };
+
+    if (
+      isReimbursementSubmitterRole(role) &&
+      !listHasPaymentApproverForBranch(employees, branchId)
+    ) {
+      setPendingAdd(payload);
+      setApproverModalOpen(true);
+      return;
+    }
+
+    await completeAdd(payload);
+  }
+
+  async function confirmPaymentApprover(assigneeId: string) {
+    if (!pendingAdd) return;
+    await completeAdd(pendingAdd, assigneeId);
   }
 
   async function updateEmployee(update: {
@@ -272,13 +341,7 @@ export default function AdminPeoplePage() {
               {error}
             </p>
           ) : null}
-          <Button
-            type="submit"
-            size="sm"
-            disabled={
-              saving || !role || !branchId || activeBranches.length === 0
-            }
-          >
+          <Button type="submit" size="sm" disabled={saving || !canAdd}>
             {saving ? "Adding…" : "Add employee"}
           </Button>
         </form>
@@ -382,6 +445,23 @@ export default function AdminPeoplePage() {
         branches={branches}
         onUpdate={updateEmployee}
         onRemove={removeEmployee}
+      />
+
+      <AssignPaymentApproverModal
+        open={approverModalOpen}
+        branchId={pendingAdd?.branchId ?? ""}
+        branchName={
+          activeBranches.find((branch) => branch.id === pendingAdd?.branchId)
+            ?.name ?? "This branch"
+        }
+        people={employees}
+        saving={saving}
+        onClose={() => {
+          if (saving) return;
+          setApproverModalOpen(false);
+          setPendingAdd(null);
+        }}
+        onConfirm={(userId) => void confirmPaymentApprover(userId)}
       />
     </>
   );
