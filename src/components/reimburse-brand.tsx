@@ -72,17 +72,28 @@ export function ReimburseBrand() {
         </span>
 
         {showShine ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 flex flex-col items-center gap-1"
-          >
-            <span className={cn(wordmarkClass, "brand-gold-shine-wordmark")}>
+          <>
+            <span
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute left-0 right-0 top-0 text-center",
+                wordmarkClass,
+                "brand-gold-shine-wordmark",
+              )}
+            >
               Reimburse
             </span>
-            <span className={cn(taglineClass, "brand-gold-shine-tagline")}>
+            <span
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute left-0 right-0 bottom-0 text-center",
+                taglineClass,
+                "brand-gold-shine-tagline",
+              )}
+            >
               by Yellow Metal
             </span>
-          </span>
+          </>
         ) : null}
       </span>
     </Link>

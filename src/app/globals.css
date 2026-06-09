@@ -100,33 +100,19 @@ body {
   cursor: pointer;
 }
 
-/* Gold shine wipes R → E on “Reimburse”, then through “by Yellow Metal”. */
-@keyframes brand-gold-wipe {
+/* Gold gradient sweeps through letter shapes only — no clip-path bar. */
+@keyframes brand-gold-shimmer-pass {
   0% {
-    clip-path: inset(0 100% 0 0);
+    background-position: 120% center;
+    opacity: 1;
+  }
+  88% {
+    background-position: -20% center;
     opacity: 1;
   }
   100% {
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-  }
-}
-
-@keyframes brand-gold-wipe-finish {
-  0% {
-    opacity: 1;
-  }
-  100% {
+    background-position: -20% center;
     opacity: 0;
-  }
-}
-
-@keyframes brand-gold-gradient-shift {
-  0% {
-    background-position: 0% center;
-  }
-  100% {
-    background-position: 100% center;
   }
 }
 
@@ -134,33 +120,29 @@ body {
 .brand-gold-shine-tagline {
   display: inline-block;
   background-image: linear-gradient(
-    105deg,
-    #8b6914 0%,
-    #c9a227 22%,
-    #ffd700 46%,
-    #fff6b8 50%,
+    90deg,
+    transparent 0%,
+    transparent 36%,
+    #9a7b0a 42%,
+    #d4a017 46%,
+    #ffd700 50%,
+    #fff6b8 52%,
     #ffd700 54%,
-    #d4a017 78%,
-    #8b6914 100%
+    #c9a227 58%,
+    transparent 64%,
+    transparent 100%
   );
-  background-size: 220% 100%;
+  background-size: 240% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  clip-path: inset(0 100% 0 0);
 }
 
 .brand-gold-shine-wordmark {
-  animation:
-    brand-gold-wipe 1.35s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-    brand-gold-gradient-shift 1.35s ease-in-out forwards,
-    brand-gold-wipe-finish 0.45s ease 1.35s forwards;
+  animation: brand-gold-shimmer-pass 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .brand-gold-shine-tagline {
-  animation:
-    brand-gold-wipe 1.35s cubic-bezier(0.4, 0, 0.2, 1) 0.75s forwards,
-    brand-gold-gradient-shift 1.35s ease-in-out 0.75s forwards,
-    brand-gold-wipe-finish 0.45s ease 2.1s forwards;
+  animation: brand-gold-shimmer-pass 1.5s cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
 }
