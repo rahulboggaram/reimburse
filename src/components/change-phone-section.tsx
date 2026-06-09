@@ -100,11 +100,7 @@ export function ChangePhoneSection(props: {
           <TextLinkButton onClick={() => setOpen(true)} className="shrink-0">
             Edit
           </TextLinkButton>
-        ) : (
-          <TextLinkButton onClick={close} className="shrink-0">
-            Cancel
-          </TextLinkButton>
-        )}
+        ) : null}
       </div>
 
       {open ? (
@@ -134,6 +130,9 @@ export function ChangePhoneSection(props: {
                 onChange={(e) => setNewPhoneInput(e.target.value)}
               />
               <div className="flex items-center justify-end gap-4">
+                <TextLinkButton type="button" onClick={close} disabled={loading}>
+                  Cancel
+                </TextLinkButton>
                 <Button type="submit" size="sm" disabled={loading}>
                   {loading ? <LoadingText>Sending</LoadingText> : "Send OTP"}
                 </Button>
@@ -160,17 +159,27 @@ export function ChangePhoneSection(props: {
                   setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
               />
-              <div className="flex items-center justify-end gap-4">
+              <div className="flex flex-col items-end gap-3">
                 <TextLinkButton
                   type="button"
                   onClick={resetFlow}
                   disabled={loading}
+                  className="self-end"
                 >
                   Use a different number
                 </TextLinkButton>
-                <Button type="submit" size="sm" disabled={loading}>
-                  {loading ? <LoadingText>Updating</LoadingText> : "Confirm new number"}
-                </Button>
+                <div className="flex items-center gap-4">
+                  <TextLinkButton
+                    type="button"
+                    onClick={close}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </TextLinkButton>
+                  <Button type="submit" size="sm" disabled={loading}>
+                    {loading ? <LoadingText>Saving</LoadingText> : "Save"}
+                  </Button>
+                </div>
               </div>
             </form>
           )}
