@@ -58,11 +58,6 @@ export function EmployeeListRow(props: {
           >
             {displayName}
           </p>
-          {!employee.active ? (
-            <span className="shrink-0 rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600">
-              Removed
-            </span>
-          ) : null}
         </div>
         <p className="mt-0.5 truncate text-sm text-zinc-900">
           {formatPhoneDisplay(employee.phone)}
