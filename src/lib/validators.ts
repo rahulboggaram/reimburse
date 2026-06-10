@@ -55,10 +55,19 @@ export const decideReimbursementSchema = z.object({
   rejectionReason: z.string().trim().max(500).optional(),
 });
 
-export const adminUpdateEmployeeSchema = z.object({
-  role: z.enum(ASSIGNABLE_ROLES),
-  branchId: z.string().min(1).nullable().optional(),
-});
+export const adminUpdateEmployeeSchema = z
+  .object({
+    role: z.enum(ASSIGNABLE_ROLES).optional(),
+    branchId: z.string().min(1).nullable().optional(),
+    active: z.literal(true).optional(),
+  })
+  .refine(
+    (data) =>
+      data.role !== undefined ||
+      data.branchId !== undefined ||
+      data.active === true,
+    { message: "No updates provided" },
+  );
 
 export const bulkClaimIdsSchema = z.object({
   claimIds: z.array(z.string().min(1)).min(1).max(200),

@@ -4,6 +4,7 @@ import { setSessionCookie, userToSession } from "@/lib/session";
 import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import { formatRole } from "@/lib/access-roles";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { adminUpdateEmployeeSchema } from "@/lib/validators";
 
 export async function PATCH(
@@ -24,6 +25,10 @@ export async function PATCH(
     return Response.json({ error: "Employee not found" }, { status: 404 });
   }
 
+  const nextRole = body.data.role ?? target.role;
+  const nextBranchId =
+    body.data.branchId !== undefined ? body.data.branchId : target.branchId;
+
   if (body.data.role !== "ADMIN" && id === session.id) {
     return Response.json(
       { error: "You cannot remove your own admin access." },
@@ -31,8 +36,7 @@ export async function PATCH(
     );
   }
 
-  const nextBranchId = body.data.branchId ?? null;
-  if (userRoleRequiresBranch(body.data.role) && !nextBranchId) {
+  if (userRoleRequiresBranch(nextRole) && !nextBranchId) {
     return Response.json(
       {
         error:
@@ -42,19 +46,45 @@ export async function PATCH(
     );
   }
 
+  if (userRoleRequiresBranch(nextRole) && nextBranchId) {
+    const branch = await prisma.branch.findFirst({
+      where: { id: nextBranchId, active: true },
+      select: { id: true },
+    });
+    if (!branch) {
+      return Response.json(
+        { error: "Select an active branch before restoring access." },
+        { status: 400 },
+      );
+    }
+  }
+
+  const reactivating = body.data.active === true && !target.active;
+
   const user = await prisma.user.update({
     where: { id },
-    data: { role: body.data.role, branchId: nextBranchId },
+    data: {
+      role: nextRole,
+      branchId: nextBranchId,
+      ...(body.data.active === true ? { active: true } : {}),
+    },
   });
 
   const actorLabel = displayName(session.name, session.phone);
   const targetLabel = displayName(target.name, target.phone);
-  const roleChanged = target.role !== body.data.role;
+  const roleChanged = target.role !== nextRole;
   const branchChanged = target.branchId !== nextBranchId;
 
-  if (roleChanged || branchChanged) {
+  if (reactivating) {
+    await logPlatformActivity({
+      type: "USER_ADDED",
+      actorId: session.id,
+      targetUserId: user.id,
+      summary: `${actorLabel} restored ${formatPhoneDisplay(target.phone)}`,
+    });
+  } else if (roleChanged || branchChanged) {
     const parts: string[] = [];
-    if (roleChanged) parts.push(`role to ${formatRole(body.data.role)}`);
+    if (roleChanged) parts.push(`role to ${formatRole(nextRole)}`);
     if (branchChanged) parts.push(`branch assignment`);
 
     await logPlatformActivity({

@@ -234,12 +234,19 @@ export default function AdminPeoplePage() {
     id: string;
     role: UserRole;
     branchId: string | null;
+    active?: boolean;
   }) {
-    await fetch(`/api/admin/users/${update.id}`, {
+    const response = await fetch(`/api/admin/users/${update.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: update.role, branchId: update.branchId }),
+      body: JSON.stringify({
+        role: update.role,
+        branchId: update.branchId,
+        ...(update.active ? { active: true } : {}),
+      }),
     });
+    await readJson(response);
+    if (update.active) setTab("active");
     invalidateFormBootstrap();
     await loadEmployees(true);
   }

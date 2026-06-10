@@ -101,7 +101,12 @@ export function EmployeeDetailModal(props: {
   open: boolean;
   onClose: () => void;
   branches: { id: string; name: string; active: boolean }[];
-  onUpdate: (update: { id: string; role: UserRole; branchId: string | null }) => Promise<void>;
+  onUpdate: (update: {
+    id: string;
+    role: UserRole;
+    branchId: string | null;
+    active?: boolean;
+  }) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }) {
   if (!props.employee) return null;
@@ -255,24 +260,54 @@ export function EmployeeDetailModal(props: {
           </ul>
         </div>
 
-        <Button
-          variant="outline"
-          type="button"
-          className="w-full border-red-200 text-red-700"
-          onClick={async () => {
-            if (
-              !confirm(
-                "Disable this person's access? Their past reimbursements stay in the system.",
-              )
-            ) {
-              return;
-            }
-            await props.onRemove(employee.id);
-            props.onClose();
-          }}
-        >
-          Disable access
-        </Button>
+        {!employee.active ? (
+          <>
+            <p className="text-sm text-zinc-600">
+              This person is inactive. Confirm their role and branch, then restore
+              access.
+            </p>
+            {needsBranch && !branchId ? (
+              <p className="text-sm text-amber-800">
+                Select an active branch before restoring.
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              className="w-full"
+              disabled={needsBranch && !branchId}
+              onClick={async () => {
+                await props.onUpdate({
+                  id: employee.id,
+                  role,
+                  branchId: needsBranch ? branchId : null,
+                  active: true,
+                });
+                props.onClose();
+              }}
+            >
+              Restore access
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full border-red-200 text-red-700"
+            onClick={async () => {
+              if (
+                !confirm(
+                  "Disable this person's access? Their past reimbursements stay in the system.",
+                )
+              ) {
+                return;
+              }
+              await props.onRemove(employee.id);
+              props.onClose();
+            }}
+          >
+            Disable access
+          </Button>
+        )}
       </div>
     </Modal>
   );
