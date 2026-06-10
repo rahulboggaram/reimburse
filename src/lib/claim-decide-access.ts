@@ -1,5 +1,8 @@
 import type { Prisma } from "@prisma/client";
-import { isHeadOfficeBranchName } from "@/lib/payment-approver";
+import {
+  HEAD_OFFICE_BRANCH_NAME,
+  isHeadOfficeBranchName,
+} from "@/lib/payment-approver";
 
 type DecideSession = { id: string; role: string };
 
@@ -11,14 +14,15 @@ type DecideClaim = {
   branch?: { name: string } | null;
 };
 
-/** Pending reimbursements that need an admin (e.g. payment approver submissions). */
-export function adminApprovalQueueWhere(
-  branchId?: string | null,
-): Prisma.ReimbursementWhereInput {
+/** Pending reimbursements admin must approve org-wide. */
+export function adminApprovalQueueWhere(): Prisma.ReimbursementWhereInput {
   return {
     status: "PENDING",
     approver: { role: "ADMIN" },
-    ...(branchId ? { branchId } : {}),
+    OR: [
+      { employee: { role: "APPROVER" } },
+      { branch: { name: HEAD_OFFICE_BRANCH_NAME } },
+    ],
   };
 }
 

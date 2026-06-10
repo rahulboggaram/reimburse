@@ -41,7 +41,7 @@ function queueWhere(
     if (tab === "waiting") {
       return {
         OR: [
-          adminApprovalQueueWhere(session.branchId),
+          adminApprovalQueueWhere(),
           orgPaymentWaitingWhere(session.branchId),
         ],
       };

@@ -42,9 +42,9 @@ export async function countPaymentWaiting(session: {
   return prisma.reimbursement.count({ where });
 }
 
-export async function countAdminPendingApproval(branchId?: string | null) {
+export async function countAdminPendingApproval() {
   return prisma.reimbursement.count({
-    where: adminApprovalQueueWhere(branchId),
+    where: adminApprovalQueueWhere(),
   });
 }
 
@@ -137,7 +137,6 @@ export async function bulkPayPaymentQueue(session: {
 export async function bulkAdminApproveClaimIds(
   adminId: string,
   claimIds: string[],
-  branchId?: string | null,
 ): Promise<BulkActionSummary | { error: string }> {
   if (claimIds.length === 0) {
     return { error: "Select at least one reimbursement to approve." };
@@ -145,7 +144,7 @@ export async function bulkAdminApproveClaimIds(
 
   const claims = await prisma.reimbursement.findMany({
     where: {
-      AND: [adminApprovalQueueWhere(branchId), { id: { in: claimIds } }],
+      AND: [adminApprovalQueueWhere(), { id: { in: claimIds } }],
     },
     orderBy: { createdAt: "asc" },
     include: {
@@ -207,16 +206,14 @@ export async function bulkAdminApproveClaimIds(
 /** Approve every claim in the admin queue (legacy / tests). */
 export async function bulkAdminApproveQueue(
   adminId: string,
-  branchId?: string | null,
 ): Promise<BulkActionSummary> {
   const claims = await prisma.reimbursement.findMany({
-    where: adminApprovalQueueWhere(branchId),
+    where: adminApprovalQueueWhere(),
     select: { id: true },
   });
   const result = await bulkAdminApproveClaimIds(
     adminId,
     claims.map((c) => c.id),
-    branchId,
   );
   if ("error" in result) {
     return { total: 0, succeeded: 0, failed: 0, results: [] };

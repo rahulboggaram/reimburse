@@ -18,11 +18,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await bulkAdminApproveClaimIds(
-    session.id,
-    body.data.claimIds,
-    session.branchId,
-  );
+  const result = await bulkAdminApproveClaimIds(session.id, body.data.claimIds);
   if ("error" in result) {
     return Response.json({ error: result.error }, { status: 400 });
   }
