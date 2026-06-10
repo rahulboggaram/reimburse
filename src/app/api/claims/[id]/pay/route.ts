@@ -77,7 +77,7 @@ export async function POST(
     return Response.json(
       {
         error:
-          "RazorpayX is not configured on the server. Set RAZORPAYX_MOCK=true for demo payouts, or add test/live API keys on Vercel.",
+          "RazorpayX is not configured on the server. Add API keys or VPS relay settings on Vercel.",
       },
       { status: 503 },
     );

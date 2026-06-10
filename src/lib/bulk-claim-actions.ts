@@ -65,7 +65,7 @@ export async function bulkPayClaimIds(
   if (!razorpay.enabled) {
     return {
       error:
-        "RazorpayX is not configured. Set RAZORPAYX_MOCK=true for demo payouts, or add API keys on Vercel.",
+        "RazorpayX is not configured. Add API keys or VPS relay settings on Vercel.",
     };
   }
 

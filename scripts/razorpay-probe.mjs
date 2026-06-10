@@ -29,21 +29,17 @@ loadEnv();
 const keyId = (process.env.RAZORPAYX_KEY_ID ?? "").trim();
 const keySecret = (process.env.RAZORPAYX_KEY_SECRET ?? "").trim();
 const accountNumber = (process.env.RAZORPAYX_ACCOUNT_NUMBER ?? "").trim();
-const mock = /^(true|1|yes)$/i.test((process.env.RAZORPAYX_MOCK ?? "").trim());
 
 const mode = !keyId
   ? "unconfigured"
-  : mock && !(keyId && keySecret && accountNumber)
-    ? "mock"
-    : keyId.startsWith("rzp_live_")
-      ? "live"
-      : "test";
+  : keyId.startsWith("rzp_live_")
+    ? "live"
+    : "test";
 
 console.log(
   JSON.stringify(
     {
       mode,
-      mock,
       keyIdPrefix: keyId ? `${keyId.slice(0, 12)}…` : null,
       accountNumber: accountNumber || null,
       webhookSecretSet: Boolean((process.env.RAZORPAYX_WEBHOOK_SECRET ?? "").trim()),
@@ -53,10 +49,8 @@ console.log(
   ),
 );
 
-if (mock || !keyId || !keySecret || !accountNumber) {
-  console.error(
-    "\nNot probing API — set RAZORPAYX_MOCK=false and add keys + account number.",
-  );
+if (!keyId || !keySecret || !accountNumber) {
+  console.error("\nNot probing API — add keys + account number.");
   process.exit(1);
 }
 

@@ -32,10 +32,7 @@ function paidSubtext(claim: SerializedClaim) {
 }
 
 function paidStep(claim: SerializedClaim): TimelineStep {
-  let subtext = paidSubtext(claim);
-  if (claim.razorpayPayoutId?.startsWith("pout_mock_")) {
-    subtext = `${subtext} · Demo payout`;
-  }
+  const subtext = paidSubtext(claim);
   return {
     key: "paid",
     title: "Paid",
@@ -53,10 +50,6 @@ function razorpayTimelineStep(claim: SerializedClaim): TimelineStep {
   if (claim.payoutError?.trim()) {
     subtextParts.push(claim.payoutError.trim());
   }
-  if (claim.razorpayPayoutId?.startsWith("pout_mock_")) {
-    subtextParts.push("Demo payout — not in RazorpayX");
-  }
-
   if (payoutFailed(claim.payoutStatus)) {
     return {
       key: "razorpay-failed",

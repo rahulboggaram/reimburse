@@ -133,7 +133,6 @@ In Vercel → Reimburse → **Environment Variables** (Production):
 
 | Variable | Value |
 |----------|--------|
-| `RAZORPAYX_MOCK` | `false` |
 | `RAZORPAYX_RELAY_URL` | `http://YOUR_VPS_IP:8787` |
 | `RAZORPAYX_RELAY_SECRET` | same as VPS `.env` |
 | `RAZORPAYX_ACCOUNT_NUMBER` | `10281413547` |

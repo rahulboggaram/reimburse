@@ -12,7 +12,6 @@ export async function GET() {
     ...status,
     vercelVars: useRelay
       ? {
-          RAZORPAYX_MOCK: "false",
           RAZORPAYX_RELAY_URL:
             status.config.relay.url || "http://YOUR_VPS_IP:8787",
           RAZORPAYX_RELAY_SECRET: "(same long random string as on the VPS)",
@@ -23,7 +22,6 @@ export async function GET() {
             "(optional — pick any password in Razorpay webhook setup, paste same here)",
         }
       : {
-          RAZORPAYX_MOCK: "false",
           RAZORPAYX_KEY_ID:
             "rzp_live_... (Live keys — Developer Controls → Generate Live Key)",
           RAZORPAYX_KEY_SECRET: "(live secret from the same key pair)",

@@ -7,11 +7,9 @@ import { readJson } from "@/lib/api";
 
 type SetupStatus = {
   ready: boolean;
-  mode: "mock" | "test" | "live" | "unconfigured";
-  mockEnv: "on" | "off" | "unset" | "invalid";
+  mode: "test" | "live" | "unconfigured";
   config: {
     enabled: boolean;
-    mock: boolean;
     keyId: string;
     accountNumber: string;
     payoutMode: string;
@@ -44,8 +42,6 @@ function StatusRow(props: { ok: boolean; label: string; detail?: string }) {
 
 function modeLabel(mode: SetupStatus["mode"]) {
   switch (mode) {
-    case "mock":
-      return "Demo (mock payouts)";
     case "test":
       return "Razorpay test mode";
     case "live":
@@ -99,15 +95,6 @@ export default function AdminRazorpaySetupPage() {
             </p>
             <ul className="mt-4 space-y-3">
               <StatusRow
-                ok={status.mode !== "mock" && status.mockEnv !== "on"}
-                label="Mock mode off (or real keys present)"
-                detail={
-                  status.config.mock
-                    ? "Demo payouts only — add API keys on Vercel for real RazorpayX."
-                    : `RAZORPAYX_MOCK=${status.mockEnv}`
-                }
-              />
-              <StatusRow
                 ok={
                   Boolean(status.config.keyId && status.config.accountNumber) ||
                   Boolean(status.config.relay.enabled && status.config.accountNumber)
@@ -137,7 +124,7 @@ export default function AdminRazorpaySetupPage() {
                 }
               />
               <StatusRow
-                ok={Boolean(status.config.webhookSecret) || status.config.mock}
+                ok={Boolean(status.config.webhookSecret)}
                 label="Webhook secret (recommended)"
                 detail={
                   status.config.webhookSecret

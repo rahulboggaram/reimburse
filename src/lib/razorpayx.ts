@@ -29,7 +29,6 @@ export type RazorpayPayoutResponse = {
 
 export type RazorpayConfig = {
   enabled: boolean;
-  mock: boolean;
   keyId: string;
   keySecret: string;
   accountNumber: string;
@@ -38,50 +37,15 @@ export type RazorpayConfig = {
   relay: RazorpayRelayConfig;
 };
 
-function envFlag(name: string): boolean {
-  const value = (process.env[name] ?? "").trim().toLowerCase();
-  return value === "true" || value === "1" || value === "yes";
-}
-
-/** What the server reads from RAZORPAYX_MOCK (for admin diagnostics). */
-export function getRazorpayMockEnv():
-  | "on"
-  | "off"
-  | "unset"
-  | "invalid" {
-  const raw = (process.env.RAZORPAYX_MOCK ?? "").trim();
-  if (!raw) return "unset";
-  const lower = raw.toLowerCase();
-  if (lower === "true" || lower === "1" || lower === "yes") return "on";
-  if (lower === "false" || lower === "0" || lower === "no") return "off";
-  return "invalid";
-}
-
 export type RazorpaySetupStatus = {
-  mockEnv: ReturnType<typeof getRazorpayMockEnv>;
   config: RazorpayConfig;
-  mode: "mock" | "test" | "live" | "unconfigured";
+  mode: "test" | "live" | "unconfigured";
   ready: boolean;
   probe: { ok: boolean; error?: string } | null;
 };
 
 export async function getRazorpaySetupStatus(): Promise<RazorpaySetupStatus> {
-  const mockEnv = getRazorpayMockEnv();
   const config = getRazorpayConfig();
-
-  if (config.mock) {
-    return {
-      mockEnv,
-      config: {
-        ...config,
-        keySecret: "",
-        relay: { ...config.relay, secret: "" },
-      },
-      mode: "mock",
-      ready: true,
-      probe: { ok: true },
-    };
-  }
 
   const hasDirectKeys = Boolean(
     config.keyId && config.keySecret && config.accountNumber,
@@ -89,7 +53,6 @@ export async function getRazorpaySetupStatus(): Promise<RazorpaySetupStatus> {
   const hasRelay = config.relay.enabled && Boolean(config.accountNumber);
   if (!hasDirectKeys && !hasRelay) {
     return {
-      mockEnv,
       config: { ...config, keySecret: "", relay: { ...config.relay, secret: "" } },
       mode: "unconfigured",
       ready: false,
@@ -106,7 +69,6 @@ export async function getRazorpaySetupStatus(): Promise<RazorpaySetupStatus> {
   const probe = await probeRazorpayConnection();
 
   return {
-    mockEnv,
     config: {
       ...config,
       keySecret: "",
@@ -144,7 +106,6 @@ export async function probeRazorpayConnection(): Promise<{
   error?: string;
 }> {
   const config = getRazorpayConfig();
-  if (config.mock) return { ok: true };
   if (!config.accountNumber) {
     return { ok: false, error: "Missing payout account number." };
   }
@@ -180,8 +141,6 @@ export function getRazorpayConfig(): RazorpayConfig {
   const relay = getRazorpayRelayConfig();
   const hasDirectKeys = Boolean(keyId && keySecret && accountNumber);
   const hasRelay = relay.enabled && Boolean(accountNumber);
-  // If test/live keys or relay exist, always use Razorpay — even when MOCK was left "true" on Vercel.
-  const mock = envFlag("RAZORPAYX_MOCK") && !hasDirectKeys && !hasRelay;
   const payoutMode =
     process.env.RAZORPAYX_PAYOUT_MODE === "NEFT" ||
     process.env.RAZORPAYX_PAYOUT_MODE === "RTGS"
@@ -189,8 +148,7 @@ export function getRazorpayConfig(): RazorpayConfig {
       : "IMPS";
 
   return {
-    enabled: mock || hasDirectKeys || hasRelay,
-    mock,
+    enabled: hasDirectKeys || hasRelay,
     keyId,
     keySecret,
     accountNumber,
@@ -244,7 +202,7 @@ async function razorpayRequest<T>(
   path: string,
   init: RequestInit & { idempotencyKey?: string },
 ): Promise<T> {
-  if (config.relay.enabled && !config.mock) {
+  if (config.relay.enabled) {
     return relayRequest<T>(config.relay, path, init);
   }
 
@@ -284,13 +242,6 @@ export async function fetchPayoutById(payoutId: string) {
   if (!config.enabled) {
     throw new Error("RazorpayX is not configured.");
   }
-  if (config.mock) {
-    return {
-      id: payoutId,
-      status: "processed",
-      utr: `MOCK${Date.now().toString().slice(-8)}`,
-    } satisfies RazorpayPayoutResponse;
-  }
   return razorpayRequest<RazorpayPayoutResponse>(config, `/payouts/${payoutId}`, {
     method: "GET",
   });
@@ -324,27 +275,8 @@ export async function createReimbursementPayout(input: {
   const config = getRazorpayConfig();
   if (!config.enabled) {
     throw new Error(
-      "RazorpayX is not configured. Add API keys to .env or set RAZORPAYX_MOCK=true for demo payouts.",
+      "RazorpayX is not configured. Add API keys or VPS relay settings on Vercel.",
     );
-  }
-
-  if (config.mock) {
-    const mockId = `pout_mock_${randomUUID().slice(0, 8)}`;
-    return {
-      payout: {
-        id: mockId,
-        status: "processed",
-        utr: `MOCK${Date.now().toString().slice(-8)}`,
-        fund_account_id: `fa_mock_${input.employeeId.slice(0, 8)}`,
-        fund_account: {
-          id: `fa_mock_${input.employeeId.slice(0, 8)}`,
-          contact_id: `cont_mock_${input.employeeId.slice(0, 8)}`,
-          contact: { id: `cont_mock_${input.employeeId.slice(0, 8)}` },
-        },
-      },
-      contactId: `cont_mock_${input.employeeId.slice(0, 8)}`,
-      fundAccountId: `fa_mock_${input.employeeId.slice(0, 8)}`,
-    };
   }
 
   const amountPaise = rupeesToPaise(input.amount);

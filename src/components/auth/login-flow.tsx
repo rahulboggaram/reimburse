@@ -193,7 +193,7 @@ export function LoginFlow() {
 
       {showDemoHints ? (
         <p className="mt-6 text-center text-xs text-zinc-500">
-          Demo OTP is always 123456 · Admin 9999000001 · Employee 9999000003
+          Demo OTP is always 123456
         </p>
       ) : null}
     </div>
