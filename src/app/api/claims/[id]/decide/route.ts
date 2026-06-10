@@ -33,6 +33,7 @@ export async function POST(
     include: {
       employee: { select: { ...employeeForPayoutSelect, role: true } },
       approver: { select: { role: true } },
+      branch: { select: { name: true } },
     },
   });
   if (!existing) {

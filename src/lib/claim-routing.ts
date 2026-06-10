@@ -4,6 +4,7 @@ import {
   findGlobalAdmin,
   findHeadOfficePaymentApprover,
   hasHeadOfficePaymentApprover,
+  isHeadOfficeBranchId,
 } from "@/lib/payment-approver";
 
 export type ClaimRouting = {
@@ -31,6 +32,50 @@ async function findActiveUserForBranch(
   });
 }
 
+async function resolveAdminThenPaymentRouting(
+  submitterId: string,
+): Promise<{ routing: ClaimRouting } | { error: string }> {
+  const admin = await findGlobalAdmin();
+  if (!admin) {
+    return { error: "No admin is set up yet." };
+  }
+
+  const paymentApprover =
+    (await findHeadOfficePaymentApprover(submitterId)) ?? admin;
+
+  return {
+    routing: {
+      approverId: admin.id,
+      paymentApproverId: paymentApprover.id,
+      status: "PENDING",
+      decidedAt: null,
+    },
+  };
+}
+
+async function describeHeadOfficeRoutingReadiness(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  const admin = await findGlobalAdmin();
+  if (!admin) {
+    return {
+      ok: false,
+      error: "No admin is set up yet. Ask your admin to fix this in People.",
+    };
+  }
+
+  const hasPaymentApprover = await hasHeadOfficePaymentApprover();
+  if (!hasPaymentApprover) {
+    return {
+      ok: false,
+      error:
+        "No payment approver is set up at Head Office yet. Ask your admin to add a Payment Approver in People.",
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function describeClaimRoutingReadiness(
   submitter: Submitter,
   branchId: string,
@@ -45,15 +90,8 @@ export async function describeClaimRoutingReadiness(
     return { ok: true };
   }
 
-  if (submitter.role === "APPROVER") {
-    const admin = await findGlobalAdmin();
-    if (!admin) {
-      return {
-        ok: false,
-        error: "No admin is set up yet. Ask your admin to fix this in People.",
-      };
-    }
-    return { ok: true };
+  if (submitter.role === "APPROVER" || (await isHeadOfficeBranchId(branchId))) {
+    return describeHeadOfficeRoutingReadiness();
   }
 
   const branchManager = await findActiveUserForBranch("BRANCH_MANAGER", branchId);
@@ -96,23 +134,8 @@ export async function resolveClaimRouting(
     };
   }
 
-  if (submitter.role === "APPROVER") {
-    const admin = await findGlobalAdmin();
-    if (!admin) {
-      return { error: "No admin is set up yet." };
-    }
-
-    const paymentApprover =
-      (await findHeadOfficePaymentApprover(submitter.id)) ?? admin;
-
-    return {
-      routing: {
-        approverId: admin.id,
-        paymentApproverId: paymentApprover.id,
-        status: "PENDING",
-        decidedAt: null,
-      },
-    };
+  if (submitter.role === "APPROVER" || (await isHeadOfficeBranchId(branchId))) {
+    return resolveAdminThenPaymentRouting(submitter.id);
   }
 
   const branchManager = await findActiveUserForBranch("BRANCH_MANAGER", branchId);

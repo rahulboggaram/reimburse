@@ -3,6 +3,18 @@ import { prisma } from "@/lib/db";
 
 export const HEAD_OFFICE_BRANCH_NAME = "Head Office";
 
+export function isHeadOfficeBranchName(name: string | null | undefined): boolean {
+  return name === HEAD_OFFICE_BRANCH_NAME;
+}
+
+export async function isHeadOfficeBranchId(branchId: string): Promise<boolean> {
+  const branch = await prisma.branch.findFirst({
+    where: { id: branchId },
+    select: { name: true },
+  });
+  return isHeadOfficeBranchName(branch?.name);
+}
+
 type PersonWithRole = {
   id?: string;
   role: UserRole | string;

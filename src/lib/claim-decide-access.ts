@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { isHeadOfficeBranchName } from "@/lib/payment-approver";
 
 type DecideSession = { id: string; role: string };
 
@@ -7,6 +8,7 @@ type DecideClaim = {
   approverId: string;
   employee?: { role: string } | null;
   approver?: { role: string } | null;
+  branch?: { name: string } | null;
 };
 
 /** Pending reimbursements that need an admin (e.g. payment approver submissions). */
@@ -21,11 +23,11 @@ export function adminApprovalQueueWhere(
 }
 
 export function isAdminApprovalQueueClaim(claim: DecideClaim): boolean {
-  return (
-    claim.status === "PENDING" &&
-    claim.employee?.role === "APPROVER" &&
-    claim.approver?.role === "ADMIN"
-  );
+  if (claim.status !== "PENDING" || claim.approver?.role !== "ADMIN") {
+    return false;
+  }
+  if (claim.employee?.role === "APPROVER") return true;
+  return isHeadOfficeBranchName(claim.branch?.name);
 }
 
 export function canDecideReimbursement(

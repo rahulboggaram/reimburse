@@ -143,6 +143,7 @@ export default function ManagerPendingPage() {
       approverId: claim.approverId,
       employee: claim.employee,
       approver: claim.approver,
+      branch: claim.branch,
     }),
   );
   const hasPayableInQueue = claims.some((claim) => claim.status === "APPROVED");
@@ -163,6 +164,7 @@ export default function ManagerPendingPage() {
         approverId: claim.approverId,
         employee: claim.employee,
         approver: claim.approver,
+        branch: claim.branch,
       }),
     )
     .map((claim) => claim.id);
