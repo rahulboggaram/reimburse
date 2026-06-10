@@ -416,7 +416,6 @@ export default function AdminPeoplePage() {
 
       <EmployeeDetailModal
         employee={selected}
-        people={employees}
         open={selected !== null}
         onClose={() => setSelected(null)}
         branches={branches}

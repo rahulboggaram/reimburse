@@ -7,8 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
-import { findBranchStaff, type BranchStaffMember } from "@/lib/branch-staff";
-import { isHeadOfficeBranchName } from "@/lib/payment-approver";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { listRowInsetDividerClass } from "@/components/claims-table-layout";
@@ -80,16 +78,8 @@ export function EmployeeListRow(props: {
   );
 }
 
-function staffLabel(
-  person: { name?: string | null } | null,
-  fallback: string,
-) {
-  return person?.name?.trim() || fallback;
-}
-
 export function EmployeeDetailModal(props: {
   employee: EmployeeRecord | null;
-  people: EmployeeRecord[];
   open: boolean;
   onClose: () => void;
   branches: { id: string; name: string; active: boolean }[];
@@ -113,14 +103,6 @@ export function EmployeeDetailModal(props: {
   }, [employee.id, employee.role, employee.branchId]);
 
   const needsBranch = userRoleRequiresBranch(role);
-  const branchStaff = findBranchStaff(props.people, branchId || employee.branchId);
-  const branchLabel =
-    props.branches.find((branch) => branch.id === (branchId || employee.branchId))
-      ?.name ?? employee.branchName;
-  const isHeadOffice = isHeadOfficeBranchName(branchLabel);
-  const globalAdmin =
-    props.people.find((person) => person.active && person.role === "ADMIN") ??
-    null;
 
   function commitUpdate(nextRole: UserRole, nextBranchId: string | null) {
     const nextNeedsBranch = userRoleRequiresBranch(nextRole);
@@ -206,59 +188,6 @@ export function EmployeeDetailModal(props: {
             </div>
           ) : null}
         </div>
-
-        {branchLabel ? (
-          <div className="rounded-xl border border-zinc-200 bg-white p-3 text-sm">
-            <p className="font-medium text-zinc-900">{branchLabel} setup</p>
-            {isHeadOffice ? (
-              <>
-                <p className="mt-2 text-zinc-600">
-                  Claims skip branch manager approval and go to admin, then
-                  payment approver.
-                </p>
-                <ul className="mt-2 space-y-1 text-zinc-600">
-                  <li>
-                    Admin:{" "}
-                    {globalAdmin ? (
-                      <span className="font-medium text-zinc-900">
-                        {staffLabel(globalAdmin, "Assigned")}
-                      </span>
-                    ) : (
-                      <span className="text-amber-800">Not assigned</span>
-                    )}
-                  </li>
-                </ul>
-                {!globalAdmin ? (
-                  <p className="mt-2 text-xs text-amber-800">
-                    Add an admin in People before Head Office employees can
-                    submit claims.
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <ul className="mt-2 space-y-1 text-zinc-600">
-                  <li>
-                    Branch manager:{" "}
-                    {branchStaff.branchManager ? (
-                      <span className="font-medium text-zinc-900">
-                        {staffLabel(branchStaff.branchManager, "Assigned")}
-                      </span>
-                    ) : (
-                      <span className="text-amber-800">Not assigned</span>
-                    )}
-                  </li>
-                </ul>
-                {!branchStaff.branchManager ? (
-                  <p className="mt-2 text-xs text-amber-800">
-                    Employees on this branch need a branch manager before they
-                    can submit claims.
-                  </p>
-                ) : null}
-              </>
-            )}
-          </div>
-        ) : null}
 
         {!employee.active ? (
           <>
