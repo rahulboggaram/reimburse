@@ -2,6 +2,12 @@ import { createHmac, randomUUID } from "node:crypto";
 
 const API_BASE = "https://api.razorpay.com/v1";
 
+export type RazorpayRelayConfig = {
+  url: string;
+  secret: string;
+  enabled: boolean;
+};
+
 export type RazorpayPayoutResponse = {
   id: string;
   status: string;
@@ -29,6 +35,7 @@ export type RazorpayConfig = {
   accountNumber: string;
   payoutMode: "IMPS" | "NEFT" | "RTGS";
   webhookSecret: string | null;
+  relay: RazorpayRelayConfig;
 };
 
 function envFlag(name: string): boolean {
@@ -65,36 +72,71 @@ export async function getRazorpaySetupStatus(): Promise<RazorpaySetupStatus> {
   if (config.mock) {
     return {
       mockEnv,
-      config: { ...config, keySecret: "" },
+      config: {
+        ...config,
+        keySecret: "",
+        relay: { ...config.relay, secret: "" },
+      },
       mode: "mock",
       ready: true,
       probe: { ok: true },
     };
   }
 
-  const hasKeys = Boolean(
+  const hasDirectKeys = Boolean(
     config.keyId && config.keySecret && config.accountNumber,
   );
-  if (!hasKeys) {
+  const hasRelay = config.relay.enabled && Boolean(config.accountNumber);
+  if (!hasDirectKeys && !hasRelay) {
     return {
       mockEnv,
-      config: { ...config, keySecret: "" },
+      config: { ...config, keySecret: "", relay: { ...config.relay, secret: "" } },
       mode: "unconfigured",
       ready: false,
       probe: null,
     };
   }
 
-  const mode = config.keyId.startsWith("rzp_live_") ? "live" : "test";
+  const relayMode = hasRelay ? await getRelayHealthMode(config.relay) : null;
+  const mode = config.keyId.startsWith("rzp_live_")
+    ? "live"
+    : config.keyId.startsWith("rzp_test_")
+      ? "test"
+      : relayMode ?? "unconfigured";
   const probe = await probeRazorpayConnection();
 
   return {
     mockEnv,
-    config: { ...config, keySecret: "" },
-    mode,
+    config: {
+      ...config,
+      keySecret: "",
+      relay: { ...config.relay, secret: "" },
+    },
+    mode: mode === "unconfigured" ? "unconfigured" : mode,
     ready: probe.ok,
     probe,
   };
+}
+
+export function getRazorpayRelayConfig(): RazorpayRelayConfig {
+  const url = (process.env.RAZORPAYX_RELAY_URL ?? "").trim().replace(/\/$/, "");
+  const secret = (process.env.RAZORPAYX_RELAY_SECRET ?? "").trim();
+  return { url, secret, enabled: Boolean(url && secret) };
+}
+
+async function getRelayHealthMode(
+  relay: RazorpayRelayConfig,
+): Promise<"live" | "test" | null> {
+  try {
+    const response = await fetch(`${relay.url}/health`, { method: "GET" });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { mode?: string };
+    if (body.mode === "live") return "live";
+    if (body.mode === "test") return "test";
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export async function probeRazorpayConnection(): Promise<{
@@ -103,8 +145,16 @@ export async function probeRazorpayConnection(): Promise<{
 }> {
   const config = getRazorpayConfig();
   if (config.mock) return { ok: true };
-  if (!config.keyId || !config.keySecret || !config.accountNumber) {
-    return { ok: false, error: "Missing API keys or account number." };
+  if (!config.accountNumber) {
+    return { ok: false, error: "Missing payout account number." };
+  }
+
+  const hasDirectKeys = Boolean(config.keyId && config.keySecret);
+  if (!hasDirectKeys && !config.relay.enabled) {
+    return {
+      ok: false,
+      error: "Missing API keys or VPS relay URL.",
+    };
   }
 
   try {
@@ -127,9 +177,11 @@ export function getRazorpayConfig(): RazorpayConfig {
   const keyId = (process.env.RAZORPAYX_KEY_ID ?? "").trim();
   const keySecret = (process.env.RAZORPAYX_KEY_SECRET ?? "").trim();
   const accountNumber = (process.env.RAZORPAYX_ACCOUNT_NUMBER ?? "").trim();
-  const hasKeys = Boolean(keyId && keySecret && accountNumber);
-  // If test/live keys exist, always use Razorpay — even when MOCK was left "true" on Vercel.
-  const mock = envFlag("RAZORPAYX_MOCK") && !hasKeys;
+  const relay = getRazorpayRelayConfig();
+  const hasDirectKeys = Boolean(keyId && keySecret && accountNumber);
+  const hasRelay = relay.enabled && Boolean(accountNumber);
+  // If test/live keys or relay exist, always use Razorpay — even when MOCK was left "true" on Vercel.
+  const mock = envFlag("RAZORPAYX_MOCK") && !hasDirectKeys && !hasRelay;
   const payoutMode =
     process.env.RAZORPAYX_PAYOUT_MODE === "NEFT" ||
     process.env.RAZORPAYX_PAYOUT_MODE === "RTGS"
@@ -137,13 +189,14 @@ export function getRazorpayConfig(): RazorpayConfig {
       : "IMPS";
 
   return {
-    enabled: mock || Boolean(keyId && keySecret && accountNumber),
+    enabled: mock || hasDirectKeys || hasRelay,
     mock,
     keyId,
     keySecret,
     accountNumber,
     payoutMode,
     webhookSecret: process.env.RAZORPAYX_WEBHOOK_SECRET ?? null,
+    relay,
   };
 }
 
@@ -154,11 +207,47 @@ function authHeader(config: RazorpayConfig) {
   return `Basic ${token}`;
 }
 
+async function relayRequest<T>(
+  relay: RazorpayRelayConfig,
+  path: string,
+  init: RequestInit & { idempotencyKey?: string },
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${relay.secret}`);
+  headers.set("Content-Type", "application/json");
+  if (init.idempotencyKey) {
+    headers.set("X-Payout-Idempotency", init.idempotencyKey);
+  }
+
+  const response = await fetch(`${relay.url}/v1${path}`, {
+    ...init,
+    headers,
+  });
+
+  const body = (await response.json()) as T & {
+    error?: { description?: string; reason?: string };
+  };
+
+  if (!response.ok) {
+    const message =
+      body.error?.description ??
+      body.error?.reason ??
+      `Razorpay relay failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  return body;
+}
+
 async function razorpayRequest<T>(
   config: RazorpayConfig,
   path: string,
   init: RequestInit & { idempotencyKey?: string },
 ): Promise<T> {
+  if (config.relay.enabled && !config.mock) {
+    return relayRequest<T>(config.relay, path, init);
+  }
+
   const headers = new Headers(init.headers);
   headers.set("Authorization", authHeader(config));
   headers.set("Content-Type", "application/json");
