@@ -8,11 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
 import { findBranchStaff, type BranchStaffMember } from "@/lib/branch-staff";
-import {
-  HEAD_OFFICE_BRANCH_NAME,
-  isHeadOfficeBranchName,
-  listHeadOfficePaymentApprovers,
-} from "@/lib/payment-approver";
+import { isHeadOfficeBranchName } from "@/lib/payment-approver";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { listRowInsetDividerClass } from "@/components/claims-table-layout";
@@ -121,7 +117,6 @@ export function EmployeeDetailModal(props: {
   const branchLabel =
     props.branches.find((branch) => branch.id === (branchId || employee.branchId))
       ?.name ?? employee.branchName;
-  const headOfficeApprovers = listHeadOfficePaymentApprovers(props.people);
   const isHeadOffice = isHeadOfficeBranchName(branchLabel);
   const globalAdmin =
     props.people.find((person) => person.active && person.role === "ADMIN") ??
@@ -264,30 +259,6 @@ export function EmployeeDetailModal(props: {
             )}
           </div>
         ) : null}
-
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 text-sm">
-          <p className="font-medium text-zinc-900">
-            {HEAD_OFFICE_BRANCH_NAME} — payments
-          </p>
-          <p className="mt-1 text-zinc-600">
-            Payment approvers handle approved claims from all branches. They
-            cannot pay their own claims or admin claims.
-          </p>
-          <ul className="mt-2 space-y-1 text-zinc-600">
-            {headOfficeApprovers.length > 0 ? (
-              headOfficeApprovers.map((person) => (
-                <li key={person.id}>
-                  <span className="font-medium text-zinc-900">
-                    {staffLabel(person, "Payment approver")}
-                  </span>
-                  {person.branchName ? ` · ${person.branchName}` : ""}
-                </li>
-              ))
-            ) : (
-              <li className="text-amber-800">No payment approver assigned</li>
-            )}
-          </ul>
-        </div>
 
         {!employee.active ? (
           <>
