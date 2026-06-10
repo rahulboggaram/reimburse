@@ -338,13 +338,6 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
                 All Claims
               </MenuLink>
               <MenuLink
-                href="/admin/razorpay-setup"
-                onNavigate={closeMenu}
-                active={pathname.startsWith("/admin/razorpay-setup")}
-              >
-                Razorpay payouts
-              </MenuLink>
-              <MenuLink
                 href="/admin/activity"
                 onNavigate={closeMenu}
                 active={pathname.startsWith("/admin/activity")}
