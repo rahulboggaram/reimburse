@@ -16,6 +16,7 @@ type SetupStatus = {
     accountNumber: string;
     payoutMode: string;
     webhookSecret: string | null;
+    relay: { url: string; enabled: boolean };
   };
   probe: { ok: boolean; error?: string } | null;
   vercelVars: Record<string, string>;
@@ -107,12 +108,21 @@ export default function AdminRazorpaySetupPage() {
                 }
               />
               <StatusRow
-                ok={Boolean(status.config.keyId && status.config.accountNumber)}
-                label="API keys and account number"
+                ok={
+                  Boolean(status.config.keyId && status.config.accountNumber) ||
+                  Boolean(status.config.relay.enabled && status.config.accountNumber)
+                }
+                label={
+                  status.config.relay.enabled
+                    ? "VPS relay and account number"
+                    : "API keys and account number"
+                }
                 detail={
-                  status.config.keyId
-                    ? `Key: ${status.config.keyId.slice(0, 16)}… · Account: ${status.config.accountNumber || "—"}`
-                    : "Add RAZORPAYX_KEY_ID, RAZORPAYX_KEY_SECRET, RAZORPAYX_ACCOUNT_NUMBER"
+                  status.config.relay.enabled
+                    ? `Relay: ${status.config.relay.url || "—"} · Account: ${status.config.accountNumber || "—"}`
+                    : status.config.keyId
+                      ? `Key: ${status.config.keyId.slice(0, 16)}… · Account: ${status.config.accountNumber || "—"}`
+                      : "Add keys on Vercel, or RAZORPAYX_RELAY_URL + RELAY_SECRET for VPS"
                 }
               />
               <StatusRow
@@ -120,7 +130,9 @@ export default function AdminRazorpaySetupPage() {
                 label="RazorpayX API connection"
                 detail={
                   status.probe?.ok
-                    ? "Server can talk to Razorpay."
+                    ? status.config.relay.enabled
+                      ? "Vercel → VPS relay → Razorpay is working."
+                      : "Server can talk to Razorpay."
                     : status.probe?.error ?? "Probe not run."
                 }
               />
@@ -180,6 +192,14 @@ export default function AdminRazorpaySetupPage() {
                 <strong>Current Account</strong> number (e.g. IDFC account) into{" "}
                 <code className="text-xs">RAZORPAYX_ACCOUNT_NUMBER</code>. Only
                 RazorpayX Lite uses a separate Customer Identifier.
+              </li>
+              <li>
+                <strong>Live API needs a fixed IP.</strong> Use a small VPS (~$6/mo)
+                with the relay in <code className="text-xs">relay/</code> in this
+                repo — whitelist the VPS IP in Razorpay → Developer Controls →
+                Share IP Addresses. Put live keys on the VPS only; Vercel gets{" "}
+                <code className="text-xs">RAZORPAYX_RELAY_URL</code> +{" "}
+                <code className="text-xs">RAZORPAYX_RELAY_SECRET</code>.
               </li>
               <li>
                 Vercel → Reimburse → Settings → Environment Variables → paste

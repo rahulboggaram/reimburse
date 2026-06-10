@@ -11,6 +11,7 @@
     "whatsapp:check": "tsx scripts/whatsapp-check.ts",
     "whatsapp:register": "tsx scripts/whatsapp-register.ts",
     "razorpay:probe": "node scripts/razorpay-probe.mjs",
+    "razorpay:relay": "node relay/razorpay-relay.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
