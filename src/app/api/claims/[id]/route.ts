@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
-import { materializeReceiptsToDatabase } from "@/lib/receipt-store";
 import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import {
   canAccessAdminPortal,
@@ -45,17 +44,6 @@ export async function GET(
 
   if (!isOwner && !isAssignedApprover && !isAdmin) {
     return Response.json({ error: "Claim not found" }, { status: 404 });
-  }
-
-  const hasLegacyBlob = claim.receipts.some(
-    (receipt) =>
-      receipt.filePath.startsWith("blob:") ||
-      receipt.filePath.includes(".blob.vercel-storage.com/"),
-  );
-  if (hasLegacyBlob) {
-    await materializeReceiptsToDatabase(claim.receipts).catch((error) => {
-      console.error("materialize receipts failed", { claimId: id, error });
-    });
   }
 
   return Response.json(serializeClaim(claim), {

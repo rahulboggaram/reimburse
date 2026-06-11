@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
-import {
-  isDatabaseReceiptPath,
-  materializeReceiptsToDatabase,
-} from "@/lib/receipt-store";
+import { isDatabaseReceiptPath } from "@/lib/receipt-store";
 import { receiptFileResponse } from "@/lib/receipt-content";
 
 export const maxDuration = 30;
@@ -55,8 +52,14 @@ export async function GET(
       );
     }
 
-    if (!isDatabaseReceiptPath(row.filePath)) {
-      await materializeReceiptsToDatabase([row]);
+    if (
+      !isDatabaseReceiptPath(row.filePath) &&
+      !row.filePath.startsWith("/uploads/")
+    ) {
+      return Response.json(
+        { error: "This receipt is no longer available. Refile with a new photo." },
+        { status: 404 },
+      );
     }
 
     return receiptFileResponse(row.filePath, row.mimeType, row.fileName);
