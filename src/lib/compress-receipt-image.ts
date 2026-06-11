@@ -105,7 +105,20 @@ export async function loadReceiptPreviewUrl(
       return { error: true };
     }
 
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      return { error: true };
+    }
+
     const blob = await response.blob();
+    if (blob.size === 0) {
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+        continue;
+      }
+      return { error: true };
+    }
+
     const mimeType = blob.type || receipt.mimeType;
 
     if (isHeicMime(mimeType)) {

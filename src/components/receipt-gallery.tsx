@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadReceiptPreviewUrl } from "@/lib/compress-receipt-image";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
@@ -150,6 +150,8 @@ function AuthenticatedReceiptImage(props: {
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const onStatusChangeRef = useRef(props.onStatusChange);
+  onStatusChangeRef.current = props.onStatusChange;
 
   useEffect(() => {
     let objectUrl: string | null = null;
@@ -157,25 +159,25 @@ function AuthenticatedReceiptImage(props: {
 
     setStatus("loading");
     setPreviewUrl(null);
-    props.onStatusChange?.("loading");
+    onStatusChangeRef.current?.("loading");
 
     void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 4 })
       .then((result) => {
         if (cancelled) return;
         if ("error" in result || !result.url) {
           setStatus("error");
-          props.onStatusChange?.("error");
+          onStatusChangeRef.current?.("error");
           return;
         }
         objectUrl = result.url;
         setPreviewUrl(result.url);
         setStatus("ready");
-        props.onStatusChange?.("ready");
+        onStatusChangeRef.current?.("ready");
       })
       .catch(() => {
         if (cancelled) return;
         setStatus("error");
-        props.onStatusChange?.("error");
+        onStatusChangeRef.current?.("error");
       });
 
     return () => {
@@ -184,7 +186,7 @@ function AuthenticatedReceiptImage(props: {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [props.receipt.id, props.receipt.url, props.onStatusChange]);
+  }, [props.receipt.id, props.receipt.url]);
 
   if (status === "error") {
     return (
@@ -313,6 +315,9 @@ export function ReceiptGallery(props: {
           count={count}
           hideCount={props.hideCount}
         />
+        {props.receipts.length === 0 && count > 0 && !props.loading ? (
+          <p className="text-xs text-zinc-500">Loading receipt photos…</p>
+        ) : null}
         <ul className="flex flex-wrap gap-3">
           {props.receipts.map((receipt) => (
             <li key={receipt.id}>

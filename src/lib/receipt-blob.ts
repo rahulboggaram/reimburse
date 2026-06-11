@@ -29,23 +29,72 @@ export function isReceiptBlobPath(filePath: string) {
   );
 }
 
-/** Value passed to @vercel/blob get() — full URL or pathname. */
-export function blobGetTarget(filePath: string): string | null {
-  if (!filePath?.trim()) return null;
-
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-    return filePath;
-  }
-
+function pathnameFromBlobReference(filePath: string): string | null {
   if (filePath.startsWith(BLOB_PREFIX)) {
     return filePath.slice(BLOB_PREFIX.length);
   }
+  try {
+    const url = new URL(filePath);
+    if (!url.hostname.endsWith(".blob.vercel-storage.com")) return null;
+    const pathname = url.pathname.startsWith("/")
+      ? url.pathname.slice(1)
+      : url.pathname;
+    return pathname || null;
+  } catch {
+    return null;
+  }
+}
 
-  if (filePath.includes(".blob.vercel-storage.com/")) {
-    return filePath;
+/** Candidates to pass to @vercel/blob get() — full URL and pathname variants. */
+export function blobGetTargets(filePath: string): string[] {
+  if (!filePath?.trim()) return [];
+
+  const targets: string[] = [];
+  const add = (value: string | null | undefined) => {
+    if (!value) return;
+    if (!targets.includes(value)) targets.push(value);
+  };
+
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+    add(filePath);
+    add(pathnameFromBlobReference(filePath));
+    return targets;
   }
 
-  return null;
+  if (filePath.startsWith(BLOB_PREFIX)) {
+    const pathname = filePath.slice(BLOB_PREFIX.length);
+    add(pathname);
+    return targets;
+  }
+
+  if (filePath.includes(".blob.vercel-storage.com/")) {
+    add(filePath);
+    add(pathnameFromBlobReference(filePath));
+  }
+
+  return targets;
+}
+
+export function blobGetTarget(filePath: string): string | null {
+  return blobGetTargets(filePath)[0] ?? null;
+}
+
+async function readBlobTarget(
+  target: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  const result = await get(target, { access: "private", useCache: false });
+  if (!result || result.statusCode !== 200 || !result.stream) {
+    return null;
+  }
+
+  const bytes = await new Response(result.stream).arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  if (buffer.length === 0) return null;
+
+  return {
+    buffer,
+    mimeType: result.blob.contentType || "application/octet-stream",
+  };
 }
 
 export async function storeReceiptBlob(input: {
@@ -56,43 +105,38 @@ export async function storeReceiptBlob(input: {
 }): Promise<string> {
   const pathname = `receipts/${input.reimbursementId}/${randomUUID()}-${sanitizeFileName(input.fileName)}`;
   const blob = await put(pathname, input.buffer, putOptions(input.mimeType));
-  // Store the full private URL — most reliable for later reads via get().
   return blob.url;
 }
 
 export async function readReceiptBlob(
   filePath: string,
 ): Promise<{ buffer: Buffer; mimeType: string } | null> {
-  const target = blobGetTarget(filePath);
-  if (!target) return null;
+  const targets = blobGetTargets(filePath);
+  if (targets.length === 0) return null;
 
-  try {
-    const result = await get(target, { access: "private", useCache: false });
-    if (!result || result.statusCode !== 200 || !result.stream) {
-      console.error("receipt blob get empty", {
+  let lastError: unknown = null;
+  for (const target of targets) {
+    try {
+      const read = await readBlobTarget(target);
+      if (read) return read;
+    } catch (err) {
+      lastError = err;
+      console.error("receipt blob get attempt failed", {
         filePath: filePath.slice(0, 80),
         target: target.slice(0, 120),
-        statusCode: result?.statusCode ?? "null",
+        err,
       });
-      return null;
     }
-
-    const bytes = await new Response(result.stream).arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    if (buffer.length === 0) return null;
-
-    return {
-      buffer,
-      mimeType: result.blob.contentType || "application/octet-stream",
-    };
-  } catch (err) {
-    console.error("receipt blob get failed", {
-      filePath: filePath.slice(0, 80),
-      target: target.slice(0, 120),
-      err,
-    });
-    return null;
   }
+
+  if (lastError) {
+    console.error("receipt blob get exhausted targets", {
+      filePath: filePath.slice(0, 80),
+      targets,
+      lastError,
+    });
+  }
+  return null;
 }
 
 export async function deleteReceiptBlob(filePath: string) {

@@ -33,14 +33,21 @@ function claimDetailReady(claim: SerializedClaim) {
   return Boolean(claim.branch?.name?.trim());
 }
 
+function claimReceiptsReady(claim: SerializedClaim) {
+  const expected = claimReceiptCount(claim);
+  if (expected === 0) return true;
+  return (
+    claim.receipts.length >= expected &&
+    claim.receipts.every((receipt) => Boolean(receipt.url))
+  );
+}
+
 function claimNeedsFullLoad(claim: SerializedClaim) {
   if (claim.submitError || claim.id.startsWith("pending-")) return false;
   if (claim.queueList) return true;
   if (!claimDetailReady(claim)) return true;
-  if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
-    return false;
-  }
-  return claim.receipts.length === 0 || !claim.receipts[0]?.url;
+  if (!claimReceiptsReady(claim)) return true;
+  return false;
 }
 
 const claimDetailCache = new Map<string, SerializedClaim>();
@@ -65,11 +72,19 @@ function mergeClaimDetail(
     paymentApprover: stub.paymentApprover.name?.trim()
       ? stub.paymentApprover
       : cached.paymentApprover,
-    receipts: cached.receipts.length > 0 ? cached.receipts : stub.receipts,
-    receiptCount:
+    receipts:
+      cached.receipts.length >= (stub.receiptCount ?? cached.receiptCount ?? 0) &&
       cached.receipts.length > 0
-        ? cached.receipts.length
-        : (stub.receiptCount ?? cached.receiptCount),
+        ? cached.receipts
+        : stub.receipts.length > 0
+          ? stub.receipts
+          : cached.receipts,
+    receiptCount: Math.max(
+      stub.receiptCount ?? 0,
+      cached.receiptCount ?? 0,
+      cached.receipts.length,
+      stub.receipts.length,
+    ),
   };
 }
 
@@ -117,7 +132,7 @@ export function ClaimDetailModal(props: {
     }
 
     const cached = claimFromCache(stub);
-    if (cached && claimDetailReady(cached)) {
+    if (cached && claimDetailReady(cached) && claimReceiptsReady(cached)) {
       setDetailClaim(cached);
       setLoadingDetail(false);
       return;
