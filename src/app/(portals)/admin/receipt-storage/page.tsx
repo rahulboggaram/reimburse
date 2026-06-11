@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
+import { openReceiptInNewTab } from "@/lib/compress-receipt-image";
 
 type FlowCheck = {
   id: string;
@@ -225,15 +226,20 @@ export default function AdminReceiptStoragePage() {
             {status.latestReceiptViewUrl ? (
               <p className="text-xs text-zinc-600">
                 Test the live receipt API:{" "}
-                <a
-                  href={status.latestReceiptViewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   className="font-medium text-emerald-800 underline"
+                  onClick={() =>
+                    void openReceiptInNewTab({
+                      url: status.latestReceiptViewUrl!,
+                      mimeType: "image/jpeg",
+                      fileName: "receipt",
+                    })
+                  }
                 >
                   open latest saved receipt
-                </a>{" "}
-                (should show a photo, not JSON error text).
+                </button>{" "}
+                (should show a photo in a new tab).
               </p>
             ) : status.latestReceiptReadError ? (
               <p className="text-xs text-amber-900">

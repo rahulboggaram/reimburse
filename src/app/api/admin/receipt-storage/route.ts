@@ -91,9 +91,9 @@ export async function GET() {
     },
     {
       id: "read-token",
-      label: "BLOB_READ_WRITE_TOKEN (required to open receipts)",
-      ok: env.blobReadWriteToken,
-      fix: "Vercel → Storage → reimburse-receipts → Connect to project. This injects BLOB_READ_WRITE_TOKEN. Then redeploy Production.",
+      label: "BLOB_READ_WRITE_TOKEN",
+      ok: env.blobReadWriteToken || Boolean(latestBlobRead?.ok),
+      fix: "Optional if reads already work. Otherwise connect reimburse-receipts to the project and redeploy.",
     },
     {
       id: "probe",
@@ -111,12 +111,12 @@ export async function GET() {
     },
     {
       id: "new-claims",
-      label: "Recent claims save to Blob (not database)",
-      ok: blobCount > 0 && databaseCount === 0,
+      label: "New claims save to Blob",
+      ok: blobCount > 0,
       fix:
-        blobCount === 0 && databaseCount > 0
-          ? "Old claims used database storage. Submit a NEW claim after Blob is fixed."
-          : "Submit a test claim with a receipt photo.",
+        blobCount === 0
+          ? "Submit a NEW test claim with a receipt photo after Blob is connected."
+          : "Older rows in the list may still say “saved in database” — that is normal.",
     },
   ];
 

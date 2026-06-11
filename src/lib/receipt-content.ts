@@ -19,12 +19,27 @@ function parseDataUrl(filePath: string): { mimeType: string; buffer: Buffer } | 
   }
 }
 
+export function serveReceiptBytes(
+  buffer: Buffer,
+  mimeType: string,
+  fileName: string | null,
+) {
+  const inlineName = (fileName ?? "receipt").replace(/"/g, "'");
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": mimeType || "application/octet-stream",
+      "Content-Disposition": `inline; filename="${inlineName}"`,
+      "Cache-Control": "private, no-store",
+    },
+  });
+}
+
 function serveBytes(buffer: Buffer, mimeType: string, disposition: string) {
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": mimeType || "application/octet-stream",
       "Content-Disposition": disposition,
-      "Cache-Control": "private, max-age=86400",
+      "Cache-Control": "private, no-store",
     },
   });
 }
@@ -48,7 +63,11 @@ export async function receiptFileResponse(
     const blob = await readReceiptBlob(filePath);
     if (blob) {
       try {
-        return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+        return serveReceiptBytes(
+          blob.buffer,
+          blob.mimeType || mimeType,
+          fileName,
+        );
       } catch (serveErr) {
         console.error("receipt blob serve failed", {
           filePath: filePath.slice(0, 80),
