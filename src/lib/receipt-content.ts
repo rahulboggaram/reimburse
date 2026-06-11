@@ -64,6 +64,11 @@ export async function receiptFileResponse(
 
   if (isReceiptBlobPath(filePath)) {
     try {
+      const blob = await readReceiptBlob(filePath);
+      if (blob) {
+        return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+      }
+
       const opened = await openReceiptBlobStream(filePath);
       if (opened) {
         return serveStream(
@@ -71,12 +76,6 @@ export async function receiptFileResponse(
           opened.mimeType || mimeType,
           disposition,
         );
-      }
-
-      // Fallback: buffer read (diagnostics / tiny files)
-      const blob = await readReceiptBlob(filePath);
-      if (blob) {
-        return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
       }
 
       return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });

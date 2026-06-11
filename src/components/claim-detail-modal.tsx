@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMe } from "@/components/me-provider";
 import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
@@ -25,6 +25,10 @@ import {
 } from "@/lib/payout-sync-client";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { canDecideReimbursement } from "@/lib/claim-decide-access";
+import {
+  clearLocalReceiptPreviews,
+  readLocalReceiptPreviews,
+} from "@/lib/local-receipt-previews";
 
 function payoutFailed(status: string | null) {
   return (
@@ -50,9 +54,9 @@ function claimReceiptsReady(claim: SerializedClaim) {
 
 function claimNeedsFullLoad(claim: SerializedClaim) {
   if (claim.submitError || claim.id.startsWith("pending-")) return false;
+  if (!claimReceiptsReady(claim)) return true;
   if (claim.queueList) return true;
   if (!claimDetailReady(claim)) return true;
-  if (!claimReceiptsReady(claim)) return true;
   return false;
 }
 
@@ -123,7 +127,12 @@ export function ClaimDetailModal(props: {
   const canPay = canInitiateClaimPayment(user?.role, props.variant);
 
   useEffect(() => {
-    if (!props.open || !props.claim) {
+    if (!props.open) {
+      setDetailClaim(null);
+      setLoadingDetail(false);
+      return;
+    }
+    if (!props.claim) {
       setLoadingDetail(false);
       return;
     }
@@ -257,9 +266,35 @@ export function ClaimDetailModal(props: {
     detailClaim?.receiptCount,
   ]);
 
+  const resolvedClaim = detailClaim ?? props.claim;
+
+  const localReceiptPreviews = useMemo(
+    () =>
+      resolvedClaim ? readLocalReceiptPreviews(resolvedClaim.id) ?? [] : [],
+    [resolvedClaim?.id],
+  );
+
+  const galleryReceipts = useMemo(() => {
+    if (!resolvedClaim) return [];
+    if (resolvedClaim.receipts.length > 0) return resolvedClaim.receipts;
+    return localReceiptPreviews.map((preview, index) => ({
+      id: `local-${resolvedClaim.id}-${index}`,
+      url: preview.url,
+      fileName: preview.fileName,
+      mimeType: preview.mimeType,
+    }));
+  }, [resolvedClaim, localReceiptPreviews]);
+
+  useEffect(() => {
+    if (!props.open || !resolvedClaim || !claimReceiptsReady(resolvedClaim)) {
+      return;
+    }
+    clearLocalReceiptPreviews(resolvedClaim.id);
+  }, [props.open, resolvedClaim]);
+
   if (!props.claim) return null;
 
-  const claim = detailClaim ?? props.claim;
+  const claim = resolvedClaim ?? props.claim;
 
   function payClaim() {
     setError(null);
@@ -368,12 +403,12 @@ export function ClaimDetailModal(props: {
         <ClaimTimeline claim={claim} />
 
         <ReceiptGallery
-          receipts={claim.receipts}
+          receipts={galleryReceipts}
           receiptCount={receiptsTotal}
           title="Receipts"
           compact
           hideCount
-          loading={loadingDetail}
+          loading={loadingDetail && galleryReceipts.length === 0}
         />
 
         {props.variant === "employee" && claim.submitError ? (

@@ -15,6 +15,10 @@ type Receipt = {
   mimeType: string;
 };
 
+function isDirectPreviewUrl(url: string) {
+  return url.startsWith("blob:") || url.startsWith("data:");
+}
+
 function ReceiptLightbox(props: {
   receipt: Receipt;
   onClose: () => void;
@@ -41,7 +45,14 @@ function ReceiptLightbox(props: {
     setErrorMessage(null);
     setPreviewUrl(null);
 
-    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 4 })
+    if (isDirectPreviewUrl(props.receipt.url)) {
+      setPreviewUrl(props.receipt.url);
+      setFailed(false);
+      setLoading(false);
+      return () => {};
+    }
+
+    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 6 })
       .then((result) => {
         if (cancelled) return;
         if ("error" in result) {
@@ -169,7 +180,16 @@ function AuthenticatedReceiptImage(props: {
     setPreviewUrl(null);
     onStatusChangeRef.current?.("loading");
 
-    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 4 })
+    if (isDirectPreviewUrl(props.receipt.url)) {
+      setPreviewUrl(props.receipt.url);
+      setStatus("ready");
+      onStatusChangeRef.current?.("ready");
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 6 })
       .then((result) => {
         if (cancelled) return;
         if ("error" in result || !result.url) {

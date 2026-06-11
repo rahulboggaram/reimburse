@@ -1,6 +1,10 @@
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimsMineCacheKey } from "@/lib/claims-cache";
-import { readClientCache, writeClientCache } from "@/lib/client-cache";
+import {
+  invalidateClientCache,
+  readClientCache,
+  writeClientCache,
+} from "@/lib/client-cache";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const PENDING_EVENT = "pending-claims-changed";
@@ -85,6 +89,17 @@ export function resolvePendingClaimSubmit(userId: string, tempId: string) {
     userId,
     readAll(userId).filter((item) => item.tempId !== tempId),
   );
+
+  const key = claimsMineCacheKey(userId);
+  const cached = readClientCache<SerializedClaim[]>(key);
+  if (cached) {
+    const next = cached.filter((claim) => claim.id !== tempId);
+    if (next.length === 0) {
+      invalidateClientCache(key);
+    } else {
+      writeClientCache(key, next, CACHE_TTL_MS);
+    }
+  }
 }
 
 export function failPendingClaimSubmit(

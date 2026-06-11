@@ -24,6 +24,7 @@ import {
   refreshFormBootstrapInBackground,
 } from "@/lib/admin-fetch";
 import { fetchMyClaims } from "@/lib/fetch-own-claims";
+import { stashLocalReceiptPreviews } from "@/lib/local-receipt-previews";
 import {
   failPendingClaimSubmit,
   prependOptimisticClaimToCache,
@@ -231,13 +232,17 @@ export function ReimbursementForm(props: {
         method,
         body: formData,
       });
-      await readJson<{ id: string }>(response);
+      const created = await readJson<{ id: string }>(response);
+
+      if (created.id && receipts.length > 0) {
+        stashLocalReceiptPreviews(created.id, receipts);
+      }
 
       if (tempId && meUser?.id) {
         resolvePendingClaimSubmit(meUser.id, tempId);
       }
       if (meUser?.id) {
-        void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+        await fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
       }
       navigateAfterSubmit();
     } catch (err) {
