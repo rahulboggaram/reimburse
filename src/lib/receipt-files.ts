@@ -4,11 +4,14 @@ import { randomUUID } from "crypto";
 
 import { MAX_RECEIPTS } from "@/lib/receipt-limits";
 import type { ReceiptInput } from "@/lib/receipt-input";
+import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
+import { inferReceiptMimeType } from "@/lib/receipt-mime";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/webp",
   "image/heic",
@@ -46,7 +49,8 @@ export function validateReceiptFiles(files: File[]): string | null {
     return `You can attach up to ${MAX_RECEIPTS} photos.`;
   }
   for (const file of files) {
-    if (!ALLOWED_MIME.has(file.type)) {
+    const mimeType = inferReceiptMimeType(file);
+    if (!ALLOWED_MIME.has(mimeType)) {
       return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
     }
     if (file.size > MAX_BYTES) {
@@ -64,7 +68,8 @@ export function validateReceiptInputs(inputs: ReceiptInput[]): string | null {
     return `You can attach up to ${MAX_RECEIPTS} photos.`;
   }
   for (const input of inputs) {
-    if (!ALLOWED_MIME.has(input.type)) {
+    const mimeType = inferReceiptMimeType({ type: input.type, name: input.name });
+    if (!ALLOWED_MIME.has(mimeType)) {
       return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
     }
     if (input.size > MAX_BYTES) {
@@ -95,16 +100,24 @@ export async function saveReceiptInputs(
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
   if (process.env.VERCEL) {
-    return inputs.map((input) => {
-      const base64 = input.buffer.toString("base64");
-      const mimeType = input.type || "application/octet-stream";
-      return {
-        filePath: `data:${mimeType};base64,${base64}`,
-        fileName: input.name || `receipt-${randomUUID()}`,
-        mimeType,
-        sizeBytes: input.size,
-      };
-    });
+    return Promise.all(
+      inputs.map(async (input) => {
+        const declaredMime =
+          inferReceiptMimeType({ type: input.type, name: input.name }) ||
+          "application/octet-stream";
+        const normalized = await normalizeReceiptImageBuffer(
+          input.buffer,
+          declaredMime,
+        );
+        const base64 = normalized.buffer.toString("base64");
+        return {
+          filePath: `data:${normalized.mimeType};base64,${base64}`,
+          fileName: input.name || `receipt-${randomUUID()}`,
+          mimeType: normalized.mimeType,
+          sizeBytes: normalized.buffer.length,
+        };
+      }),
+    );
   }
 
   const dir = path.join(
@@ -118,15 +131,23 @@ export async function saveReceiptInputs(
 
   return Promise.all(
     inputs.map(async (input) => {
-      const ext = EXT_BY_MIME[input.type] ?? (path.extname(input.name) || ".bin");
+      const declaredMime =
+        inferReceiptMimeType({ type: input.type, name: input.name }) ||
+        "application/octet-stream";
+      const normalized = await normalizeReceiptImageBuffer(
+        input.buffer,
+        declaredMime,
+      );
+      const ext =
+        EXT_BY_MIME[normalized.mimeType] ?? (path.extname(input.name) || ".bin");
       const storedName = `${randomUUID()}${ext}`;
       const absolutePath = path.join(dir, storedName);
-      await writeFile(absolutePath, input.buffer);
+      await writeFile(absolutePath, normalized.buffer);
       return {
         filePath: `/uploads/receipts/${reimbursementId}/${storedName}`,
         fileName: input.name || storedName,
-        mimeType: input.type,
-        sizeBytes: input.size,
+        mimeType: normalized.mimeType,
+        sizeBytes: normalized.buffer.length,
       };
     }),
   );

@@ -196,6 +196,7 @@ export function ReimbursementForm(props: {
         const response = await fetch(input.url, {
           method: input.method,
           body: input.formData,
+          keepalive: true,
         });
         await readJson<{ id: string }>(response);
 

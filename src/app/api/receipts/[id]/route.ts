@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/db";
+
+export const maxDuration = 30;
 import { requireSession } from "@/lib/auth-api";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
 import { receiptFileResponse } from "@/lib/receipt-content";

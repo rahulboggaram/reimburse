@@ -1,18 +1,16 @@
+import { inferReceiptMimeType, isHeicMime } from "@/lib/receipt-mime";
+
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.82;
 const SKIP_BELOW_BYTES = 350_000;
 
-function isHeicLike(file: File) {
-  const type = file.type.toLowerCase();
-  return type === "image/heic" || type === "image/heif";
-}
-
 /** Shrinks phone photos before upload so submit feels much faster on Vercel. */
 export async function compressReceiptFile(file: File): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
-  if (file.type === "image/gif") return file;
+  const mimeType = inferReceiptMimeType(file);
+  if (!mimeType.startsWith("image/")) return file;
+  if (mimeType === "image/gif") return file;
 
-  const forceJpeg = isHeicLike(file);
+  const forceJpeg = isHeicMime(mimeType);
   if (!forceJpeg && file.size <= SKIP_BELOW_BYTES) return file;
 
   try {
@@ -75,11 +73,6 @@ async function blobToJpegObjectUrl(blob: Blob): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-function isHeicMime(mimeType: string) {
-  const type = mimeType.toLowerCase();
-  return type === "image/heic" || type === "image/heif";
 }
 
 /** Load a receipt through the authenticated API (handles HEIC + upload delay). */

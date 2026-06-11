@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { compressReceiptFile } from "@/lib/compress-receipt-image";
+import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { MAX_RECEIPTS } from "@/lib/receipt-limits";
 import { cn } from "@/lib/utils";
 
@@ -152,9 +153,8 @@ function ReceiptGalleryButton(props: {
 }
 
 function receiptNeedsCompression(file: File) {
-  const type = file.type.toLowerCase();
-  if (type === "image/heic" || type === "image/heif") return true;
-  return file.type.startsWith("image/") && file.type !== "image/gif";
+  const mimeType = inferReceiptMimeType(file);
+  return mimeType.startsWith("image/") && mimeType !== "image/gif";
 }
 
 export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
