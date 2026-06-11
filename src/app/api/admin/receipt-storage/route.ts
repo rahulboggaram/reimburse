@@ -73,10 +73,11 @@ export async function GET() {
           ]
         : storageMode === "database-fallback"
           ? [
-              "Open Reimburse project → Settings → Environment Variables.",
-              "Add or connect Blob so BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID exists.",
-              "Storage → your Blob store → Connect to Project → pick Reimburse.",
-              "Redeploy Production, then submit a NEW test claim (old claims stay in the database).",
+              "If Storage already shows reimburse-receipts as Connected, skip reconnecting — go to Deployments.",
+              "Deployments → latest Production deploy → ⋯ → Redeploy (required so env vars reach the live app).",
+              "Optional check: Settings → Environment Variables — look for BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID.",
+              "Refresh this page — “Blob credentials on this deployment” and “Test upload” should show ✓.",
+              "Submit a NEW test claim with a receipt (old claims stay in the database, not Blob).",
             ]
           : storageMode === "blob-misconfigured"
             ? [

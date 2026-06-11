@@ -101,20 +101,37 @@ export default function AdminReceiptStoragePage() {
             <p className="text-sm font-semibold text-zinc-900">
               {modeLabel(status.storageMode)}
             </p>
+            {status.storageMode === "database-fallback" ? (
+              <p className="text-sm text-amber-900">
+                If Vercel Storage already shows &ldquo;Connected&rdquo;, the
+                store is linked — but this live deployment still does not have
+                Blob credentials. Redeploy Production (see steps below), then
+                refresh this page.
+              </p>
+            ) : null}
             <ul className="space-y-3">
               <StatusRow
                 ok={status.env.runningOnVercel}
                 label="Running on Vercel"
               />
               <StatusRow
+                ok={status.env.enabled}
+                label="Blob credentials on this deployment"
+                detail={
+                  status.env.enabled
+                    ? "The running app can talk to Blob"
+                    : "Not available yet — redeploy after connecting the store"
+                }
+              />
+              <StatusRow
                 ok={status.env.blobReadWriteToken}
                 label="BLOB_READ_WRITE_TOKEN"
-                detail="Set when Blob store is connected to this project"
+                detail="Optional — Vercel may use BLOB_STORE_ID instead"
               />
               <StatusRow
                 ok={status.env.blobStoreId}
                 label="BLOB_STORE_ID"
-                detail="Also set when Blob is connected (OIDC auth)"
+                detail="Common on newer Vercel Blob setups"
               />
               <StatusRow
                 ok={status.probe?.ok ?? false}
