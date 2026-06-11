@@ -4,9 +4,12 @@ import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
 import { resolveClaimBranchForUser } from "@/lib/claim-branch";
 import { resolveClaimRouting } from "@/lib/claim-routing";
-import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
-import { replaceClaimReceipts } from "@/lib/attach-receipts";
-import { receiptFilesFromFormData } from "@/lib/receipt-files";
+import { finalizeClaimInBackground } from "@/lib/attach-receipts";
+import { readReceiptInputs } from "@/lib/receipt-input";
+import {
+  receiptFilesFromFormData,
+  validateReceiptFiles,
+} from "@/lib/receipt-files";
 
 export async function POST(request: Request) {
   try {
@@ -23,13 +26,17 @@ export async function POST(request: Request) {
     }
 
     const receiptFiles = receiptFilesFromFormData(formData);
+    const receiptValidationError = validateReceiptFiles(receiptFiles);
+    if (receiptValidationError) {
+      return Response.json({ error: receiptValidationError }, { status: 400 });
+    }
 
     const branchResult = await resolveClaimBranchForUser(session.id);
     if ("error" in branchResult) {
       return Response.json({ error: branchResult.error }, { status: 400 });
     }
 
-    const [category, routingResult] = await Promise.all([
+    const [category, routingResult, receiptInputs] = await Promise.all([
       prisma.expenseCategory.findFirst({
         where: { name: body.category, active: true },
       }),
@@ -37,6 +44,7 @@ export async function POST(request: Request) {
         { id: session.id, role: session.role },
         branchResult.branchId,
       ),
+      readReceiptInputs(receiptFiles),
     ]);
     if (!category) {
       return Response.json({ error: "Invalid category" }, { status: 400 });
@@ -62,25 +70,15 @@ export async function POST(request: Request) {
       },
     });
 
-    const receiptError = await replaceClaimReceipts(claim.id, receiptFiles);
-    if (receiptError) {
-      await prisma.reimbursement.delete({ where: { id: claim.id } });
-      return receiptError;
-    }
-
-    if (session.role === "ADMIN") {
-      const claimId = claim.id;
-      const actorId = session.id;
-      after(async () => {
-        const payoutResult = await tryAutoPayAdminClaim(claimId, actorId);
-        if (!payoutResult.ok && "error" in payoutResult) {
-          console.error("background admin payout failed", {
-            claimId,
-            error: payoutResult.error,
-          });
-        }
+    const claimId = claim.id;
+    const adminActorId = session.role === "ADMIN" ? session.id : undefined;
+    after(async () => {
+      await finalizeClaimInBackground({
+        claimId,
+        receiptInputs,
+        adminActorId,
       });
-    }
+    });
 
     return Response.json({ id: claim.id }, { status: 201 });
   } catch (err) {

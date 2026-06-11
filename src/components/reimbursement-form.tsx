@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -25,8 +24,28 @@ import {
   refreshFormBootstrapInBackground,
 } from "@/lib/admin-fetch";
 import { fetchMyClaims } from "@/lib/fetch-own-claims";
+import {
+  failPendingClaimSubmit,
+  prependOptimisticClaimToCache,
+  registerPendingClaimSubmit,
+  resolvePendingClaimSubmit,
+} from "@/lib/pending-claim-submit";
 
-type SubmitPhase = "idle" | "uploading";
+function buildClaimFormData(input: {
+  amount: number;
+  category: string;
+  description: string;
+  receipts: ReceiptFileItem[];
+}) {
+  const formData = new FormData();
+  formData.set("amount", String(input.amount));
+  formData.set("category", input.category);
+  formData.set("description", input.description);
+  for (const item of input.receipts) {
+    formData.append("receipts", item.file);
+  }
+  return formData;
+}
 
 type ExpenseCategory = { id: string; name: string };
 
@@ -73,8 +92,6 @@ export function ReimbursementForm(props: {
     () => (cachedBootstrap?.categories ?? []).length === 0,
   );
   const [refreshingCategories, setRefreshingCategories] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
   const [amount, setAmount] = useState(props.initial?.amount ?? "");
   const [category, setCategory] = useState(props.initial?.category ?? "");
@@ -158,67 +175,96 @@ export function ReimbursementForm(props: {
     return errors;
   }
 
-  async function submitClaim() {
-    const parsedAmount = Number.parseFloat(amount);
-
-    setSubmitting(true);
-    setSubmitPhase("uploading");
-    try {
-      const formData = new FormData();
-      formData.set("amount", String(parsedAmount));
-      formData.set("category", category);
-      formData.set("description", description.trim());
-      for (const item of receipts) {
-        formData.append("receipts", item.file);
-      }
-
-      const url = props.claimId
-        ? `/api/claims/${props.claimId}/refile`
-        : "/api/claims";
-      const method = props.claimId ? "PATCH" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        body: formData,
-      });
-      const result = await readJson<{ id: string; payoutWarning?: string }>(
-        response,
-      );
-
-      if (meUser?.id) {
-        void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
-      }
-
-      if (result.payoutWarning) {
-        setError(
-          `Claim saved, but RazorpayX payout did not run: ${result.payoutWarning}`,
-        );
-        return;
-      }
-
-      if (props.onSuccess) {
-        props.onSuccess();
-      } else {
-        startNavigation(() => {
-          router.replace("/employee/claims");
-        });
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not save claim. Check your details and try again.",
-      );
-    } finally {
-      setSubmitting(false);
-      setSubmitPhase("idle");
+  function navigateAfterSubmit() {
+    if (props.onSuccess) {
+      props.onSuccess();
+      return;
     }
+    startNavigation(() => {
+      router.replace("/employee/claims?submitted=1");
+    });
   }
 
-  function renderSubmitLabel() {
-    if (!submitting) return props.submitLabel;
-    if (submitPhase === "uploading") return <LoadingText>Submitting</LoadingText>;
-    return <LoadingText>Saving</LoadingText>;
+  function runBackgroundSubmit(input: {
+    formData: FormData;
+    url: string;
+    method: string;
+    tempId?: string;
+  }) {
+    void (async () => {
+      try {
+        const response = await fetch(input.url, {
+          method: input.method,
+          body: input.formData,
+          keepalive: true,
+        });
+        await readJson<{ id: string }>(response);
+
+        if (input.tempId && meUser?.id) {
+          resolvePendingClaimSubmit(meUser.id, input.tempId);
+        }
+        if (meUser?.id) {
+          void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+        }
+      } catch (err) {
+        if (input.tempId && meUser?.id) {
+          failPendingClaimSubmit(
+            meUser.id,
+            input.tempId,
+            err instanceof Error
+              ? err.message
+              : "Could not save claim. Check your details and try again.",
+          );
+        }
+      }
+    })();
+  }
+
+  function submitClaimInstantly() {
+    const parsedAmount = Number.parseFloat(amount);
+    const formData = buildClaimFormData({
+      amount: parsedAmount,
+      category,
+      description: description.trim(),
+      receipts,
+    });
+
+    const url = props.claimId
+      ? `/api/claims/${props.claimId}/refile`
+      : "/api/claims";
+    const method = props.claimId ? "PATCH" : "POST";
+
+    let tempId: string | undefined;
+    if (!props.claimId && meUser && userBranch) {
+      tempId = `pending-${crypto.randomUUID()}`;
+      const pending = {
+        tempId,
+        userId: meUser.id,
+        amount: parsedAmount,
+        category,
+        description: description.trim(),
+        branchId: userBranch.id,
+        branchName: userBranch.name,
+        employeeName: meUser.name ?? "Employee",
+        employeePhone: meUser.phone,
+        employeeRole: meUser.role,
+        receiptCount: receipts.length,
+        claimStatus: (meUser.role === "ADMIN" ? "APPROVED" : "PENDING") as
+          | "APPROVED"
+          | "PENDING",
+        state: "uploading" as const,
+        submittedAt: Date.now(),
+      };
+      registerPendingClaimSubmit(pending);
+      prependOptimisticClaimToCache(meUser.id, pending);
+    }
+
+    navigateAfterSubmit();
+    runBackgroundSubmit({ formData, url, method, tempId });
+  }
+
+  async function submitClaim() {
+    submitClaimInstantly();
   }
 
   const receiptsStillProcessing = receipts.some((item) => item.processing);
@@ -355,16 +401,14 @@ export function ReimbursementForm(props: {
         type="submit"
         size="lg"
         className="w-full"
-        aria-busy={submitting}
         disabled={
-          submitting ||
           missingBranch ||
           blockedFromSubmit ||
           categories.length === 0 ||
           receiptsStillProcessing
         }
       >
-        {renderSubmitLabel()}
+        {props.submitLabel}
       </Button>
     </form>
 
@@ -388,24 +432,18 @@ export function ReimbursementForm(props: {
             type="button"
             size="lg"
             className="w-full"
-            disabled={submitting}
-            onClick={async () => {
+            onClick={() => {
               setAdminConfirmOpen(false);
-              await submitClaim();
+              submitClaimInstantly();
             }}
           >
-            {submitting ? (
-              <LoadingText>Submitting</LoadingText>
-            ) : (
-              "Yes, submit and pay now"
-            )}
+            Yes, submit and pay now
           </Button>
           <Button
             type="button"
             variant="outline"
             size="lg"
             className="w-full"
-            disabled={submitting}
             onClick={() => setAdminConfirmOpen(false)}
           >
             Go back and review

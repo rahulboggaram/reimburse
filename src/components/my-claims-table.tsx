@@ -38,21 +38,28 @@ export function MyClaimsTableRow(props: {
   const { claim } = props;
   const { user } = useMe();
   const status = claimDisplayStatus(claim, user?.role);
+  const isSubmitting = Boolean(claim.submitting);
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={props.onOpen}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          props.onOpen();
-        }
-      }}
+      role={isSubmitting ? undefined : "button"}
+      tabIndex={isSubmitting ? -1 : 0}
+      onClick={isSubmitting ? undefined : props.onOpen}
+      onKeyDown={
+        isSubmitting
+          ? undefined
+          : (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                props.onOpen();
+              }
+            }
+      }
       className={cn(
         claimsTableRowClass(claimsTableGridWithStatus),
-        "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
+        isSubmitting
+          ? "opacity-90"
+          : "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-inset",
       )}
     >
       <span

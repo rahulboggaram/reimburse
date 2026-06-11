@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 const labels: Record<string, string> = {
   AWAITING: "Awaiting",
   QUEUED: "Queued",
+  submitting: "Submitting",
 };
 
 /** Light tint background + saturated text for readable compact badges. */
@@ -29,6 +30,7 @@ const styles: Record<string, string> = {
   cancelled: errorStyle,
   paying: progressStyle,
   processing: progressStyle,
+  submitting: progressStyle,
   "not started": neutralStyle,
   not_started: neutralStyle,
 };

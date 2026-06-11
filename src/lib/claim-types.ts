@@ -48,8 +48,10 @@ export type SerializedClaim = {
   receipts: ClaimReceipt[];
   /** Set on list API responses when receipt files are omitted. */
   receiptCount?: number;
-  /** Approval queue list rows — open detail modal fetches full claim. */
+  /** Open detail modal fetches full claim. */
   queueList?: boolean;
+  /** Client-only: claim is still uploading in the background. */
+  submitting?: boolean;
   createdAt: string;
   updatedAt: string;
 };

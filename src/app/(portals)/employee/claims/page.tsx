@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
 import {
@@ -15,6 +15,13 @@ import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
 import { fetchMyClaims, readMyClaimsCache } from "@/lib/fetch-own-claims";
+import {
+  clearFailedClaimSubmit,
+  mergeClaimsWithPending,
+  readFailedClaimSubmit,
+  readPendingClaimSubmits,
+  subscribePendingClaims,
+} from "@/lib/pending-claim-submit";
 
 function MyClaimsLoadingSkeleton() {
   return (
@@ -28,11 +35,28 @@ function MyClaimsLoadingSkeleton() {
 
 export default function MyClaimsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: meLoading } = useMe();
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
+  const [showSubmittedBanner, setShowSubmittedBanner] = useState(
+    () => searchParams.get("submitted") === "1",
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("submitted") !== "1") return;
+    setShowSubmittedBanner(true);
+    router.replace("/employee/claims", { scroll: false });
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    if (!showSubmittedBanner) return;
+    const timer = window.setTimeout(() => setShowSubmittedBanner(false), 8000);
+    return () => window.clearTimeout(timer);
+  }, [showSubmittedBanner]);
 
   useEffect(() => {
     if (meLoading) return;
@@ -47,6 +71,16 @@ export default function MyClaimsPage() {
     }
   }, [meLoading, user, router]);
 
+  const syncClaimsView = useCallback(
+    (rows: SerializedClaim[]) => {
+      if (!user) return;
+      const pending = readPendingClaimSubmits(user.id);
+      setClaims(mergeClaimsWithPending(rows, pending));
+      setSubmitError(readFailedClaimSubmit(user.id)?.error ?? null);
+    },
+    [user],
+  );
+
   const loadClaims = useCallback(
     async (fresh = false) => {
       if (!user || !canViewOwnReimbursements(user)) return;
@@ -54,9 +88,9 @@ export default function MyClaimsPage() {
       const ownerId = user.id;
       const rows = await fetchMyClaims(ownerId, { fresh });
       if (user.id !== ownerId) return;
-      setClaims(rows);
+      syncClaimsView(rows);
     },
-    [user],
+    [user, syncClaimsView],
   );
 
   useEffect(() => {
@@ -67,7 +101,7 @@ export default function MyClaimsPage() {
     let cancelled = false;
 
     if (cached) {
-      setClaims(cached);
+      syncClaimsView(cached);
       setLoading(false);
     } else {
       setLoading(true);
@@ -76,7 +110,7 @@ export default function MyClaimsPage() {
 
     fetchMyClaims(ownerId)
       .then((rows) => {
-        if (!cancelled) setClaims(rows);
+        if (!cancelled) syncClaimsView(rows);
       })
       .catch(() => {
         if (!cancelled && !cached) setClaims([]);
@@ -88,7 +122,16 @@ export default function MyClaimsPage() {
     return () => {
       cancelled = true;
     };
-  }, [meLoading, user?.id, user?.role, user?.profileComplete]);
+  }, [meLoading, user?.id, user?.role, user?.profileComplete, syncClaimsView]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    return subscribePendingClaims(() => {
+      const cached = readMyClaimsCache(user.id) ?? [];
+      syncClaimsView(cached);
+      void loadClaims(true);
+    });
+  }, [user?.id, syncClaimsView, loadClaims]);
 
   if (meLoading || !user || !canViewOwnReimbursements(user)) {
     return (
@@ -110,6 +153,34 @@ export default function MyClaimsPage() {
       />
       <RejectedClaimsSection onChanged={() => loadClaims(true)} />
 
+      {showSubmittedBanner ? (
+        <div
+          role="status"
+          className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+        >
+          Claim submitted! Your receipts are finishing upload in the background.
+        </div>
+      ) : null}
+
+      {submitError ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          <p>{submitError}</p>
+          <button
+            type="button"
+            className="mt-2 font-medium underline"
+            onClick={() => {
+              if (user?.id) clearFailedClaimSubmit(user.id);
+              setSubmitError(null);
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
+
       {waitingForClaims ? (
         <MyClaimsLoadingSkeleton />
       ) : claims.length === 0 ? (
@@ -130,7 +201,10 @@ export default function MyClaimsPage() {
                   <MyClaimsTableRow
                     key={claim.id}
                     claim={claim}
-                    onOpen={() => setSelected(claim)}
+                    onOpen={() => {
+                      if (claim.submitting) return;
+                      setSelected(claim);
+                    }}
                   />
                 ))}
               </div>

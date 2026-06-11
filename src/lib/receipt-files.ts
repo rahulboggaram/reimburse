@@ -3,6 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 
 import { MAX_RECEIPTS } from "@/lib/receipt-limits";
+import type { ReceiptInput } from "@/lib/receipt-input";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -55,27 +56,55 @@ export function validateReceiptFiles(files: File[]): string | null {
   return null;
 }
 
+export function validateReceiptInputs(inputs: ReceiptInput[]): string | null {
+  if (inputs.length === 0) {
+    return "Add at least one receipt photo.";
+  }
+  if (inputs.length > MAX_RECEIPTS) {
+    return `You can attach up to ${MAX_RECEIPTS} photos.`;
+  }
+  for (const input of inputs) {
+    if (!ALLOWED_MIME.has(input.type)) {
+      return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
+    }
+    if (input.size > MAX_BYTES) {
+      return "Each file must be 5 MB or smaller.";
+    }
+  }
+  return null;
+}
+
 export async function saveReceiptFiles(
   reimbursementId: string,
   files: File[],
 ): Promise<SavedReceipt[]> {
-  // Vercel serverless functions have an ephemeral filesystem; writing to `public/`
-  // will fail at runtime. For prototypes, store receipts as data URLs in the DB.
-  // This keeps uploads working without external storage setup.
+  if (files.length === 0) return [];
+  const inputs = await Promise.all(
+    files.map(async (file) => ({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      buffer: Buffer.from(await file.arrayBuffer()),
+    })),
+  );
+  return saveReceiptInputs(reimbursementId, inputs);
+}
+
+export async function saveReceiptInputs(
+  reimbursementId: string,
+  inputs: ReceiptInput[],
+): Promise<SavedReceipt[]> {
   if (process.env.VERCEL) {
-    return Promise.all(
-      files.map(async (file) => {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const base64 = buffer.toString("base64");
-        const mimeType = file.type || "application/octet-stream";
-        return {
-          filePath: `data:${mimeType};base64,${base64}`,
-          fileName: file.name || `receipt-${randomUUID()}`,
-          mimeType,
-          sizeBytes: file.size,
-        };
-      }),
-    );
+    return inputs.map((input) => {
+      const base64 = input.buffer.toString("base64");
+      const mimeType = input.type || "application/octet-stream";
+      return {
+        filePath: `data:${mimeType};base64,${base64}`,
+        fileName: input.name || `receipt-${randomUUID()}`,
+        mimeType,
+        sizeBytes: input.size,
+      };
+    });
   }
 
   const dir = path.join(
@@ -88,17 +117,16 @@ export async function saveReceiptFiles(
   await mkdir(dir, { recursive: true });
 
   return Promise.all(
-    files.map(async (file) => {
-      const ext = EXT_BY_MIME[file.type] ?? (path.extname(file.name) || ".bin");
+    inputs.map(async (input) => {
+      const ext = EXT_BY_MIME[input.type] ?? (path.extname(input.name) || ".bin");
       const storedName = `${randomUUID()}${ext}`;
       const absolutePath = path.join(dir, storedName);
-      const buffer = Buffer.from(await file.arrayBuffer());
-      await writeFile(absolutePath, buffer);
+      await writeFile(absolutePath, input.buffer);
       return {
         filePath: `/uploads/receipts/${reimbursementId}/${storedName}`,
-        fileName: file.name || storedName,
-        mimeType: file.type,
-        sizeBytes: file.size,
+        fileName: input.name || storedName,
+        mimeType: input.type,
+        sizeBytes: input.size,
       };
     }),
   );
