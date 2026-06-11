@@ -13,6 +13,67 @@ type Receipt = {
   previewFallbackUrl?: string;
 };
 
+function isPlaceholderReceipt(receipt: Receipt) {
+  return (
+    receipt.id.startsWith("placeholder-") ||
+    (!receipt.url && !receipt.previewFallbackUrl)
+  );
+}
+
+function resolveReceiptForView(
+  receipt: Receipt,
+  allReceipts: Receipt[],
+): Receipt | null {
+  if (!isPlaceholderReceipt(receipt)) {
+    return receipt.url || receipt.previewFallbackUrl ? receipt : null;
+  }
+
+  const index = Number(receipt.id.split("-").pop());
+  const loaded = allReceipts[index];
+  if (loaded && !isPlaceholderReceipt(loaded)) {
+    return loaded;
+  }
+
+  if (
+    receipt.previewFallbackUrl &&
+    isDirectReceiptUrl(receipt.previewFallbackUrl)
+  ) {
+    return receipt;
+  }
+
+  return null;
+}
+
+function ReceiptThumbnailTile(props: { fileName: string | null; isPdf: boolean }) {
+  return (
+    <div className="flex size-full flex-col items-center justify-center gap-0.5 bg-zinc-100 text-zinc-500">
+      {props.isPdf ? (
+        <span className="text-lg" aria-hidden>
+          📄
+        </span>
+      ) : (
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-5 text-zinc-400"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H5.25A2.25 2.25 0 0 0 3 5.25v13.5A2.25 2.25 0 0 0 5.25 21Z"
+          />
+        </svg>
+      )}
+      <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-zinc-900 shadow-sm">
+        View
+      </span>
+    </div>
+  );
+}
+
 function ReceiptImage(props: {
   receipt: Receipt;
   className: string;
@@ -112,8 +173,17 @@ function ReceiptImage(props: {
 
 function ReceiptLightbox(props: {
   receipt: Receipt;
+  allReceipts: Receipt[];
   onClose: () => void;
 }) {
+  const [viewReceipt, setViewReceipt] = useState<Receipt | null>(() =>
+    resolveReceiptForView(props.receipt, props.allReceipts),
+  );
+
+  useEffect(() => {
+    setViewReceipt(resolveReceiptForView(props.receipt, props.allReceipts));
+  }, [props.receipt, props.allReceipts]);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") props.onClose();
@@ -121,6 +191,8 @@ function ReceiptLightbox(props: {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [props]);
+
+  const pending = !viewReceipt;
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
@@ -148,18 +220,20 @@ function ReceiptLightbox(props: {
         </button>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        {props.receipt.mimeType.startsWith("image/") ? (
+        {pending ? (
+          <p className="text-sm text-white/80">Loading receipt…</p>
+        ) : viewReceipt.mimeType.startsWith("image/") ? (
           <ReceiptImage
-            receipt={props.receipt}
+            receipt={viewReceipt}
             className="max-h-full max-w-full rounded-lg object-contain"
           />
         ) : (
           <div className="max-w-sm rounded-xl bg-white px-6 py-8 text-center">
             <p className="text-sm font-medium text-zinc-900">
-              {props.receipt.fileName ?? "PDF receipt"}
+              {viewReceipt.fileName ?? "PDF receipt"}
             </p>
             <a
-              href={props.receipt.url}
+              href={viewReceipt.url}
               target="_blank"
               rel="noopener noreferrer"
               className={cn("mt-3 inline-block text-sm", textLinkClassName)}
@@ -200,9 +274,6 @@ export function ReceiptGallery(props: {
   }, [props.receipts]);
 
   const count = props.receiptCount ?? props.receipts.length;
-  const errorCount = Object.values(receiptStatuses).filter(
-    (status) => status === "error",
-  ).length;
 
   if (count === 0 && props.receipts.length === 0) return null;
 
@@ -293,41 +364,24 @@ export function ReceiptGallery(props: {
               <button
                 type="button"
                 onClick={() => setExpanded(receipt)}
-                className="group relative size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
+                aria-label={`View ${receipt.fileName ?? "receipt"}`}
+                className="relative size-16 overflow-hidden rounded-lg border border-zinc-200 transition-shadow hover:shadow-md"
               >
-                {receipt.mimeType.startsWith("image/") ? (
-                  <ReceiptImage
-                    receipt={receipt}
-                    className="size-full object-cover"
-                    onStatusChange={(status) => handleStatusChange(receipt.id, status)}
-                  />
-                ) : (
-                  <span className="flex size-full items-center justify-center text-lg">
-                    📄
-                  </span>
-                )}
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/45 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-zinc-900">
-                    View
-                  </span>
-                </span>
+                <ReceiptThumbnailTile
+                  fileName={receipt.fileName}
+                  isPdf={!receipt.mimeType.startsWith("image/")}
+                />
               </button>
             </li>
           ))}
         </ul>
-        {errorCount > 0 ? (
-          <p className="text-xs text-amber-800">
-            {errorCount === 1
-              ? "One receipt could not be loaded — refile the claim with a new photo."
-              : "Some receipts could not be loaded — refile with new photos."}
-          </p>
-        ) : null}
       </div>
       {expanded ? (
-        <ReceiptLightbox receipt={expanded} onClose={() => setExpanded(null)} />
+        <ReceiptLightbox
+          receipt={expanded}
+          allReceipts={props.receipts}
+          onClose={() => setExpanded(null)}
+        />
       ) : null}
     </>
   );

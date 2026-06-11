@@ -276,19 +276,40 @@ export function ClaimDetailModal(props: {
   const galleryReceipts = useMemo(() => {
     if (!resolvedClaim) return [];
 
-    if (resolvedClaim.receipts.length > 0) {
-      return resolvedClaim.receipts.map((receipt, index) => ({
-        ...receipt,
-        previewFallbackUrl: localReceiptPreviews[index]?.url,
-      }));
-    }
+    const expected = claimReceiptCount(resolvedClaim);
+    const loaded = resolvedClaim.receipts;
+    const count = Math.max(expected, loaded.length, localReceiptPreviews.length);
 
-    return localReceiptPreviews.map((preview, index) => ({
-      id: `local-${resolvedClaim.id}-${index}`,
-      url: preview.url,
-      fileName: preview.fileName,
-      mimeType: preview.mimeType,
-    }));
+    if (count === 0) return [];
+
+    return Array.from({ length: count }, (_, index) => {
+      const loadedReceipt = loaded[index];
+      const local = localReceiptPreviews[index];
+
+      if (loadedReceipt?.url) {
+        return {
+          ...loadedReceipt,
+          previewFallbackUrl: local?.url,
+        };
+      }
+
+      if (local) {
+        return {
+          id: `local-${resolvedClaim.id}-${index}`,
+          url: local.url,
+          fileName: local.fileName,
+          mimeType: local.mimeType,
+          previewFallbackUrl: local.url,
+        };
+      }
+
+      return {
+        id: `placeholder-${resolvedClaim.id}-${index}`,
+        url: "",
+        fileName: `Receipt ${index + 1}`,
+        mimeType: "image/jpeg",
+      };
+    });
   }, [resolvedClaim, localReceiptPreviews]);
 
   if (!props.claim) return null;
@@ -407,7 +428,7 @@ export function ClaimDetailModal(props: {
           title="Receipts"
           compact
           hideCount
-          loading={loadingDetail && galleryReceipts.length === 0}
+          loading={loadingDetail && receiptsTotal === 0}
         />
 
         {props.variant === "employee" && claim.submitError ? (
