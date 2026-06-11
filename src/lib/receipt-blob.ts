@@ -1,4 +1,4 @@
-import { del, get, head, list, put } from "@vercel/blob";
+import { del, get, getDownloadUrl, head, list, put } from "@vercel/blob";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 
@@ -15,15 +15,18 @@ function blobConnectionOptions() {
   const options: {
     token?: string;
     storeId?: string;
-    oidcToken?: string;
   } = {};
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   const storeId = process.env.BLOB_STORE_ID?.trim();
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim();
   if (token) options.token = token;
   if (storeId) options.storeId = storeId;
-  if (oidcToken) options.oidcToken = oidcToken;
   return options;
+}
+
+/** Bearer token for direct blob URL fetches (read-write token preferred). */
+function blobFetchAuthHeaders(): Record<string, string> {
+  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  return token ? { authorization: `Bearer ${token}` } : {};
 }
 
 function putOptions(contentType: string) {
@@ -118,55 +121,111 @@ export type OpenedReceiptBlob = {
   sizeBytes: number | null;
 };
 
-/** Stream a private blob (preferred for serving — avoids buffering issues on Vercel). */
+async function readReceiptBlobViaGet(
+  target: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    const result = await get(target, getOptions());
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    const bytes = await new Response(result.stream).arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    if (buffer.length === 0) return null;
+    return {
+      buffer,
+      mimeType: result.blob.contentType || "application/octet-stream",
+    };
+  } catch (err) {
+    console.error("receipt blob get read failed", {
+      target: target.slice(0, 120),
+      err,
+    });
+    return null;
+  }
+}
+
+/**
+ * Read via the Blob metadata API + download URL.
+ * Uploads use the Vercel API (OIDC); direct get() can fail without BLOB_READ_WRITE_TOKEN.
+ */
+async function readReceiptBlobViaHead(
+  target: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    const meta = await head(target, getOptions());
+    const headers = blobFetchAuthHeaders();
+    const urls = [meta.downloadUrl, getDownloadUrl(meta.url), meta.url];
+
+    for (const url of urls) {
+      const fetchUrl = new URL(url);
+      fetchUrl.searchParams.set("cache", "0");
+      for (const withAuth of [false, true]) {
+        if (withAuth && !Object.keys(headers).length) continue;
+        try {
+          const res = await fetch(fetchUrl.toString(), {
+            ...(withAuth ? { headers } : {}),
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            console.error("receipt blob download failed", {
+              target: target.slice(0, 80),
+              status: res.status,
+              authed: withAuth,
+            });
+            continue;
+          }
+          const buffer = Buffer.from(await res.arrayBuffer());
+          if (buffer.length === 0) continue;
+          return {
+            buffer,
+            mimeType: meta.contentType || "application/octet-stream",
+          };
+        } catch (fetchErr) {
+          console.error("receipt blob download fetch error", {
+            target: target.slice(0, 80),
+            fetchErr,
+          });
+        }
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error("receipt blob head read failed", {
+      target: target.slice(0, 120),
+      err,
+    });
+    return null;
+  }
+}
+
+/** Stream a private blob (used when buffering is not required). */
 export async function openReceiptBlobStream(
   filePath: string,
 ): Promise<OpenedReceiptBlob | null> {
-  const targets = blobGetTargets(filePath);
-  if (targets.length === 0) return null;
-
-  for (const target of targets) {
-    try {
-      const result = await get(target, getOptions());
-      if (!result || result.statusCode !== 200 || !result.stream) continue;
-      return {
-        stream: result.stream,
-        mimeType: result.blob.contentType || "application/octet-stream",
-        sizeBytes: result.blob.size ?? null,
-      };
-    } catch (err) {
-      console.error("receipt blob stream open failed", {
-        filePath: filePath.slice(0, 80),
-        target: target.slice(0, 120),
-        err,
-      });
-    }
-  }
-  return null;
+  const buffered = await readReceiptBlob(filePath);
+  if (!buffered) return null;
+  return {
+    stream: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(buffered.buffer));
+        controller.close();
+      },
+    }),
+    mimeType: buffered.mimeType,
+    sizeBytes: buffered.buffer.length,
+  };
 }
 
 export async function readReceiptBlob(
   filePath: string,
 ): Promise<{ buffer: Buffer; mimeType: string } | null> {
-  try {
-    const opened = await openReceiptBlobStream(filePath);
-    if (!opened) return null;
-
-    const bytes = await new Response(opened.stream).arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    if (buffer.length === 0) return null;
-
-    return {
-      buffer,
-      mimeType: opened.mimeType,
-    };
-  } catch (err) {
-    console.error("receipt blob buffer read failed", {
-      filePath: filePath.slice(0, 80),
-      err,
-    });
-    return null;
+  const targets = blobGetTargets(filePath);
+  for (const target of targets) {
+    const viaGet = await readReceiptBlobViaGet(target);
+    if (viaGet) return viaGet;
+    const viaHead = await readReceiptBlobViaHead(target);
+    if (viaHead) return viaHead;
   }
+  return null;
 }
 
 export async function storeReceiptBlob(input: {
@@ -177,10 +236,7 @@ export async function storeReceiptBlob(input: {
 }): Promise<string> {
   const pathname = `receipts/${input.reimbursementId}/${randomUUID()}-${sanitizeFileName(input.fileName)}`;
   const blob = await put(pathname, input.buffer, putOptions(input.mimeType));
-  // Full URL is the most reliable reference for private blob reads.
-  if (blob.url?.includes(".blob.vercel-storage.com/")) {
-    return blob.url;
-  }
+  // Pathname reference reads reliably with BLOB_STORE_ID + OIDC on Vercel.
   return `${BLOB_PREFIX}${blob.pathname}`;
 }
 
@@ -195,8 +251,15 @@ export async function deleteReceiptBlob(filePath: string) {
 }
 
 async function blobPathOpens(filePath: string): Promise<boolean> {
-  const opened = await openReceiptBlobStream(filePath);
-  return opened !== null;
+  for (const target of blobGetTargets(filePath)) {
+    try {
+      await head(target, getOptions());
+      return true;
+    } catch {
+      // try next target
+    }
+  }
+  return false;
 }
 
 /** List blobs saved for a claim folder in storage. */
@@ -238,7 +301,9 @@ export async function resolveReceiptBlobPath(
     ];
     for (const candidate of candidates) {
       if (await blobPathOpens(candidate)) {
-        return blob.url;
+        if (candidate.startsWith(BLOB_PREFIX)) return candidate;
+        if (candidate.includes(".blob.vercel-storage.com/")) return candidate;
+        return `${BLOB_PREFIX}${blob.pathname}`;
       }
     }
   }
@@ -278,14 +343,14 @@ export async function syncClaimReceiptsFromBlob(reimbursementId: string) {
       blobs.map(async (blob) => {
         let mimeType = mimeFromPathname(blob.pathname);
         try {
-          const meta = await head(blob.url, listOptions());
+          const meta = await head(blob.url, getOptions());
           if (meta.contentType) mimeType = meta.contentType;
         } catch {
           // keep guessed mime
         }
         return {
           reimbursementId,
-          filePath: blob.url,
+          filePath: `${BLOB_PREFIX}${blob.pathname}`,
           fileName: fileNameFromPathname(blob.pathname),
           mimeType,
           sizeBytes: blob.size,

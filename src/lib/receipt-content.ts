@@ -1,11 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "path";
 
-import {
-  isReceiptBlobPath,
-  openReceiptBlobStream,
-  readReceiptBlob,
-} from "@/lib/receipt-blob";
+import { isReceiptBlobPath, readReceiptBlob } from "@/lib/receipt-blob";
 
 function parseDataUrl(filePath: string): { mimeType: string; buffer: Buffer } | null {
   const comma = filePath.indexOf(",");
@@ -33,20 +29,6 @@ function serveBytes(buffer: Buffer, mimeType: string, disposition: string) {
   });
 }
 
-function serveStream(
-  stream: ReadableStream<Uint8Array>,
-  mimeType: string,
-  disposition: string,
-) {
-  return new Response(stream, {
-    headers: {
-      "Content-Type": mimeType || "application/octet-stream",
-      "Content-Disposition": disposition,
-      "Cache-Control": "private, max-age=86400",
-    },
-  });
-}
-
 const LEGACY_RECEIPT_ERROR =
   "This receipt photo was saved before storage was fixed. Refile the claim with a new photo.";
 
@@ -63,46 +45,28 @@ export async function receiptFileResponse(
   }
 
   if (isReceiptBlobPath(filePath)) {
-    try {
-      // Buffer first — same path as the admin storage health check; more reliable than streaming on Vercel.
-      const blob = await readReceiptBlob(filePath);
-      if (blob) {
+    const blob = await readReceiptBlob(filePath);
+    if (blob) {
+      try {
         return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+      } catch (serveErr) {
+        console.error("receipt blob serve failed", {
+          filePath: filePath.slice(0, 80),
+          serveErr,
+        });
       }
-
-      const opened = await openReceiptBlobStream(filePath);
-      if (opened) {
-        try {
-          return serveStream(
-            opened.stream,
-            opened.mimeType || mimeType,
-            disposition,
-          );
-        } catch (streamErr) {
-          console.error("receipt blob stream serve failed", {
-            filePath: filePath.slice(0, 80),
-            streamErr,
-          });
-        }
-      }
-
-      console.error("receipt blob not found", {
-        filePath: filePath.slice(0, 120),
-      });
-      return Response.json(
-        {
-          error:
-            "Receipt file is missing from storage. Submit a new claim with the photo, or refile this one.",
-        },
-        { status: 404 },
-      );
-    } catch (err) {
-      console.error("receipt blob read failed", { filePath: filePath.slice(0, 80), err });
-      return Response.json(
-        { error: "Could not load receipt from storage. Try again in a moment." },
-        { status: 500 },
-      );
     }
+
+    console.error("receipt blob not found", {
+      filePath: filePath.slice(0, 120),
+    });
+    return Response.json(
+      {
+        error:
+          "Receipt file is missing from storage. Submit a new claim with the photo, or refile this one.",
+      },
+      { status: 404 },
+    );
   }
 
   if (filePath.startsWith("data:")) {

@@ -90,6 +90,12 @@ export async function GET() {
       fix: "Vercel → Storage → reimburse-receipts → Connect to reimburse project, then redeploy Production.",
     },
     {
+      id: "read-token",
+      label: "BLOB_READ_WRITE_TOKEN (required to open receipts)",
+      ok: env.blobReadWriteToken,
+      fix: "Vercel → Storage → reimburse-receipts → Connect to project. This injects BLOB_READ_WRITE_TOKEN. Then redeploy Production.",
+    },
+    {
       id: "probe",
       label: "App can upload and read from Blob",
       ok: Boolean(probe?.ok),
@@ -153,19 +159,25 @@ export async function GET() {
       databaseCount,
     },
     nextSteps:
-      storageMode === "blob"
+      storageMode === "blob" && !env.blobReadWriteToken
         ? [
-            "Blob is working. Submit a new claim with a receipt, then refresh Storage → Browse — look under receipts/.",
+            "Blob uploads work, but reads need BLOB_READ_WRITE_TOKEN on this deployment.",
+            "Vercel → Storage → reimburse-receipts → Connect to project (injects the token), then redeploy Production.",
+            "After redeploy, refresh this page and open a test receipt again.",
           ]
-        : storageMode === "database-fallback"
+        : storageMode === "blob"
           ? [
-              "If Storage already shows reimburse-receipts as Connected, skip reconnecting — go to Deployments.",
-              "Deployments → latest Production deploy → ⋯ → Redeploy (required so env vars reach the live app).",
-              "Optional check: Settings → Environment Variables — look for BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID.",
-              "Refresh this page — “Blob credentials on this deployment” and “Test upload” should show ✓.",
-              "Submit a NEW test claim with a receipt (old claims stay in the database, not Blob).",
+              "Blob is working. Submit a new claim with a receipt, then refresh Storage → Browse — look under receipts/.",
             ]
-          : storageMode === "blob-misconfigured"
+          : storageMode === "database-fallback"
+            ? [
+                "If Storage already shows reimburse-receipts as Connected, skip reconnecting — go to Deployments.",
+                "Deployments → latest Production deploy → ⋯ → Redeploy (required so env vars reach the live app).",
+                "Settings → Environment Variables — confirm BLOB_READ_WRITE_TOKEN is set (from Storage connect). BLOB_STORE_ID alone is not enough to read receipts.",
+                "Refresh this page — “Blob credentials on this deployment” and “Test upload” should show ✓.",
+                "Submit a NEW test claim with a receipt (old claims stay in the database, not Blob).",
+              ]
+            : storageMode === "blob-misconfigured"
             ? [
                 "Blob env vars exist but the test upload failed — check the error above.",
                 "Confirm the Blob store is linked to this project, then redeploy.",
