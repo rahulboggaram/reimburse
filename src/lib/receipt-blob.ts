@@ -219,11 +219,21 @@ export async function readReceiptBlob(
   filePath: string,
 ): Promise<{ buffer: Buffer; mimeType: string } | null> {
   const targets = blobGetTargets(filePath);
+  // Without BLOB_READ_WRITE_TOKEN, direct get() often fails — prefer the metadata API.
+  const preferHead = !process.env.BLOB_READ_WRITE_TOKEN?.trim();
+
   for (const target of targets) {
-    const viaGet = await readReceiptBlobViaGet(target);
-    if (viaGet) return viaGet;
-    const viaHead = await readReceiptBlobViaHead(target);
-    if (viaHead) return viaHead;
+    if (preferHead) {
+      const viaHead = await readReceiptBlobViaHead(target);
+      if (viaHead) return viaHead;
+      const viaGet = await readReceiptBlobViaGet(target);
+      if (viaGet) return viaGet;
+    } else {
+      const viaGet = await readReceiptBlobViaGet(target);
+      if (viaGet) return viaGet;
+      const viaHead = await readReceiptBlobViaHead(target);
+      if (viaHead) return viaHead;
+    }
   }
   return null;
 }

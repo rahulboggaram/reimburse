@@ -193,9 +193,18 @@ export default function AdminReceiptStoragePage() {
                 }
               />
               <StatusRow
-                ok={status.env.blobReadWriteToken}
+                ok={
+                  status.env.blobReadWriteToken ||
+                  (status.latestBlobRead?.ok ?? false)
+                }
                 label="BLOB_READ_WRITE_TOKEN"
-                detail="Optional — Vercel may use BLOB_STORE_ID instead"
+                detail={
+                  status.env.blobReadWriteToken
+                    ? "Set — fastest receipt reads"
+                    : status.latestBlobRead?.ok
+                      ? "Not set, but reads work via BLOB_STORE_ID"
+                      : "Missing — connect Storage to project or add manually"
+                }
               />
               <StatusRow
                 ok={status.env.blobStoreId}
