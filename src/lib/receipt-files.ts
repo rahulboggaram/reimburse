@@ -136,14 +136,22 @@ export async function saveReceiptInputs(
     return Promise.all(
       inputs.map(async (input) => {
         const normalized = await normalizeReceiptInput(input);
-        const filePath = useBlob
-          ? await storeReceiptBlob({
+        let filePath: string;
+        if (useBlob) {
+          try {
+            filePath = await storeReceiptBlob({
               reimbursementId,
               fileName: normalized.fileName,
               buffer: normalized.buffer,
               mimeType: normalized.mimeType,
-            })
-          : `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
+            });
+          } catch (err) {
+            console.error("blob store failed — saving receipt in database", err);
+            filePath = `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
+          }
+        } else {
+          filePath = `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
+        }
         return {
           filePath,
           fileName: normalized.fileName,

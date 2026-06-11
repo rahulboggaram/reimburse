@@ -1,4 +1,5 @@
 import { inferReceiptMimeType, isHeicMime } from "@/lib/receipt-mime";
+import { isPublicBlobUrl } from "@/lib/receipt-url";
 
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.82;
@@ -90,6 +91,10 @@ export async function loadReceiptPreviewUrl(
   receipt: { url: string; mimeType: string },
   options?: { maxAttempts?: number },
 ): Promise<ReceiptPreviewResult> {
+  if (isPublicBlobUrl(receipt.url) || receipt.url.startsWith("data:")) {
+    return { url: receipt.url, pending: false };
+  }
+
   const maxAttempts = options?.maxAttempts ?? 8;
   let lastMessage = "Could not load receipt photo.";
 

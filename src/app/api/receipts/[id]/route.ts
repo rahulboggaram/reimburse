@@ -2,7 +2,9 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
 import {
+  isPublicReceiptBlobPath,
   isReceiptBlobPath,
+  promoteReceiptToPublicBlob,
   readReceiptBlob,
   resolveReceiptBlobPath,
 } from "@/lib/receipt-blob";
@@ -74,6 +76,22 @@ export async function GET(
       }
 
       if (blob) {
+        if (!isPublicReceiptBlobPath(filePath)) {
+          const publicUrl = await promoteReceiptToPublicBlob({
+            reimbursementId: receipt.reimbursement.id,
+            fileName: receipt.fileName ?? "receipt",
+            buffer: blob.buffer,
+            mimeType: blob.mimeType || receipt.mimeType,
+            oldPath: filePath,
+          });
+          if (publicUrl) {
+            await prisma.reimbursementReceipt.update({
+              where: { id: receipt.id },
+              data: { filePath: publicUrl },
+            });
+          }
+        }
+
         return serveReceiptBytes(
           blob.buffer,
           blob.mimeType || receipt.mimeType,

@@ -5,6 +5,7 @@ import {
   loadReceiptPreviewUrl,
   openReceiptInNewTab,
 } from "@/lib/compress-receipt-image";
+import { isDirectReceiptUrl } from "@/lib/receipt-url";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,7 @@ type Receipt = {
 };
 
 function isDirectPreviewUrl(url: string) {
-  return url.startsWith("blob:") || url.startsWith("data:");
+  return isDirectReceiptUrl(url);
 }
 
 function ReceiptLightbox(props: {

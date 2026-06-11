@@ -2,7 +2,10 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
-import { syncClaimReceiptsFromBlob } from "@/lib/receipt-blob";
+import {
+  syncClaimReceiptsFromBlob,
+  upgradeReceiptsToPublicUrls,
+} from "@/lib/receipt-blob";
 import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import {
   canAccessAdminPortal,
@@ -53,7 +56,7 @@ export async function GET(
     });
   }
 
-  const fresh =
+  let fresh =
     claim.receipts.length === 0
       ? await prisma.reimbursement.findUnique({
           where: { id },
@@ -61,7 +64,16 @@ export async function GET(
         })
       : claim;
 
-  return Response.json(serializeClaim(fresh ?? claim), {
+  const claimForResponse = fresh ?? claim;
+  if (claimForResponse.receipts.length > 0) {
+    await upgradeReceiptsToPublicUrls(id, claimForResponse.receipts).catch(
+      (error) => {
+        console.error("upgrade receipts to public failed", { claimId: id, error });
+      },
+    );
+  }
+
+  return Response.json(serializeClaim(claimForResponse), {
     headers: { "Cache-Control": "private, max-age=10" },
   });
 }

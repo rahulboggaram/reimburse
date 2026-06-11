@@ -29,9 +29,9 @@ function blobFetchAuthHeaders(): Record<string, string> {
   return token ? { authorization: `Bearer ${token}` } : {};
 }
 
-function putOptions(contentType: string) {
+function putOptions(contentType: string, access: "public" | "private" = "public") {
   return {
-    access: "private" as const,
+    access,
     contentType,
     ...blobConnectionOptions(),
   };
@@ -245,9 +245,74 @@ export async function storeReceiptBlob(input: {
   mimeType: string;
 }): Promise<string> {
   const pathname = `receipts/${input.reimbursementId}/${randomUUID()}-${sanitizeFileName(input.fileName)}`;
-  const blob = await put(pathname, input.buffer, putOptions(input.mimeType));
-  // Pathname reference reads reliably with BLOB_STORE_ID + OIDC on Vercel.
+  const blob = await put(pathname, input.buffer, putOptions(input.mimeType, "public"));
+  if (blob.url?.includes(".blob.vercel-storage.com/")) {
+    return blob.url;
+  }
   return `${BLOB_PREFIX}${blob.pathname}`;
+}
+
+/** Re-save a private blob as public so the browser can load it directly. */
+export async function promoteReceiptToPublicBlob(input: {
+  reimbursementId: string;
+  fileName: string;
+  buffer: Buffer;
+  mimeType: string;
+  oldPath: string;
+}): Promise<string | null> {
+  if (!receiptBlobStorageEnabled()) return null;
+  try {
+    const publicUrl = await storeReceiptBlob({
+      reimbursementId: input.reimbursementId,
+      fileName: input.fileName,
+      buffer: input.buffer,
+      mimeType: input.mimeType,
+    });
+    void deleteReceiptBlob(input.oldPath);
+    return publicUrl;
+  } catch (err) {
+    console.error("promote receipt to public blob failed", { err });
+    return null;
+  }
+}
+
+export function isPublicReceiptBlobPath(filePath: string) {
+  return filePath.startsWith("https://") && filePath.includes(".blob.vercel-storage.com/");
+}
+
+/** One-time upgrade: private blob paths → public URLs the browser can load directly. */
+export async function upgradeReceiptsToPublicUrls(
+  reimbursementId: string,
+  receipts: { id: string; filePath: string; fileName: string | null; mimeType: string }[],
+) {
+  if (!receiptBlobStorageEnabled()) return;
+
+  for (const receipt of receipts) {
+    if (
+      !isReceiptBlobPath(receipt.filePath) ||
+      isPublicReceiptBlobPath(receipt.filePath)
+    ) {
+      continue;
+    }
+
+    const blob = await readReceiptBlob(receipt.filePath);
+    if (!blob) continue;
+
+    const publicUrl = await promoteReceiptToPublicBlob({
+      reimbursementId,
+      fileName: receipt.fileName ?? "receipt",
+      buffer: blob.buffer,
+      mimeType: blob.mimeType || receipt.mimeType,
+      oldPath: receipt.filePath,
+    });
+    if (!publicUrl) continue;
+
+    await prisma.reimbursementReceipt.update({
+      where: { id: receipt.id },
+      data: { filePath: publicUrl },
+    });
+    receipt.filePath = publicUrl;
+  }
 }
 
 export async function deleteReceiptBlob(filePath: string) {
@@ -360,7 +425,9 @@ export async function syncClaimReceiptsFromBlob(reimbursementId: string) {
         }
         return {
           reimbursementId,
-          filePath: `${BLOB_PREFIX}${blob.pathname}`,
+          filePath: blob.url?.includes(".blob.vercel-storage.com/")
+            ? blob.url
+            : `${BLOB_PREFIX}${blob.pathname}`,
           fileName: fileNameFromPathname(blob.pathname),
           mimeType,
           sizeBytes: blob.size,
@@ -387,12 +454,8 @@ export async function probeReceiptBlobStorage(): Promise<{
 
   const pathname = `_healthcheck/receipt-storage-${randomUUID()}.txt`;
   try {
-    const blob = await put(pathname, Buffer.from("ok"), {
-      access: "private",
-      contentType: "text/plain",
-      ...blobConnectionOptions(),
-    });
-    const readBack = await readReceiptBlob(`${BLOB_PREFIX}${blob.pathname}`);
+    const blob = await put(pathname, Buffer.from("ok"), putOptions("text/plain", "public"));
+    const readBack = await readReceiptBlob(blob.url ?? `${BLOB_PREFIX}${blob.pathname}`);
     await del(blob.pathname);
     if (!readBack) {
       return { ok: false, error: "Blob upload succeeded but read-back failed." };

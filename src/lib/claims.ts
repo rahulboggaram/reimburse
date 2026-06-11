@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { receiptViewUrl } from "@/lib/receipt-url";
+import { receiptClientUrl } from "@/lib/receipt-url";
 
 const employeeSelect = {
   id: true,
@@ -133,7 +133,7 @@ function serializeClaimCore(
 export function serializeClaim(claim: ClaimWithRelations) {
   const receipts = claim.receipts.map((receipt) => ({
     id: receipt.id,
-    url: receiptViewUrl(receipt.id),
+    url: receiptClientUrl({ id: receipt.id, filePath: receipt.filePath }),
     fileName: receipt.fileName,
     mimeType: receipt.mimeType,
   }));
