@@ -331,5 +331,31 @@ export function receiptBlobEnvStatus() {
     blobStoreId: Boolean(process.env.BLOB_STORE_ID?.trim()),
     vercelOidcToken: Boolean(process.env.VERCEL_OIDC_TOKEN?.trim()),
     enabled: receiptBlobStorageEnabled(),
+    deploymentUrl: process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : null,
   };
+}
+
+/** How many receipt files exist under receipts/ in Blob (not the same as DB rows). */
+export async function countReceiptFilesInBlob() {
+  if (!receiptBlobStorageEnabled()) return null;
+  try {
+    let total = 0;
+    let cursor: string | undefined;
+    do {
+      const page = await list({
+        prefix: "receipts/",
+        limit: 1000,
+        cursor,
+        ...listOptions(),
+      });
+      total += page.blobs.length;
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    return total;
+  } catch (err) {
+    console.error("count receipt files in blob failed", err);
+    return null;
+  }
 }

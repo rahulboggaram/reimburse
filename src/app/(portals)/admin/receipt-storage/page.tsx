@@ -5,18 +5,31 @@ import { Card } from "@/components/ui/card";
 import { PageHeading } from "@/components/page-heading";
 import { readJson } from "@/lib/api";
 
+type FlowCheck = {
+  id: string;
+  label: string;
+  ok: boolean;
+  fix: string;
+};
+
 type ReceiptStorageStatus = {
+  connected?: boolean;
   storageMode:
     | "blob"
     | "database-fallback"
     | "blob-misconfigured"
     | "local-files";
+  flowChecks?: FlowCheck[];
+  blobFilesInStorage?: number | null;
+  totalReceiptRows?: number;
+  blobLinkedRows?: number;
   env: {
     runningOnVercel: boolean;
     blobReadWriteToken: boolean;
     blobStoreId: boolean;
     vercelOidcToken: boolean;
     enabled: boolean;
+    deploymentUrl?: string | null;
   };
   probe: { ok: boolean; error?: string } | null;
   latestBlobRead: { ok: boolean; bytes?: number; error?: string } | null;
@@ -101,8 +114,60 @@ export default function AdminReceiptStoragePage() {
         <>
           <Card className="space-y-4">
             <p className="text-sm font-semibold text-zinc-900">
-              {modeLabel(status.storageMode)}
+              {status.connected
+                ? "Blob is connected and the receipt flow is working"
+                : modeLabel(status.storageMode)}
             </p>
+            {status.flowChecks ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  Connection checklist
+                </p>
+                <ul className="space-y-3">
+                  {status.flowChecks.map((check) => (
+                    <li key={check.id} className="flex gap-3 text-sm">
+                      <span
+                        className={check.ok ? "text-emerald-700" : "text-amber-700"}
+                        aria-hidden
+                      >
+                        {check.ok ? "✓" : "○"}
+                      </span>
+                      <span>
+                        <span className="font-medium text-zinc-900">
+                          {check.label}
+                        </span>
+                        {!check.ok ? (
+                          <span className="mt-0.5 block text-amber-900">
+                            {check.fix}
+                          </span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {typeof status.blobFilesInStorage === "number" ? (
+              <p className="text-sm text-zinc-600">
+                Files in Blob under <code className="text-xs">receipts/</code>:{" "}
+                <strong>{status.blobFilesInStorage}</strong>
+                {typeof status.blobLinkedRows === "number" ? (
+                  <>
+                    {" "}
+                    · Database rows linked to Blob:{" "}
+                    <strong>{status.blobLinkedRows}</strong>
+                    {typeof status.totalReceiptRows === "number"
+                      ? ` of ${status.totalReceiptRows} total`
+                      : ""}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+            {status.env.deploymentUrl ? (
+              <p className="text-xs text-zinc-500">
+                This status is for deployment: {status.env.deploymentUrl}
+              </p>
+            ) : null}
             {status.storageMode === "database-fallback" ? (
               <p className="text-sm text-amber-900">
                 If Vercel Storage already shows &ldquo;Connected&rdquo;, the

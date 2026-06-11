@@ -1,6 +1,7 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { prisma } from "@/lib/db";
 import {
+  countReceiptFilesInBlob,
   isReceiptBlobPath,
   probeReceiptBlobStorage,
   readReceiptBlob,
@@ -63,11 +64,68 @@ export async function GET() {
         ? "blob-misconfigured"
         : "database-fallback";
 
+  const blobFilesInStorage = await countReceiptFilesInBlob();
+  const totalReceiptRows = await prisma.reimbursementReceipt.count();
+  const blobLinkedRows = await prisma.reimbursementReceipt.count({
+    where: {
+      OR: [
+        { filePath: { startsWith: "blob:" } },
+        { filePath: { contains: ".blob.vercel-storage.com/" } },
+        { filePath: { startsWith: "https://" } },
+      ],
+    },
+  });
+
+  const flowChecks = [
+    {
+      id: "vercel",
+      label: "App is running on Vercel",
+      ok: env.runningOnVercel,
+      fix: "Deploy the reimburse project to Vercel (not local dev).",
+    },
+    {
+      id: "credentials",
+      label: "Blob credentials on this live deployment",
+      ok: env.enabled,
+      fix: "Vercel → Storage → reimburse-receipts → Connect to reimburse project, then redeploy Production.",
+    },
+    {
+      id: "probe",
+      label: "App can upload and read from Blob",
+      ok: Boolean(probe?.ok),
+      fix: probe?.error
+        ? `Upload test failed: ${probe.error}. Redeploy after connecting the store.`
+        : "Connect the Blob store and redeploy Production.",
+    },
+    {
+      id: "read",
+      label: "Latest Blob receipt can be read back",
+      ok: latestBlobRead ? latestBlobRead.ok : blobLinkedRows === 0,
+      fix: "Submit a new test claim with a photo after Blob is connected.",
+    },
+    {
+      id: "new-claims",
+      label: "Recent claims save to Blob (not database)",
+      ok: blobCount > 0 && databaseCount === 0,
+      fix:
+        blobCount === 0 && databaseCount > 0
+          ? "Old claims used database storage. Submit a NEW claim after Blob is fixed."
+          : "Submit a test claim with a receipt photo.",
+    },
+  ];
+
+  const allFlowOk = flowChecks.every((check) => check.ok);
+
   return Response.json({
     storageMode,
+    connected: storageMode === "blob" && allFlowOk,
     env,
     probe,
     latestBlobRead,
+    blobFilesInStorage,
+    totalReceiptRows,
+    blobLinkedRows,
+    flowChecks,
     latestReceiptViewUrl: latestBlobReceipt
       ? `/api/receipts/${latestBlobReceipt.id}`
       : null,
