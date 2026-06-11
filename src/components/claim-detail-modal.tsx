@@ -210,7 +210,7 @@ export function ClaimDetailModal(props: {
     }
 
     pollPayoutStatus();
-    const interval = window.setInterval(pollPayoutStatus, 4_000);
+    const interval = window.setInterval(pollPayoutStatus, 8_000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
@@ -341,7 +341,7 @@ export function ClaimDetailModal(props: {
 
     const claimId = claim.id;
     const action = status === "APPROVED" ? "approve" : "reject";
-    if (status === "APPROVED") {
+    if (status === "APPROVED" && props.variant === "admin") {
       registerPayoutWatch(claimId, props.variant);
     }
     props.onInstantAction?.({ claimId, action });

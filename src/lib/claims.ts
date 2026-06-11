@@ -76,6 +76,19 @@ export type ClaimQueueRow = Prisma.ReimbursementGetPayload<{
   select: typeof claimQueueSelect;
 }>;
 
+const missingPerson = {
+  id: "",
+  name: null as string | null,
+  phone: "",
+  role: "EMPLOYEE",
+};
+
+const missingBranch = {
+  id: "",
+  name: "",
+  active: true,
+};
+
 function serializeClaimCore(
   claim: ClaimWithRelations | ClaimListItem,
   receipts: { id: string; url: string; fileName: string | null; mimeType: string }[],
@@ -85,13 +98,13 @@ function serializeClaimCore(
     id: claim.id,
     employeeId: claim.employeeId,
     employeeName: claim.employeeName,
-    employee: claim.employee,
+    employee: claim.employee ?? { ...missingPerson, id: claim.employeeId },
     amount: Number(claim.amount),
     category: claim.category,
     description: claim.description,
     expenseDate: claim.expenseDate.toISOString(),
     branchId: claim.branchId,
-    branch: claim.branch,
+    branch: claim.branch ?? { ...missingBranch, id: claim.branchId },
     status: claim.status,
     rejectionReason: claim.rejectionReason,
     decidedAt: claim.decidedAt?.toISOString() ?? null,
@@ -102,9 +115,13 @@ function serializeClaimCore(
     payoutInitiatedAt: claim.payoutInitiatedAt?.toISOString() ?? null,
     paidAt: claim.paidAt?.toISOString() ?? null,
     approverId: claim.approverId,
-    approver: claim.approver,
+    approver: claim.approver ?? { ...missingPerson, id: claim.approverId, role: "BRANCH_MANAGER" },
     paymentApproverId: claim.paymentApproverId,
-    paymentApprover: claim.paymentApprover,
+    paymentApprover: claim.paymentApprover ?? {
+      ...missingPerson,
+      id: claim.paymentApproverId,
+      role: "APPROVER",
+    },
     refiledFromId: claim.refiledFromId,
     receipts,
     receiptCount,

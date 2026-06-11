@@ -91,12 +91,12 @@ export async function GET(request: Request) {
 
     queuePayoutSync(claims.filter(claimNeedsPayoutSync).map((c) => c.id));
 
-    const serialized = claims.map((claim) => {
+    const serialized = claims.flatMap((claim) => {
       try {
-        return serializeClaimPendingListItem(claim);
+        return [serializeClaimPendingListItem(claim)];
       } catch (rowErr) {
         console.error("claims/pending serialize failed", claim.id, rowErr);
-        throw rowErr;
+        return [];
       }
     });
 

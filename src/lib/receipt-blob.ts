@@ -115,17 +115,25 @@ export async function openReceiptBlobStream(
 export async function readReceiptBlob(
   filePath: string,
 ): Promise<{ buffer: Buffer; mimeType: string } | null> {
-  const opened = await openReceiptBlobStream(filePath);
-  if (!opened) return null;
+  try {
+    const opened = await openReceiptBlobStream(filePath);
+    if (!opened) return null;
 
-  const bytes = await new Response(opened.stream).arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  if (buffer.length === 0) return null;
+    const bytes = await new Response(opened.stream).arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    if (buffer.length === 0) return null;
 
-  return {
-    buffer,
-    mimeType: opened.mimeType,
-  };
+    return {
+      buffer,
+      mimeType: opened.mimeType,
+    };
+  } catch (err) {
+    console.error("receipt blob buffer read failed", {
+      filePath: filePath.slice(0, 80),
+      err,
+    });
+    return null;
+  }
 }
 
 export async function storeReceiptBlob(input: {

@@ -8,7 +8,7 @@ import {
   subscribePayoutWatches,
 } from "@/lib/payout-sync-client";
 
-const DEFAULT_INTERVAL_MS = 4_000;
+const DEFAULT_INTERVAL_MS = 8_000;
 
 export function usePayoutWatchPolling(options: {
   enabled?: boolean;
