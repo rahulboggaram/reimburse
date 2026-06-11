@@ -117,25 +117,32 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
   }, [open, resolvedUser?.id, resolvedUser?.role, resolvedUser?.profileComplete]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !resolvedUser) return;
 
-    const routes = [
-      "/employee",
-      "/employee/claims",
-      "/employee/profile",
-      "/manager",
-      "/admin/people",
-      "/admin/claims",
-      "/admin/activity",
-      "/admin/reports",
-      "/admin/analytics",
-      "/admin/branches",
-      "/admin/categories",
-    ];
+    const routes = ["/employee", "/employee/claims", "/employee/profile"];
+    const role = resolvedUser.role as UserRole;
+
+    if (canAccessManagerPortal(role)) {
+      routes.push("/manager");
+    }
+    if (canAccessReports(role)) {
+      routes.push("/admin/reports");
+    }
+    if (role === "ADMIN") {
+      routes.push(
+        "/admin/people",
+        "/admin/claims",
+        "/admin/branches",
+        "/admin/categories",
+        "/admin/activity",
+        "/admin/analytics",
+      );
+    }
+
     for (const route of routes) {
       router.prefetch(route);
     }
-  }, [open, router]);
+  }, [open, router, resolvedUser?.role]);
 
   useEffect(() => {
     if (!open) return;

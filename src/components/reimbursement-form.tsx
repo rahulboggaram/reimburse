@@ -247,17 +247,17 @@ export function ReimbursementForm(props: {
       });
       const created = await readJson<{ id: string }>(response);
 
-      if (created.id && receipts.length > 0) {
-        await stashLocalReceiptPreviews(created.id, receipts);
-      }
-
       if (tempId && meUser?.id) {
         resolvePendingClaimSubmit(meUser.id, tempId);
       }
-      if (meUser?.id) {
-        await fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
-      }
       navigateAfterSubmit();
+
+      if (created.id && receipts.length > 0) {
+        void stashLocalReceiptPreviews(created.id, receipts);
+      }
+      if (meUser?.id) {
+        void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+      }
     } catch (err) {
       if (tempId && meUser?.id) {
         failPendingClaimSubmit(

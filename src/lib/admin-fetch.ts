@@ -183,12 +183,11 @@ export function invalidateFormBootstrap() {
   clearFormBootstrapStorage();
 }
 
+/** Warm likely admin destinations — skip heavy analytics until Insights is opened. */
 export function warmAdminNavCaches() {
   void fetchAdminUsers();
   void fetchAdminClaims();
   void fetchAdminBranches();
   void fetchAdminCategories();
-  void fetchAdminActivity();
-  void fetchAdminAnalytics(30);
   void fetchFormBootstrap();
 }

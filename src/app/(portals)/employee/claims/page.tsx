@@ -136,11 +136,9 @@ export default function MyClaimsPage() {
   useEffect(() => {
     if (!user?.id) return;
     return subscribePendingClaims(() => {
-      const cached = readMyClaimsCache(user.id) ?? [];
-      syncClaimsView(cached);
-      void loadClaims(true);
+      syncClaimsView(readMyClaimsCache(user.id) ?? []);
     });
-  }, [user?.id, syncClaimsView, loadClaims]);
+  }, [user?.id, syncClaimsView]);
 
   const payoutRefreshIds = useMemo(
     () => collectPayoutRefreshClaimIds(claims),
@@ -150,6 +148,7 @@ export default function MyClaimsPage() {
   usePayoutWatchPolling({
     claimIds: payoutRefreshIds,
     onTick: () => loadClaims(true),
+    intervalMs: 20_000,
   });
 
   function handleCloseDetail() {

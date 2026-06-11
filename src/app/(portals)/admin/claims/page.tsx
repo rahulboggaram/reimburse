@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ApprovalsTableHeader,
   ApprovalsTableRow,
@@ -52,6 +52,14 @@ export default function AdminClaimsPage() {
     setClaims(list);
   }, [setClaims]);
 
+  const lastPayoutRefreshAt = useRef(0);
+  const refreshClaimsForPayout = useCallback(() => {
+    const now = Date.now();
+    if (now - lastPayoutRefreshAt.current < 20_000) return;
+    lastPayoutRefreshAt.current = now;
+    void refreshClaims();
+  }, [refreshClaims]);
+
   const payoutRefreshIds = useMemo(
     () => collectPayoutRefreshClaimIds(claims),
     [claims],
@@ -59,7 +67,7 @@ export default function AdminClaimsPage() {
 
   usePayoutWatchPolling({
     claimIds: payoutRefreshIds,
-    onTick: refreshClaims,
+    onTick: refreshClaimsForPayout,
   });
 
   const filtered = useMemo(() => {

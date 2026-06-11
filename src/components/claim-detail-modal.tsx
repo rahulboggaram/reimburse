@@ -207,7 +207,7 @@ export function ClaimDetailModal(props: {
     }
 
     pollPayoutStatus();
-    const interval = window.setInterval(pollPayoutStatus, 8_000);
+    const interval = window.setInterval(pollPayoutStatus, 12_000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
@@ -250,7 +250,7 @@ export function ClaimDetailModal(props: {
     }
 
     refreshClaimDetail();
-    const interval = window.setInterval(refreshClaimDetail, 2500);
+    const interval = window.setInterval(refreshClaimDetail, 5000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
