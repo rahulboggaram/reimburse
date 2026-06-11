@@ -1,7 +1,11 @@
 import { readFile } from "fs/promises";
 import path from "path";
 
-import { isReceiptBlobPath, readReceiptBlob } from "@/lib/receipt-blob";
+import {
+  isReceiptBlobPath,
+  openReceiptBlobStream,
+  readReceiptBlob,
+} from "@/lib/receipt-blob";
 
 function parseDataUrl(filePath: string): { mimeType: string; buffer: Buffer } | null {
   const comma = filePath.indexOf(",");
@@ -29,6 +33,23 @@ function serveBytes(buffer: Buffer, mimeType: string, disposition: string) {
   });
 }
 
+function serveStream(
+  stream: ReadableStream<Uint8Array>,
+  mimeType: string,
+  disposition: string,
+) {
+  return new Response(stream, {
+    headers: {
+      "Content-Type": mimeType || "application/octet-stream",
+      "Content-Disposition": disposition,
+      "Cache-Control": "private, max-age=86400",
+    },
+  });
+}
+
+const LEGACY_RECEIPT_ERROR =
+  "This receipt photo was saved before storage was fixed. Refile the claim with a new photo.";
+
 export async function receiptFileResponse(
   filePath: string,
   mimeType: string,
@@ -38,24 +59,29 @@ export async function receiptFileResponse(
   const disposition = `inline; filename="${inlineName}"`;
 
   if (!filePath?.trim()) {
-    return Response.json(
-      { error: "Receipt file missing. Refile the claim with new photos." },
-      { status: 404 },
-    );
+    return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
   }
 
   if (isReceiptBlobPath(filePath)) {
     try {
-      const blob = await readReceiptBlob(filePath);
-      if (!blob) {
-        return Response.json(
-          { error: "Receipt file missing. Refile the claim with new photos." },
-          { status: 404 },
+      const opened = await openReceiptBlobStream(filePath);
+      if (opened) {
+        return serveStream(
+          opened.stream,
+          opened.mimeType || mimeType,
+          disposition,
         );
       }
-      return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+
+      // Fallback: buffer read (diagnostics / tiny files)
+      const blob = await readReceiptBlob(filePath);
+      if (blob) {
+        return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+      }
+
+      return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
     } catch (err) {
-      console.error("receipt blob read failed", { filePath, err });
+      console.error("receipt blob read failed", { filePath: filePath.slice(0, 80), err });
       return Response.json({ error: "Receipt unavailable" }, { status: 500 });
     }
   }
@@ -63,10 +89,7 @@ export async function receiptFileResponse(
   if (filePath.startsWith("data:")) {
     const parsed = parseDataUrl(filePath);
     if (!parsed) {
-      return Response.json(
-        { error: "Receipt file missing. Refile the claim with new photos." },
-        { status: 404 },
-      );
+      return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
     }
     return serveBytes(parsed.buffer, parsed.mimeType, disposition);
   }
@@ -84,8 +107,5 @@ export async function receiptFileResponse(
     }
   }
 
-  return Response.json(
-    { error: "Receipt file missing. Refile the claim with new photos." },
-    { status: 404 },
-  );
+  return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
 }

@@ -20,6 +20,7 @@ type ReceiptStorageStatus = {
   };
   probe: { ok: boolean; error?: string } | null;
   latestBlobRead: { ok: boolean; bytes?: number; error?: string } | null;
+  latestReceiptViewUrl: string | null;
   recentReceipts: Array<{
     id: string;
     createdAt: string;
@@ -155,6 +156,20 @@ export default function AdminReceiptStoragePage() {
                 />
               ) : null}
             </ul>
+            {status.latestReceiptViewUrl ? (
+              <p className="text-xs text-zinc-600">
+                Test the live receipt API:{" "}
+                <a
+                  href={status.latestReceiptViewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-emerald-800 underline"
+                >
+                  open latest saved receipt
+                </a>{" "}
+                (should show a photo, not JSON error text).
+              </p>
+            ) : null}
           </Card>
 
           <Card className="space-y-3">

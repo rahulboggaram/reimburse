@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadReceiptPreviewUrl } from "@/lib/compress-receipt-image";
+import {
+  loadReceiptPreviewUrl,
+  openReceiptInNewTab,
+} from "@/lib/compress-receipt-image";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +21,7 @@ function ReceiptLightbox(props: {
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +38,7 @@ function ReceiptLightbox(props: {
 
     setLoading(true);
     setFailed(false);
+    setErrorMessage(null);
     setPreviewUrl(null);
 
     void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 4 })
@@ -41,10 +46,12 @@ function ReceiptLightbox(props: {
         if (cancelled) return;
         if ("error" in result) {
           setFailed(true);
+          setErrorMessage(result.message);
           return;
         }
         if (!result.url) {
           setFailed(true);
+          setErrorMessage("Receipt photo is still loading. Try again in a moment.");
           return;
         }
         objectUrl = result.url;
@@ -98,14 +105,16 @@ function ReceiptLightbox(props: {
             <p className="text-sm font-medium text-zinc-900">
               {props.receipt.fileName ?? "Receipt"}
             </p>
-            <a
-              href={props.receipt.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            {errorMessage ? (
+              <p className="mt-2 text-sm text-amber-900">{errorMessage}</p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void openReceiptInNewTab(props.receipt)}
               className={cn("mt-3 inline-block text-sm", textLinkClassName)}
             >
-              Open receipt
-            </a>
+              Try opening again
+            </button>
           </div>
         ) : props.receipt.mimeType.startsWith("image/") ? (
           // eslint-disable-next-line @next/next/no-img-element -- blob preview from authenticated fetch
@@ -119,14 +128,13 @@ function ReceiptLightbox(props: {
             <p className="text-sm font-medium text-zinc-900">
               {props.receipt.fileName ?? "PDF receipt"}
             </p>
-            <a
-              href={props.receipt.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => void openReceiptInNewTab(props.receipt)}
               className={cn("mt-3 inline-block text-sm", textLinkClassName)}
             >
               Open PDF
-            </a>
+            </button>
           </div>
         )}
       </div>
@@ -352,8 +360,8 @@ export function ReceiptGallery(props: {
         {errorCount > 0 ? (
           <p className="text-xs text-amber-800">
             {errorCount === 1
-              ? "One receipt could not be previewed. Tap it to open."
-              : "Some receipts could not be previewed. Tap to open."}
+              ? "One receipt could not be previewed. Tap it for details — older claims may need to be refiled with a new photo."
+              : "Some receipts could not be previewed. Tap for details — older claims may need to be refiled."}
           </p>
         ) : null}
       </div>

@@ -75,12 +75,23 @@ async function blobToJpegObjectUrl(blob: Blob): Promise<string | null> {
   }
 }
 
+function previewMimeType(blob: Blob, fallback: string) {
+  if (blob.type && blob.type !== "application/octet-stream") return blob.type;
+  if (fallback.startsWith("image/")) return fallback;
+  return "image/jpeg";
+}
+
+export type ReceiptPreviewResult =
+  | { url: string; pending: boolean }
+  | { error: true; message: string };
+
 /** Load a receipt through the authenticated API (handles HEIC + upload delay). */
 export async function loadReceiptPreviewUrl(
   receipt: { url: string; mimeType: string },
   options?: { maxAttempts?: number },
-): Promise<{ url: string; pending: boolean } | { error: true }> {
+): Promise<ReceiptPreviewResult> {
   const maxAttempts = options?.maxAttempts ?? 8;
+  let lastMessage = "Could not load receipt photo.";
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const response = await fetch(receipt.url, {
@@ -94,20 +105,33 @@ export async function loadReceiptPreviewUrl(
     }
 
     if (response.status === 401 || response.status === 403) {
-      return { error: true };
+      return { error: true, message: "Please sign in again to view receipts." };
     }
 
+    const contentType = response.headers.get("content-type") ?? "";
+
     if (!response.ok) {
+      if (contentType.includes("application/json")) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        if (body?.error) lastMessage = body.error;
+      }
       if (attempt < maxAttempts - 1) {
         await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
         continue;
       }
-      return { error: true };
+      return { error: true, message: lastMessage };
     }
 
-    const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
-      return { error: true };
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      return {
+        error: true,
+        message: body?.error ?? "Receipt photo is missing. Refile the claim.",
+      };
     }
 
     const blob = await response.blob();
@@ -116,18 +140,39 @@ export async function loadReceiptPreviewUrl(
         await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
         continue;
       }
-      return { error: true };
+      return { error: true, message: lastMessage };
     }
 
-    const mimeType = blob.type || receipt.mimeType;
+    const mimeType = previewMimeType(blob, receipt.mimeType);
 
     if (isHeicMime(mimeType)) {
       const converted = await blobToJpegObjectUrl(blob);
       if (converted) return { url: converted, pending: false };
     }
 
-    return { url: URL.createObjectURL(blob), pending: false };
+    const displayBlob =
+      blob.type === mimeType ? blob : new Blob([blob], { type: mimeType });
+    return { url: URL.createObjectURL(displayBlob), pending: false };
   }
 
   return { url: "", pending: true };
+}
+
+/** Open receipt in a new browser tab (fetch with session cookie, then show image). */
+export async function openReceiptInNewTab(receipt: {
+  url: string;
+  mimeType: string;
+  fileName?: string | null;
+}) {
+  const result = await loadReceiptPreviewUrl(receipt, { maxAttempts: 3 });
+  if ("error" in result) {
+    window.alert(result.message);
+    return;
+  }
+  if (!result.url) return;
+
+  const tab = window.open(result.url, "_blank", "noopener,noreferrer");
+  if (!tab) {
+    window.alert("Allow pop-ups to open the receipt, or try again.");
+  }
 }

@@ -68,6 +68,9 @@ export async function GET() {
     env,
     probe,
     latestBlobRead,
+    latestReceiptViewUrl: latestBlobReceipt
+      ? `/api/receipts/${latestBlobReceipt.id}`
+      : null,
     recentReceipts: recentReceipts.map((row) => ({
       id: row.id,
       createdAt: row.createdAt.toISOString(),

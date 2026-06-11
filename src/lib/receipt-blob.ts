@@ -79,21 +79,52 @@ export function blobGetTarget(filePath: string): string | null {
   return blobGetTargets(filePath)[0] ?? null;
 }
 
-async function readBlobTarget(
-  target: string,
-): Promise<{ buffer: Buffer; mimeType: string } | null> {
-  const result = await get(target, { access: "private", useCache: false });
-  if (!result || result.statusCode !== 200 || !result.stream) {
-    return null;
-  }
+export type OpenedReceiptBlob = {
+  stream: ReadableStream<Uint8Array>;
+  mimeType: string;
+  sizeBytes: number | null;
+};
 
-  const bytes = await new Response(result.stream).arrayBuffer();
+/** Stream a private blob (preferred for serving — avoids buffering issues on Vercel). */
+export async function openReceiptBlobStream(
+  filePath: string,
+): Promise<OpenedReceiptBlob | null> {
+  const targets = blobGetTargets(filePath);
+  if (targets.length === 0) return null;
+
+  for (const target of targets) {
+    try {
+      const result = await get(target, { access: "private", useCache: false });
+      if (!result || result.statusCode !== 200 || !result.stream) continue;
+      return {
+        stream: result.stream,
+        mimeType: result.blob.contentType || "application/octet-stream",
+        sizeBytes: result.blob.size ?? null,
+      };
+    } catch (err) {
+      console.error("receipt blob stream open failed", {
+        filePath: filePath.slice(0, 80),
+        target: target.slice(0, 120),
+        err,
+      });
+    }
+  }
+  return null;
+}
+
+export async function readReceiptBlob(
+  filePath: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  const opened = await openReceiptBlobStream(filePath);
+  if (!opened) return null;
+
+  const bytes = await new Response(opened.stream).arrayBuffer();
   const buffer = Buffer.from(bytes);
   if (buffer.length === 0) return null;
 
   return {
     buffer,
-    mimeType: result.blob.contentType || "application/octet-stream",
+    mimeType: opened.mimeType,
   };
 }
 
@@ -105,38 +136,8 @@ export async function storeReceiptBlob(input: {
 }): Promise<string> {
   const pathname = `receipts/${input.reimbursementId}/${randomUUID()}-${sanitizeFileName(input.fileName)}`;
   const blob = await put(pathname, input.buffer, putOptions(input.mimeType));
-  return blob.url;
-}
-
-export async function readReceiptBlob(
-  filePath: string,
-): Promise<{ buffer: Buffer; mimeType: string } | null> {
-  const targets = blobGetTargets(filePath);
-  if (targets.length === 0) return null;
-
-  let lastError: unknown = null;
-  for (const target of targets) {
-    try {
-      const read = await readBlobTarget(target);
-      if (read) return read;
-    } catch (err) {
-      lastError = err;
-      console.error("receipt blob get attempt failed", {
-        filePath: filePath.slice(0, 80),
-        target: target.slice(0, 120),
-        err,
-      });
-    }
-  }
-
-  if (lastError) {
-    console.error("receipt blob get exhausted targets", {
-      filePath: filePath.slice(0, 80),
-      targets,
-      lastError,
-    });
-  }
-  return null;
+  // Store pathname — stable across stores; full URL also works when reading.
+  return `${BLOB_PREFIX}${blob.pathname}`;
 }
 
 export async function deleteReceiptBlob(filePath: string) {
@@ -164,8 +165,8 @@ export async function probeReceiptBlobStorage(): Promise<{
       access: "private",
       contentType: "text/plain",
     });
-    const readBack = await readReceiptBlob(blob.url);
-    await del(blob.url);
+    const readBack = await readReceiptBlob(`${BLOB_PREFIX}${blob.pathname}`);
+    await del(blob.pathname);
     if (!readBack) {
       return { ok: false, error: "Blob upload succeeded but read-back failed." };
     }
