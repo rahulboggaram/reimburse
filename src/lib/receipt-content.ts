@@ -1,17 +1,19 @@
 import { readFile } from "fs/promises";
 import path from "path";
 
+import { isReceiptBlobPath, readReceiptBlob } from "@/lib/receipt-blob";
+
 function parseDataUrl(filePath: string): { mimeType: string; buffer: Buffer } | null {
   const comma = filePath.indexOf(",");
   if (!filePath.startsWith("data:") || comma < 0) return null;
   const header = filePath.slice(5, comma);
-  const payload = filePath.slice(comma + 1);
+  const payload = filePath.slice(comma + 1).replace(/\s/g, "");
   const mimeType = header.replace(/;base64$/i, "").trim() || "application/octet-stream";
+  if (!payload) return null;
   try {
-    return {
-      mimeType,
-      buffer: Buffer.from(payload, "base64"),
-    };
+    const buffer = Buffer.from(payload, "base64");
+    if (buffer.length === 0) return null;
+    return { mimeType, buffer };
   } catch {
     return null;
   }
@@ -35,10 +37,36 @@ export async function receiptFileResponse(
   const inlineName = (fileName ?? "receipt").replace(/"/g, "'");
   const disposition = `inline; filename="${inlineName}"`;
 
+  if (!filePath?.trim()) {
+    return Response.json(
+      { error: "Receipt file missing. Refile the claim with new photos." },
+      { status: 404 },
+    );
+  }
+
+  if (isReceiptBlobPath(filePath)) {
+    try {
+      const blob = await readReceiptBlob(filePath);
+      if (!blob) {
+        return Response.json(
+          { error: "Receipt file missing. Refile the claim with new photos." },
+          { status: 404 },
+        );
+      }
+      return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+    } catch (err) {
+      console.error("receipt blob read failed", { filePath, err });
+      return Response.json({ error: "Receipt unavailable" }, { status: 500 });
+    }
+  }
+
   if (filePath.startsWith("data:")) {
     const parsed = parseDataUrl(filePath);
-    if (!parsed || parsed.buffer.length === 0) {
-      return Response.json({ error: "Receipt unavailable" }, { status: 404 });
+    if (!parsed) {
+      return Response.json(
+        { error: "Receipt file missing. Refile the claim with new photos." },
+        { status: 404 },
+      );
     }
     return serveBytes(parsed.buffer, parsed.mimeType, disposition);
   }
@@ -56,5 +84,8 @@ export async function receiptFileResponse(
     }
   }
 
-  return Response.json({ error: "Receipt unavailable" }, { status: 404 });
+  return Response.json(
+    { error: "Receipt file missing. Refile the claim with new photos." },
+    { status: 404 },
+  );
 }

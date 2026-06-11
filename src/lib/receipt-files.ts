@@ -6,6 +6,11 @@ import { MAX_RECEIPTS } from "@/lib/receipt-limits";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
+import {
+  deleteReceiptBlob,
+  receiptBlobStorageEnabled,
+  storeReceiptBlob,
+} from "@/lib/receipt-blob";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -95,24 +100,48 @@ export async function saveReceiptFiles(
   return saveReceiptInputs(reimbursementId, inputs);
 }
 
+async function normalizeReceiptInput(input: ReceiptInput) {
+  const declaredMime =
+    inferReceiptMimeType({ type: input.type, name: input.name }) ||
+    "application/octet-stream";
+  const normalized = await normalizeReceiptImageBuffer(
+    input.buffer,
+    declaredMime,
+  );
+  const buffer =
+    normalized.buffer.length > 0 ? normalized.buffer : input.buffer;
+  const mimeType =
+    normalized.buffer.length > 0 ? normalized.mimeType : declaredMime;
+  if (buffer.length === 0) {
+    throw new Error(`Receipt "${input.name || "file"}" is empty.`);
+  }
+  return {
+    fileName: input.name || `receipt-${randomUUID()}`,
+    buffer,
+    mimeType,
+  };
+}
+
 export async function saveReceiptInputs(
   reimbursementId: string,
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
   if (process.env.VERCEL) {
+    const useBlob = receiptBlobStorageEnabled();
     return Promise.all(
       inputs.map(async (input) => {
-        const declaredMime =
-          inferReceiptMimeType({ type: input.type, name: input.name }) ||
-          "application/octet-stream";
-        const normalized = await normalizeReceiptImageBuffer(
-          input.buffer,
-          declaredMime,
-        );
-        const base64 = normalized.buffer.toString("base64");
+        const normalized = await normalizeReceiptInput(input);
+        const filePath = useBlob
+          ? await storeReceiptBlob({
+              reimbursementId,
+              fileName: normalized.fileName,
+              buffer: normalized.buffer,
+              mimeType: normalized.mimeType,
+            })
+          : `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
         return {
-          filePath: `data:${normalized.mimeType};base64,${base64}`,
-          fileName: input.name || `receipt-${randomUUID()}`,
+          filePath,
+          fileName: normalized.fileName,
           mimeType: normalized.mimeType,
           sizeBytes: normalized.buffer.length,
         };
@@ -131,13 +160,7 @@ export async function saveReceiptInputs(
 
   return Promise.all(
     inputs.map(async (input) => {
-      const declaredMime =
-        inferReceiptMimeType({ type: input.type, name: input.name }) ||
-        "application/octet-stream";
-      const normalized = await normalizeReceiptImageBuffer(
-        input.buffer,
-        declaredMime,
-      );
+      const normalized = await normalizeReceiptInput(input);
       const ext =
         EXT_BY_MIME[normalized.mimeType] ?? (path.extname(input.name) || ".bin");
       const storedName = `${randomUUID()}${ext}`;
@@ -145,10 +168,20 @@ export async function saveReceiptInputs(
       await writeFile(absolutePath, normalized.buffer);
       return {
         filePath: `/uploads/receipts/${reimbursementId}/${storedName}`,
-        fileName: input.name || storedName,
+        fileName: normalized.fileName,
         mimeType: normalized.mimeType,
         sizeBytes: normalized.buffer.length,
       };
+    }),
+  );
+}
+
+export async function deleteStoredReceiptFiles(filePaths: string[]) {
+  await Promise.all(
+    filePaths.map(async (filePath) => {
+      if (filePath.startsWith("blob:") || filePath.includes(".blob.vercel-storage.com/")) {
+        await deleteReceiptBlob(filePath);
+      }
     }),
   );
 }

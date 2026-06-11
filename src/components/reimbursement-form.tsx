@@ -101,6 +101,7 @@ export function ReimbursementForm(props: {
   const [error, setError] = useState<string | null>(null);
   const { user: meUser } = useMe();
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function applyBootstrap(data: FormBootstrap) {
     setCategories(data.categories);
@@ -185,42 +186,7 @@ export function ReimbursementForm(props: {
     });
   }
 
-  function runBackgroundSubmit(input: {
-    formData: FormData;
-    url: string;
-    method: string;
-    tempId?: string;
-  }) {
-    void (async () => {
-      try {
-        const response = await fetch(input.url, {
-          method: input.method,
-          body: input.formData,
-          keepalive: true,
-        });
-        await readJson<{ id: string }>(response);
-
-        if (input.tempId && meUser?.id) {
-          resolvePendingClaimSubmit(meUser.id, input.tempId);
-        }
-        if (meUser?.id) {
-          void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
-        }
-      } catch (err) {
-        if (input.tempId && meUser?.id) {
-          failPendingClaimSubmit(
-            meUser.id,
-            input.tempId,
-            err instanceof Error
-              ? err.message
-              : "Could not save claim. Check your details and try again.",
-          );
-        }
-      }
-    })();
-  }
-
-  function submitClaimInstantly() {
+  async function submitClaimInstantly() {
     const parsedAmount = Number.parseFloat(amount);
     const formData = buildClaimFormData({
       amount: parsedAmount,
@@ -259,12 +225,43 @@ export function ReimbursementForm(props: {
       prependOptimisticClaimToCache(meUser.id, pending);
     }
 
-    navigateAfterSubmit();
-    runBackgroundSubmit({ formData, url, method, tempId });
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(url, {
+        method,
+        body: formData,
+      });
+      await readJson<{ id: string }>(response);
+
+      if (tempId && meUser?.id) {
+        resolvePendingClaimSubmit(meUser.id, tempId);
+      }
+      if (meUser?.id) {
+        void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+      }
+      navigateAfterSubmit();
+    } catch (err) {
+      if (tempId && meUser?.id) {
+        failPendingClaimSubmit(
+          meUser.id,
+          tempId,
+          err instanceof Error
+            ? err.message
+            : "Could not save claim. Check your details and try again.",
+        );
+      }
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not save claim. Check your details and try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function submitClaim() {
-    submitClaimInstantly();
+    await submitClaimInstantly();
   }
 
   const receiptsStillProcessing = receipts.some((item) => item.processing);
@@ -405,10 +402,11 @@ export function ReimbursementForm(props: {
           missingBranch ||
           blockedFromSubmit ||
           categories.length === 0 ||
-          receiptsStillProcessing
+          receiptsStillProcessing ||
+          isSubmitting
         }
       >
-        {props.submitLabel}
+        {isSubmitting ? "Submitting…" : props.submitLabel}
       </Button>
     </form>
 

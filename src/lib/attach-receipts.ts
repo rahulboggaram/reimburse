@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import {
   deleteReceiptFilesForClaim,
+  deleteStoredReceiptFiles,
   saveReceiptFiles,
   saveReceiptInputs,
   validateReceiptFiles,
@@ -19,9 +20,17 @@ export async function replaceClaimReceiptsFromInputs(
   const validationError = validateReceiptInputs(inputs);
   if (validationError) return validationError;
 
+  const existingReceipts = await prisma.reimbursementReceipt.findMany({
+    where: { reimbursementId },
+    select: { filePath: true },
+  });
+
   await prisma.reimbursementReceipt.deleteMany({
     where: { reimbursementId },
   });
+  await deleteStoredReceiptFiles(
+    existingReceipts.map((receipt) => receipt.filePath),
+  );
   await deleteReceiptFilesForClaim(reimbursementId);
 
   const saved = await saveReceiptInputs(reimbursementId, inputs);
