@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ApprovalsTableHeader,
   ApprovalsTableRow,
@@ -18,6 +18,10 @@ import {
   invalidateAdminClaims,
 } from "@/lib/admin-fetch";
 import { useCachedQuery } from "@/lib/use-cached-query";
+import {
+  collectPayoutRefreshClaimIds,
+  usePayoutWatchPolling,
+} from "@/lib/use-payout-watch-polling";
 
 type EmployeeOption = {
   id: string;
@@ -41,6 +45,22 @@ export default function AdminClaimsPage() {
   const claims = claimsData ?? [];
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
   const [selected, setSelected] = useState<AdminClaim | null>(null);
+
+  const refreshClaims = useCallback(async () => {
+    invalidateAdminClaims();
+    const list = await fetchAdminClaims<AdminClaim[]>();
+    setClaims(list);
+  }, [setClaims]);
+
+  const payoutRefreshIds = useMemo(
+    () => collectPayoutRefreshClaimIds(claims),
+    [claims],
+  );
+
+  usePayoutWatchPolling({
+    claimIds: payoutRefreshIds,
+    onTick: refreshClaims,
+  });
 
   const filtered = useMemo(() => {
     const list = filterEmployeeId
@@ -99,11 +119,7 @@ export default function AdminClaimsPage() {
         open={selected !== null}
         onClose={() => setSelected(null)}
         variant="admin"
-        onUpdated={async () => {
-          invalidateAdminClaims();
-          const list = await fetchAdminClaims<AdminClaim[]>();
-          setClaims(list);
-        }}
+        onUpdated={refreshClaims}
       />
     </>
   );

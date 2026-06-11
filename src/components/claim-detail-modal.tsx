@@ -17,6 +17,12 @@ import {
   canInitiateClaimPayment,
   payoutInProgress,
 } from "@/lib/claim-display-status";
+import {
+  claimNeedsPayoutStatusRefresh,
+  readPayoutWatchIds,
+  refreshClaimPayoutFromServer,
+  registerPayoutWatch,
+} from "@/lib/payout-sync-client";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { canDecideReimbursement } from "@/lib/claim-decide-access";
 
@@ -169,31 +175,48 @@ export function ClaimDetailModal(props: {
     if (!props.open || !props.claim) return;
 
     const current = detailClaim ?? props.claim;
+    const watchActive = readPayoutWatchIds().includes(current.id);
     const payoutUnsettled =
-      Boolean(current.razorpayPayoutId) &&
-      current.status !== "PAID" &&
-      !current.paidAt;
+      watchActive ||
+      claimNeedsPayoutStatusRefresh(current) ||
+      (current.status === "APPROVED" &&
+        !current.paidAt &&
+        Boolean(current.payoutInitiatedAt) &&
+        !payoutFailed(current.payoutStatus));
     if (!payoutUnsettled) return;
 
+    let cancelled = false;
+
     function pollPayoutStatus() {
-      fetch(`/api/claims/${current.id}`, { cache: "no-store" })
-        .then((res) => readJson<SerializedClaim>(res))
-        .then((data) => {
+      void refreshClaimPayoutFromServer(current.id, props.variant).then(
+        (data) => {
+          if (cancelled || !data) return;
           cacheClaimDetail(data);
           setDetailClaim(data);
-        })
-        .catch(() => {});
+          if (data.status === "PAID" || data.paidAt) {
+            void props.onUpdated?.();
+          }
+        },
+      );
     }
 
-    const interval = window.setInterval(pollPayoutStatus, 20_000);
-    return () => window.clearInterval(interval);
+    pollPayoutStatus();
+    const interval = window.setInterval(pollPayoutStatus, 4_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [
     props.open,
     props.claim,
+    props.variant,
     detailClaim?.id,
     detailClaim?.paidAt,
     detailClaim?.status,
     detailClaim?.razorpayPayoutId,
+    detailClaim?.payoutStatus,
+    detailClaim?.payoutInitiatedAt,
+    props.onUpdated,
   ]);
 
   useEffect(() => {
@@ -241,6 +264,7 @@ export function ClaimDetailModal(props: {
   function payClaim() {
     setError(null);
     const claimId = claim.id;
+    registerPayoutWatch(claimId, props.variant);
     props.onInstantAction?.({ claimId, action: "pay" });
     props.onClose();
 
@@ -282,6 +306,9 @@ export function ClaimDetailModal(props: {
 
     const claimId = claim.id;
     const action = status === "APPROVED" ? "approve" : "reject";
+    if (status === "APPROVED") {
+      registerPayoutWatch(claimId, props.variant);
+    }
     props.onInstantAction?.({ claimId, action });
     props.onClose();
 

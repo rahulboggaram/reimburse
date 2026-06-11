@@ -12,6 +12,7 @@ import {
   approverPaymentWaitingWhere,
   orgPaymentWaitingWhere,
 } from "@/lib/claim-payment-queue";
+import { claimNeedsPayoutSync, queuePayoutSync } from "@/lib/payouts";
 
 type QueueTab = "waiting" | "approved";
 
@@ -87,6 +88,8 @@ export async function GET(request: Request) {
       take: LIST_LIMIT,
       include: claimPendingListInclude,
     });
+
+    queuePayoutSync(claims.filter(claimNeedsPayoutSync).map((c) => c.id));
 
     const serialized = claims.map((claim) => {
       try {

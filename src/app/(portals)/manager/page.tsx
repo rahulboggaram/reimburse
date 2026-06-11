@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApprovalsEmptyState } from "@/components/approvals-empty-state";
 import {
   ApprovalsTableHeader,
@@ -22,6 +22,11 @@ import {
   writeClientCache,
 } from "@/lib/client-cache";
 import type { ClaimInstantAction } from "@/components/claim-detail-modal";
+import { registerPayoutWatches } from "@/lib/payout-sync-client";
+import {
+  collectPayoutRefreshClaimIds,
+  usePayoutWatchPolling,
+} from "@/lib/use-payout-watch-polling";
 
 type ActionCounts = {
   paymentWaiting: number;
@@ -177,6 +182,12 @@ export default function ManagerPendingPage() {
     action: ClaimInstantAction;
   }) {
     removeClaimsFromQueue([input.claimId]);
+    if (input.action === "approve" || input.action === "pay") {
+      registerPayoutWatches(
+        [input.claimId],
+        isAdmin ? "admin" : "approver",
+      );
+    }
     if (input.action === "approve") {
       setBulkMessage("Approved. Payment continues in the background.");
     } else if (input.action === "pay") {
@@ -185,6 +196,16 @@ export default function ManagerPendingPage() {
       setBulkMessage("Claim rejected.");
     }
   }
+
+  const payoutRefreshIds = useMemo(
+    () => collectPayoutRefreshClaimIds(claims),
+    [claims],
+  );
+
+  usePayoutWatchPolling({
+    claimIds: payoutRefreshIds,
+    onTick: () => refreshQueue({ silent: true }),
+  });
 
   const hasApprovableInQueue = claims.some((claim) =>
     isAdminApprovalQueueClaim({
@@ -328,6 +349,12 @@ export default function ManagerPendingPage() {
 
     const processingIds = [...claimIds];
     removeClaimsFromQueue(processingIds);
+    if (endpoint.includes("bulk-pay") || endpoint.includes("bulk-approve")) {
+      registerPayoutWatches(
+        processingIds,
+        isAdmin ? "admin" : "approver",
+      );
+    }
 
     const isPay = endpoint.includes("bulk-pay");
     setBulkMessage(

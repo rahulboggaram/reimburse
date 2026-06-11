@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
@@ -21,6 +21,10 @@ import {
   readPendingClaimSubmits,
   subscribePendingClaims,
 } from "@/lib/pending-claim-submit";
+import {
+  collectPayoutRefreshClaimIds,
+  usePayoutWatchPolling,
+} from "@/lib/use-payout-watch-polling";
 
 function MyClaimsLoadingSkeleton() {
   return (
@@ -113,6 +117,16 @@ export default function MyClaimsPage() {
       void loadClaims(true);
     });
   }, [user?.id, syncClaimsView, loadClaims]);
+
+  const payoutRefreshIds = useMemo(
+    () => collectPayoutRefreshClaimIds(claims),
+    [claims],
+  );
+
+  usePayoutWatchPolling({
+    claimIds: payoutRefreshIds,
+    onTick: () => loadClaims(true),
+  });
 
   function handleCloseDetail() {
     if (

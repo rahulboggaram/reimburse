@@ -200,7 +200,7 @@ export async function refreshPayoutsFromRazorpay(claimIds: string[]) {
   );
 }
 
-const payoutSyncCooldownMs = 60_000;
+const payoutSyncCooldownMs = 8_000;
 const payoutSyncLastRun = new Map<string, number>();
 
 /** Refresh payout status in the background — never block list/login APIs on Razorpay. */
