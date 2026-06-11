@@ -2,13 +2,16 @@ import { mkdir, writeFile, rm } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 
-import { MAX_RECEIPTS } from "@/lib/receipt-limits";
+import {
+  isReceiptFileTooLarge,
+  MAX_RECEIPTS,
+  receiptFileSizeError,
+} from "@/lib/receipt-limits";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { bufferToDataUrl } from "@/lib/receipt-store";
 
-const MAX_BYTES = 5 * 1024 * 1024;
 /** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
 const MAX_TOTAL_UPLOAD_BYTES = 3_500_000;
 
@@ -60,8 +63,8 @@ export function validateReceiptFiles(files: File[]): string | null {
     if (!ALLOWED_MIME.has(mimeType)) {
       return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
     }
-    if (file.size > MAX_BYTES) {
-      return "Each file must be 5 MB or smaller.";
+    if (isReceiptFileTooLarge(file.size)) {
+      return receiptFileSizeError();
     }
   }
   return null;
@@ -83,8 +86,8 @@ export function validateReceiptInputs(inputs: ReceiptInput[]): string | null {
     if (!ALLOWED_MIME.has(mimeType)) {
       return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
     }
-    if (input.size > MAX_BYTES) {
-      return "Each file must be 5 MB or smaller.";
+    if (isReceiptFileTooLarge(input.size)) {
+      return receiptFileSizeError();
     }
   }
   return null;

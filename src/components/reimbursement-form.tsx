@@ -27,6 +27,10 @@ import {
 import { fetchMyClaims } from "@/lib/fetch-own-claims";
 import { stashLocalReceiptPreviews } from "@/lib/local-receipt-previews";
 import {
+  isReceiptFileTooLarge,
+  receiptFileSizeError,
+} from "@/lib/receipt-limits";
+import {
   failPendingClaimSubmit,
   prependOptimisticClaimToCache,
   registerPendingClaimSubmit,
@@ -173,6 +177,8 @@ export function ReimbursementForm(props: {
       errors.receipts = "Add at least one receipt photo.";
     } else if (receipts.some((item) => item.processing)) {
       errors.receipts = "Wait a moment — photos are still being optimized.";
+    } else if (receipts.some((item) => isReceiptFileTooLarge(item.file.size))) {
+      errors.receipts = receiptFileSizeError();
     } else {
       const totalBytes = receipts.reduce((sum, item) => sum + item.file.size, 0);
       if (totalBytes > 3_500_000) {

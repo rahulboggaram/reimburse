@@ -3,7 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { compressReceiptFile } from "@/lib/compress-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
-import { MAX_RECEIPTS } from "@/lib/receipt-limits";
+import {
+  isReceiptFileTooLarge,
+  MAX_RECEIPTS,
+  receiptFileSizeError,
+} from "@/lib/receipt-limits";
 import { cn } from "@/lib/utils";
 
 export type ReceiptFileItem = {
@@ -199,6 +203,12 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
       return;
     }
 
+    const oversized = incoming.find((file) => isReceiptFileTooLarge(file.size));
+    if (oversized) {
+      setLocalError(receiptFileSizeError());
+      return;
+    }
+
     const added: ReceiptFileItem[] = incoming.map((file) => ({
       id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
       file,
@@ -225,7 +235,10 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-base font-medium text-zinc-500">Receipt Photos</p>
+      <p className="text-base font-medium text-zinc-500">
+        Receipt Photos{" "}
+        <span className="font-normal text-zinc-400">(max 4 MB each)</span>
+      </p>
 
       <div className="flex flex-col">
         <div className="grid grid-cols-2 gap-3">
