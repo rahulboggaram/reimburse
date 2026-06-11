@@ -12,6 +12,8 @@ import {
   validateReceiptFiles,
 } from "@/lib/receipt-files";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const session = await requireCanSubmitReimbursement();
@@ -97,9 +99,10 @@ export async function POST(request: Request) {
     return Response.json({ id: claim.id }, { status: 201 });
   } catch (err) {
     console.error("create-claim failed", err);
-    return Response.json(
-      { error: "Server error while saving reimbursement. Please try again." },
-      { status: 500 },
-    );
+    const message =
+      err instanceof Error && err.message.includes("too large")
+        ? err.message
+        : "Server error while saving reimbursement. Please try again.";
+    return Response.json({ error: message }, { status: 500 });
   }
 }

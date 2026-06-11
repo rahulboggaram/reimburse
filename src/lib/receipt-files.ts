@@ -9,6 +9,8 @@ import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { bufferToDataUrl } from "@/lib/receipt-store";
 
 const MAX_BYTES = 5 * 1024 * 1024;
+/** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
+const MAX_TOTAL_UPLOAD_BYTES = 3_500_000;
 
 const ALLOWED_MIME = new Set([
   "image/jpeg",
@@ -49,6 +51,10 @@ export function validateReceiptFiles(files: File[]): string | null {
   if (files.length > MAX_RECEIPTS) {
     return `You can attach up to ${MAX_RECEIPTS} photos.`;
   }
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
+    return "Total photo size is too large. Use fewer or smaller photos.";
+  }
   for (const file of files) {
     const mimeType = inferReceiptMimeType(file);
     if (!ALLOWED_MIME.has(mimeType)) {
@@ -67,6 +73,10 @@ export function validateReceiptInputs(inputs: ReceiptInput[]): string | null {
   }
   if (inputs.length > MAX_RECEIPTS) {
     return `You can attach up to ${MAX_RECEIPTS} photos.`;
+  }
+  const totalBytes = inputs.reduce((sum, input) => sum + input.size, 0);
+  if (totalBytes > MAX_TOTAL_UPLOAD_BYTES) {
+    return "Total photo size is too large. Use fewer or smaller photos.";
   }
   for (const input of inputs) {
     const mimeType = inferReceiptMimeType({ type: input.type, name: input.name });
@@ -126,6 +136,11 @@ export async function saveReceiptInputs(
     return Promise.all(
       inputs.map(async (input) => {
         const normalized = await normalizeReceiptInput(input);
+        if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
+          throw new Error(
+            "Photo is too large after compression. Try a smaller image.",
+          );
+        }
         const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
         return {
           filePath,

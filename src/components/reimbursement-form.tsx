@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -172,6 +173,12 @@ export function ReimbursementForm(props: {
       errors.receipts = "Add at least one receipt photo.";
     } else if (receipts.some((item) => item.processing)) {
       errors.receipts = "Wait a moment — photos are still being optimized.";
+    } else {
+      const totalBytes = receipts.reduce((sum, item) => sum + item.file.size, 0);
+      if (totalBytes > 3_500_000) {
+        errors.receipts =
+          "Total photo size is too large. Use fewer or smaller photos.";
+      }
     }
 
     return errors;
@@ -411,7 +418,7 @@ export function ReimbursementForm(props: {
           isSubmitting
         }
       >
-        {isSubmitting ? "Submitting…" : props.submitLabel}
+        {isSubmitting ? <LoadingText>Submitting</LoadingText> : props.submitLabel}
       </Button>
     </form>
 
@@ -435,12 +442,17 @@ export function ReimbursementForm(props: {
             type="button"
             size="lg"
             className="w-full"
+            disabled={isSubmitting}
             onClick={() => {
               setAdminConfirmOpen(false);
-              submitClaimInstantly();
+              void submitClaimInstantly();
             }}
           >
-            Yes, submit and pay now
+            {isSubmitting ? (
+              <LoadingText>Submitting</LoadingText>
+            ) : (
+              "Yes, submit and pay now"
+            )}
           </Button>
           <Button
             type="button"

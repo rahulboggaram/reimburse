@@ -2,6 +2,8 @@ import { isReceiptImageMime } from "@/lib/receipt-mime";
 
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 82;
+/** Keep DB rows small enough for Vercel request limits and fast loads. */
+const MAX_STORED_BYTES = 750_000;
 
 let sharpLoadFailed = false;
 
@@ -46,7 +48,25 @@ export async function normalizeReceiptImageBuffer(
       },
     );
 
-    const output = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
+    let quality = JPEG_QUALITY;
+    let output = await pipeline.jpeg({ quality }).toBuffer();
+    while (output.length > MAX_STORED_BYTES && quality > 48) {
+      quality -= 12;
+      output = await sharp(buffer, { failOn: "none" })
+        .rotate()
+        .resize(MAX_DIMENSION, MAX_DIMENSION, {
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality })
+        .toBuffer();
+    }
+
+    if (output.length > MAX_STORED_BYTES) {
+      throw new Error(
+        "Photo is too large after compression. Try a smaller image.",
+      );
+    }
 
     return { buffer: output, mimeType: "image/jpeg" };
   } catch (err) {

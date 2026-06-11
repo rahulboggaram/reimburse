@@ -12,10 +12,13 @@ import {
   validateReceiptFiles,
 } from "@/lib/receipt-files";
 
+export const maxDuration = 60;
+
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  try {
   const { id } = await context.params;
   const session = await requireCanSubmitReimbursement();
   if (session instanceof Response) return session;
@@ -106,4 +109,12 @@ export async function PATCH(
   }
 
   return Response.json({ id });
+  } catch (err) {
+    console.error("refile-claim failed", err);
+    const message =
+      err instanceof Error && err.message.includes("too large")
+        ? err.message
+        : "Server error while saving reimbursement. Please try again.";
+    return Response.json({ error: message }, { status: 500 });
+  }
 }

@@ -1,3 +1,4 @@
+import { LoadingDots } from "@/components/ui/loading-dots";
 import { cn } from "@/lib/utils";
 
 const labels: Record<string, string> = {
@@ -48,6 +49,7 @@ export function StatusBadge(props: {
     labels[raw] ?? raw.replace(/_/g, " ").toLowerCase();
   const useCapitalize = !labels[raw];
   const compact = props.compact === true;
+  const showLoadingDots = raw === "submitting";
 
   return (
     <span
@@ -62,7 +64,14 @@ export function StatusBadge(props: {
         props.className,
       )}
     >
-      {label}
+      {showLoadingDots ? (
+        <span className="inline-flex items-center gap-1.5">
+          <span>{label}</span>
+          <LoadingDots />
+        </span>
+      ) : (
+        label
+      )}
     </span>
   );
 }

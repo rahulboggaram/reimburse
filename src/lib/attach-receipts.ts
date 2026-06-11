@@ -9,6 +9,14 @@ import {
   validateReceiptInputs,
 } from "@/lib/receipt-files";
 
+function receiptSaveErrorMessage(err: unknown) {
+  if (err instanceof Error) {
+    if (err.message.includes("too large")) return err.message;
+    if (err.message.includes("empty")) return err.message;
+  }
+  return "Could not save receipt photos. Try smaller images and submit again.";
+}
+
 export async function replaceClaimReceiptsFromInputs(
   reimbursementId: string,
   inputs: ReceiptInput[],
@@ -25,26 +33,40 @@ export async function replaceClaimReceiptsFromInputs(
     select: { filePath: true },
   });
 
-  await prisma.reimbursementReceipt.deleteMany({
-    where: { reimbursementId },
-  });
+  let saved;
+  try {
+    saved = await saveReceiptInputs(reimbursementId, inputs);
+  } catch (err) {
+    console.error("receipt save failed", { reimbursementId, err });
+    return receiptSaveErrorMessage(err);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.reimbursementReceipt.deleteMany({
+        where: { reimbursementId },
+      });
+      for (const file of saved) {
+        await tx.reimbursementReceipt.create({
+          data: {
+            reimbursementId,
+            filePath: file.filePath,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
+          },
+        });
+      }
+    });
+  } catch (err) {
+    console.error("receipt database write failed", { reimbursementId, err });
+    return receiptSaveErrorMessage(err);
+  }
+
   await deleteStoredReceiptFiles(
     existingReceipts.map((receipt) => receipt.filePath),
   );
   await deleteReceiptFilesForClaim(reimbursementId);
-
-  const saved = await saveReceiptInputs(reimbursementId, inputs);
-  if (saved.length > 0) {
-    await prisma.reimbursementReceipt.createMany({
-      data: saved.map((file) => ({
-        reimbursementId,
-        filePath: file.filePath,
-        fileName: file.fileName,
-        mimeType: file.mimeType,
-        sizeBytes: file.sizeBytes,
-      })),
-    });
-  }
 
   return null;
 }
