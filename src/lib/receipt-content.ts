@@ -78,10 +78,22 @@ export async function receiptFileResponse(
         return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
       }
 
-      return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
+      console.error("receipt blob not found", {
+        filePath: filePath.slice(0, 120),
+      });
+      return Response.json(
+        {
+          error:
+            "Receipt file is missing from storage. Submit a new claim with the photo, or refile this one.",
+        },
+        { status: 404 },
+      );
     } catch (err) {
       console.error("receipt blob read failed", { filePath: filePath.slice(0, 80), err });
-      return Response.json({ error: "Receipt unavailable" }, { status: 500 });
+      return Response.json(
+        { error: "Could not load receipt from storage. Try again in a moment." },
+        { status: 500 },
+      );
     }
   }
 

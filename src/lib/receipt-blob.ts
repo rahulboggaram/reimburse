@@ -10,10 +10,31 @@ export function receiptBlobStorageEnabled() {
   return false;
 }
 
+function blobConnectionOptions() {
+  const options: {
+    token?: string;
+    storeId?: string;
+  } = {};
+  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  const storeId = process.env.BLOB_STORE_ID?.trim();
+  if (token) options.token = token;
+  if (storeId) options.storeId = storeId;
+  return options;
+}
+
 function putOptions(contentType: string) {
   return {
     access: "private" as const,
     contentType,
+    ...blobConnectionOptions(),
+  };
+}
+
+function getOptions() {
+  return {
+    access: "private" as const,
+    useCache: false as const,
+    ...blobConnectionOptions(),
   };
 }
 
@@ -94,7 +115,7 @@ export async function openReceiptBlobStream(
 
   for (const target of targets) {
     try {
-      const result = await get(target, { access: "private", useCache: false });
+      const result = await get(target, getOptions());
       if (!result || result.statusCode !== 200 || !result.stream) continue;
       return {
         stream: result.stream,
@@ -144,7 +165,10 @@ export async function storeReceiptBlob(input: {
 }): Promise<string> {
   const pathname = `receipts/${input.reimbursementId}/${randomUUID()}-${sanitizeFileName(input.fileName)}`;
   const blob = await put(pathname, input.buffer, putOptions(input.mimeType));
-  // Store pathname — stable across stores; full URL also works when reading.
+  // Full URL is the most reliable reference for private blob reads.
+  if (blob.url?.includes(".blob.vercel-storage.com/")) {
+    return blob.url;
+  }
   return `${BLOB_PREFIX}${blob.pathname}`;
 }
 

@@ -25,10 +25,7 @@ import {
 } from "@/lib/payout-sync-client";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { canDecideReimbursement } from "@/lib/claim-decide-access";
-import {
-  clearLocalReceiptPreviews,
-  readLocalReceiptPreviews,
-} from "@/lib/local-receipt-previews";
+import { readLocalReceiptPreviews } from "@/lib/local-receipt-previews";
 
 function payoutFailed(status: string | null) {
   return (
@@ -270,13 +267,22 @@ export function ClaimDetailModal(props: {
 
   const localReceiptPreviews = useMemo(
     () =>
-      resolvedClaim ? readLocalReceiptPreviews(resolvedClaim.id) ?? [] : [],
-    [resolvedClaim?.id],
+      resolvedClaim && props.open
+        ? readLocalReceiptPreviews(resolvedClaim.id) ?? []
+        : [],
+    [resolvedClaim?.id, props.open],
   );
 
   const galleryReceipts = useMemo(() => {
     if (!resolvedClaim) return [];
-    if (resolvedClaim.receipts.length > 0) return resolvedClaim.receipts;
+
+    if (resolvedClaim.receipts.length > 0) {
+      return resolvedClaim.receipts.map((receipt, index) => ({
+        ...receipt,
+        previewFallbackUrl: localReceiptPreviews[index]?.url,
+      }));
+    }
+
     return localReceiptPreviews.map((preview, index) => ({
       id: `local-${resolvedClaim.id}-${index}`,
       url: preview.url,
@@ -284,13 +290,6 @@ export function ClaimDetailModal(props: {
       mimeType: preview.mimeType,
     }));
   }, [resolvedClaim, localReceiptPreviews]);
-
-  useEffect(() => {
-    if (!props.open || !resolvedClaim || !claimReceiptsReady(resolvedClaim)) {
-      return;
-    }
-    clearLocalReceiptPreviews(resolvedClaim.id);
-  }, [props.open, resolvedClaim]);
 
   if (!props.claim) return null;
 

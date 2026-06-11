@@ -13,18 +13,40 @@ function storageKey(claimId: string) {
   return `${KEY_PREFIX}${claimId}`;
 }
 
-export function stashLocalReceiptPreviews(
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Keep a copy of picked photos as data URLs (blob: URLs die when the form unmounts). */
+export async function stashLocalReceiptPreviews(
   claimId: string,
   items: { previewUrl: string; file: File }[],
 ) {
   if (typeof window === "undefined" || items.length === 0) return;
   try {
-    const rows: StoredRow[] = items.map((item) => ({
-      url: item.previewUrl,
-      mimeType: item.file.type || "image/jpeg",
-      fileName: item.file.name || null,
-      savedAt: Date.now(),
-    }));
+    const rows: StoredRow[] = await Promise.all(
+      items.map(async (item) => {
+        let url = item.previewUrl;
+        if (item.file.type.startsWith("image/")) {
+          try {
+            url = await fileToDataUrl(item.file);
+          } catch {
+            // keep previewUrl if conversion fails
+          }
+        }
+        return {
+          url,
+          mimeType: item.file.type || "image/jpeg",
+          fileName: item.file.name || null,
+          savedAt: Date.now(),
+        };
+      }),
+    );
     sessionStorage.setItem(storageKey(claimId), JSON.stringify(rows));
   } catch {
     // ignore quota errors

@@ -13,6 +13,7 @@ type Receipt = {
   url: string;
   fileName: string | null;
   mimeType: string;
+  previewFallbackUrl?: string;
 };
 
 function isDirectPreviewUrl(url: string) {
@@ -55,12 +56,18 @@ function ReceiptLightbox(props: {
     void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 6 })
       .then((result) => {
         if (cancelled) return;
-        if ("error" in result) {
-          setFailed(true);
-          setErrorMessage(result.message);
-          return;
-        }
-        if (!result.url) {
+        if ("error" in result || !result.url) {
+          const fallback = props.receipt.previewFallbackUrl;
+          if (fallback && isDirectPreviewUrl(fallback)) {
+            setPreviewUrl(fallback);
+            setFailed(false);
+            return;
+          }
+          if ("error" in result) {
+            setFailed(true);
+            setErrorMessage(result.message);
+            return;
+          }
           setFailed(true);
           setErrorMessage("Receipt photo is still loading. Try again in a moment.");
           return;
@@ -81,7 +88,7 @@ function ReceiptLightbox(props: {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [props.receipt.id, props.receipt.url]);
+  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl]);
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
@@ -193,6 +200,13 @@ function AuthenticatedReceiptImage(props: {
       .then((result) => {
         if (cancelled) return;
         if ("error" in result || !result.url) {
+          const fallback = props.receipt.previewFallbackUrl;
+          if (fallback && isDirectPreviewUrl(fallback)) {
+            setPreviewUrl(fallback);
+            setStatus("ready");
+            onStatusChangeRef.current?.("ready");
+            return;
+          }
           setStatus("error");
           onStatusChangeRef.current?.("error");
           return;
@@ -214,7 +228,7 @@ function AuthenticatedReceiptImage(props: {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [props.receipt.id, props.receipt.url]);
+  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl]);
 
   if (status === "error") {
     return (

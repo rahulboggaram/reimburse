@@ -235,7 +235,7 @@ export function ReimbursementForm(props: {
       const created = await readJson<{ id: string }>(response);
 
       if (created.id && receipts.length > 0) {
-        stashLocalReceiptPreviews(created.id, receipts);
+        await stashLocalReceiptPreviews(created.id, receipts);
       }
 
       if (tempId && meUser?.id) {
