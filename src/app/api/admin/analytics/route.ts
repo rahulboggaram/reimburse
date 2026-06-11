@@ -1,6 +1,8 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { getAdminAnalytics } from "@/lib/admin-analytics";
 
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   const session = await requireAdminAccess();
   if (session instanceof Response) return session;

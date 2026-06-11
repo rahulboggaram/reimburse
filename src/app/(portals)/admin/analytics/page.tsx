@@ -95,9 +95,16 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          Could not load insights. Please try again.
-        </p>
+        <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p>Could not load insights. Please try again.</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="font-medium text-red-900 underline"
+          >
+            Refresh page
+          </button>
+        </div>
       ) : loading && !data ? (
         <p className="text-sm text-zinc-500">Loading insights…</p>
       ) : data ? (

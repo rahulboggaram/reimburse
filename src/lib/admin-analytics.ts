@@ -93,24 +93,15 @@ export async function getAdminAnalytics(
   const claimFilter = claimCreatedSinceFilter(since);
   const activityFilter = activityCreatedSinceFilter(since);
   const chartKeys = keys.filter((date) => new Date(`${date}T00:00:00.000Z`) >= since);
+  const emptyDay = (date: string): AnalyticsDayPoint => ({
+    date,
+    claims: 0,
+    claimAmount: 0,
+    logins: 0,
+  });
 
-  const [
-    usersTotal,
-    usersActive,
-    usersNew,
-    usersByRole,
-    claimsTotal,
-    claimsSubmittedCount,
-    pendingNow,
-    statusInPeriod,
-    amountSubmitted,
-    amountPaid,
-    loginEvents,
-    claimsInPeriod,
-    topCategories,
-    topBranches,
-    topSubmitters,
-  ] = await Promise.all([
+  // Run in small batches — Supabase pooler + serverless chokes on 15 parallel queries.
+  const [usersTotal, usersActive, usersNew, usersByRole] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { active: true } }),
     prisma.user.count({ where: { createdAt: { gte: since } } }),
@@ -119,45 +110,53 @@ export async function getAdminAnalytics(
       where: { active: true },
       _count: { _all: true },
     }),
-    prisma.reimbursement.count({ where: claimCreatedSinceFilter() }),
-    prisma.reimbursement.count({ where: claimFilter }),
-    prisma.reimbursement.count({
-      where: { status: "PENDING", ...claimCreatedSinceFilter() },
-    }),
-    prisma.reimbursement.groupBy({
-      by: ["status"],
-      where: claimFilter,
-      _count: { _all: true },
-    }),
-    prisma.reimbursement.aggregate({
-      where: claimFilter,
-      _sum: { amount: true },
-      _avg: { amount: true },
-    }),
-    prisma.reimbursement.aggregate({
-      where: {
-        paidAt: { gte: since },
-        ...claimCreatedSinceFilter(),
-      },
-      _sum: { amount: true },
-    }),
-    prisma.platformActivity.findMany({
-      where: { type: "USER_LOGIN", ...activityFilter },
-      select: { createdAt: true, actorId: true },
-    }),
-    prisma.reimbursement.findMany({
-      where: claimFilter,
-      select: {
-        createdAt: true,
-        amount: true,
-        employeeId: true,
-        employeeName: true,
-        status: true,
-        decidedAt: true,
-        category: true,
-        branch: { select: { name: true } },
-      },
-    }),
+  ]);
+
+  const [claimsTotal, claimsSubmittedCount, pendingNow, statusInPeriod] =
+    await Promise.all([
+      prisma.reimbursement.count({ where: claimCreatedSinceFilter() }),
+      prisma.reimbursement.count({ where: claimFilter }),
+      prisma.reimbursement.count({
+        where: { status: "PENDING", ...claimCreatedSinceFilter() },
+      }),
+      prisma.reimbursement.groupBy({
+        by: ["status"],
+        where: claimFilter,
+        _count: { _all: true },
+      }),
+    ]);
+
+  const [amountSubmitted, amountPaid, loginEvents, claimsInPeriod] =
+    await Promise.all([
+      prisma.reimbursement.aggregate({
+        where: claimFilter,
+        _sum: { amount: true },
+        _avg: { amount: true },
+      }),
+      prisma.reimbursement.aggregate({
+        where: {
+          paidAt: { gte: since },
+          ...claimCreatedSinceFilter(),
+        },
+        _sum: { amount: true },
+      }),
+      prisma.platformActivity.findMany({
+        where: { type: "USER_LOGIN", ...activityFilter },
+        select: { createdAt: true, actorId: true },
+      }),
+      prisma.reimbursement.findMany({
+        where: claimFilter,
+        select: {
+          createdAt: true,
+          amount: true,
+          employeeId: true,
+          status: true,
+          decidedAt: true,
+        },
+      }),
+    ]);
+
+  const [topCategories, topBranches, topSubmittersById] = await Promise.all([
     prisma.reimbursement.groupBy({
       by: ["category"],
       where: claimFilter,
@@ -175,7 +174,7 @@ export async function getAdminAnalytics(
       take: 6,
     }),
     prisma.reimbursement.groupBy({
-      by: ["employeeId", "employeeName"],
+      by: ["employeeId"],
       where: claimFilter,
       _count: { _all: true },
       _sum: { amount: true },
@@ -183,6 +182,26 @@ export async function getAdminAnalytics(
       take: 6,
     }),
   ]);
+
+  const submitterIds = topSubmittersById.map((row) => row.employeeId);
+  const submitterNameRows =
+    submitterIds.length > 0
+      ? await prisma.reimbursement.findMany({
+          where: { employeeId: { in: submitterIds } },
+          select: { employeeId: true, employeeName: true },
+          orderBy: { createdAt: "desc" },
+          distinct: ["employeeId"],
+        })
+      : [];
+  const submitterNameById = new Map(
+    submitterNameRows.map((row) => [row.employeeId, row.employeeName]),
+  );
+  const topSubmitters = topSubmittersById.map((row) => ({
+    employeeId: row.employeeId,
+    employeeName: submitterNameById.get(row.employeeId) ?? "Unknown",
+    _count: row._count,
+    _sum: row._sum,
+  }));
 
   const dayMap = new Map(
     chartKeys.map((date) => [
@@ -210,10 +229,10 @@ export async function getAdminAnalytics(
   const decisionDays: number[] = [];
   let decidedCount = 0;
   let approvedCount = 0;
-  const submitterIds = new Set<string>();
+  const uniqueSubmitterIds = new Set<string>();
 
   for (const claim of claimsInPeriod) {
-    submitterIds.add(claim.employeeId);
+    uniqueSubmitterIds.add(claim.employeeId);
     if (claim.decidedAt) {
       decidedCount += 1;
       const ms = claim.decidedAt.getTime() - claim.createdAt.getTime();
@@ -272,8 +291,8 @@ export async function getAdminAnalytics(
     usage: {
       loginsInPeriod: loginEvents.length,
       uniqueUsersLoggedIn: loginUserIds.size,
-      uniqueSubmittersInPeriod: submitterIds.size,
-      claimsPerDay: chartKeys.map((date) => dayMap.get(date)!),
+      uniqueSubmittersInPeriod: uniqueSubmitterIds.size,
+      claimsPerDay: chartKeys.map((date) => dayMap.get(date) ?? emptyDay(date)),
     },
     topCategories: topCategories.map((row) => ({
       label: row.category,
@@ -286,7 +305,7 @@ export async function getAdminAnalytics(
       amount: Number(row._sum.amount ?? 0),
     })),
     topSubmitters: topSubmitters.map((row) => ({
-      label: row.employeeName,
+      label: row.employeeName ?? "Unknown",
       count: row._count._all,
       amount: Number(row._sum.amount ?? 0),
     })),
