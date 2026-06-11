@@ -75,7 +75,7 @@ export async function GET(request: Request) {
 
   if (type === "reimbursements") {
     const claims = await prisma.reimbursement.findMany({
-      where: createdFilter ? { createdAt: createdFilter } : undefined,
+      where: { createdAt: createdFilter },
       orderBy: { createdAt: "desc" },
       include: {
         employee: { select: { phone: true } },
@@ -111,7 +111,7 @@ export async function GET(request: Request) {
 
   if (type === "activity") {
     const activities = await prisma.platformActivity.findMany({
-      where: createdFilter ? { createdAt: createdFilter } : undefined,
+      where: { createdAt: createdFilter },
       orderBy: { createdAt: "desc" },
       include: {
         actor: { select: { name: true, phone: true } },
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
     const activities = await prisma.platformActivity.findMany({
       where: {
         type: { in: [...PERMISSION_ACTIVITY_TYPES] },
-        ...(createdFilter ? { createdAt: createdFilter } : {}),
+        createdAt: createdFilter,
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -154,6 +154,7 @@ export async function GET(request: Request) {
 
   const [claims, payoutActivities] = await Promise.all([
     prisma.reimbursement.findMany({
+      where: { createdAt: createdFilter },
       orderBy: { createdAt: "desc" },
       include: {
         employee: { select: { phone: true } },
@@ -162,7 +163,7 @@ export async function GET(request: Request) {
     prisma.platformActivity.findMany({
       where: {
         type: { in: [...TRANSACTION_ACTIVITY_TYPES] },
-        ...(createdFilter ? { createdAt: createdFilter } : {}),
+        createdAt: createdFilter,
       },
       orderBy: { createdAt: "desc" },
       include: {

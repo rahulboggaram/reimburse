@@ -1,3 +1,5 @@
+import { PRODUCTION_GO_LIVE_AT } from "@/lib/production-go-live";
+
 export type ReportType =
   | "reimbursements"
   | "activity"
@@ -82,9 +84,17 @@ export function parseReportDateRange(input: {
 }
 
 export function createdAtFilter(range: DateRangeFilter) {
-  if (!range.from && !range.to) return undefined;
+  const from =
+    range.from && range.from > PRODUCTION_GO_LIVE_AT
+      ? range.from
+      : PRODUCTION_GO_LIVE_AT;
+
+  if (!range.from && !range.to) {
+    return { gte: from };
+  }
+
   return {
-    ...(range.from ? { gte: range.from } : {}),
+    gte: from,
     ...(range.to ? { lte: range.to } : {}),
   };
 }
@@ -93,6 +103,9 @@ export function defaultReportDates() {
   const to = new Date();
   const from = new Date();
   from.setDate(from.getDate() - 30);
+  if (from < PRODUCTION_GO_LIVE_AT) {
+    from.setTime(PRODUCTION_GO_LIVE_AT.getTime());
+  }
   return {
     from: from.toISOString().slice(0, 10),
     to: to.toISOString().slice(0, 10),

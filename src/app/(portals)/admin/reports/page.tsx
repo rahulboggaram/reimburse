@@ -81,7 +81,8 @@ export default function AdminReportsPage() {
           />
         </div>
         <p className="text-xs text-zinc-500">
-          Defaults to the last 30 days. Clear both dates to include all records.
+          Only includes data from 10 Jun 2026 onward (when Razorpay payouts went
+          live). Defaults to the last 30 days in that window.
         </p>
       </Card>
 

@@ -1,6 +1,11 @@
 import type { ReimbursementStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ROLE_LABELS } from "@/lib/access-roles";
+import {
+  activityCreatedSinceFilter,
+  claimCreatedSinceFilter,
+  productionDataSince,
+} from "@/lib/production-go-live";
 
 export type AnalyticsDayPoint = {
   date: string;
@@ -83,7 +88,11 @@ export async function getAdminAnalytics(
   rangeDays: number,
 ): Promise<AdminAnalytics> {
   const days = Math.min(Math.max(rangeDays, 7), 90);
-  const { since, keys } = buildDayRange(days);
+  const { since: rangeSince, keys } = buildDayRange(days);
+  const since = productionDataSince(rangeSince);
+  const claimFilter = claimCreatedSinceFilter(since);
+  const activityFilter = activityCreatedSinceFilter(since);
+  const chartKeys = keys.filter((date) => new Date(`${date}T00:00:00.000Z`) >= since);
 
   const [
     usersTotal,
@@ -110,29 +119,34 @@ export async function getAdminAnalytics(
       where: { active: true },
       _count: { _all: true },
     }),
-    prisma.reimbursement.count(),
-    prisma.reimbursement.count({ where: { createdAt: { gte: since } } }),
-    prisma.reimbursement.count({ where: { status: "PENDING" } }),
+    prisma.reimbursement.count({ where: claimCreatedSinceFilter() }),
+    prisma.reimbursement.count({ where: claimFilter }),
+    prisma.reimbursement.count({
+      where: { status: "PENDING", ...claimCreatedSinceFilter() },
+    }),
     prisma.reimbursement.groupBy({
       by: ["status"],
-      where: { createdAt: { gte: since } },
+      where: claimFilter,
       _count: { _all: true },
     }),
     prisma.reimbursement.aggregate({
-      where: { createdAt: { gte: since } },
+      where: claimFilter,
       _sum: { amount: true },
       _avg: { amount: true },
     }),
     prisma.reimbursement.aggregate({
-      where: { paidAt: { gte: since } },
+      where: {
+        paidAt: { gte: since },
+        ...claimCreatedSinceFilter(),
+      },
       _sum: { amount: true },
     }),
     prisma.platformActivity.findMany({
-      where: { type: "USER_LOGIN", createdAt: { gte: since } },
+      where: { type: "USER_LOGIN", ...activityFilter },
       select: { createdAt: true, actorId: true },
     }),
     prisma.reimbursement.findMany({
-      where: { createdAt: { gte: since } },
+      where: claimFilter,
       select: {
         createdAt: true,
         amount: true,
@@ -146,7 +160,7 @@ export async function getAdminAnalytics(
     }),
     prisma.reimbursement.groupBy({
       by: ["category"],
-      where: { createdAt: { gte: since } },
+      where: claimFilter,
       _count: { _all: true },
       _sum: { amount: true },
       orderBy: { _count: { category: "desc" } },
@@ -154,7 +168,7 @@ export async function getAdminAnalytics(
     }),
     prisma.reimbursement.groupBy({
       by: ["branchId"],
-      where: { createdAt: { gte: since } },
+      where: claimFilter,
       _count: { _all: true },
       _sum: { amount: true },
       orderBy: { _count: { branchId: "desc" } },
@@ -162,7 +176,7 @@ export async function getAdminAnalytics(
     }),
     prisma.reimbursement.groupBy({
       by: ["employeeId", "employeeName"],
-      where: { createdAt: { gte: since } },
+      where: claimFilter,
       _count: { _all: true },
       _sum: { amount: true },
       orderBy: { _count: { employeeId: "desc" } },
@@ -171,7 +185,7 @@ export async function getAdminAnalytics(
   ]);
 
   const dayMap = new Map(
-    keys.map((date) => [
+    chartKeys.map((date) => [
       date,
       { date, claims: 0, claimAmount: 0, logins: 0 },
     ]),
@@ -259,7 +273,7 @@ export async function getAdminAnalytics(
       loginsInPeriod: loginEvents.length,
       uniqueUsersLoggedIn: loginUserIds.size,
       uniqueSubmittersInPeriod: submitterIds.size,
-      claimsPerDay: keys.map((date) => dayMap.get(date)!),
+      claimsPerDay: chartKeys.map((date) => dayMap.get(date)!),
     },
     topCategories: topCategories.map((row) => ({
       label: row.category,

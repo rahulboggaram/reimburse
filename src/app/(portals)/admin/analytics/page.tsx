@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage() {
     <>
       <PageHeading
         title="Insights"
-        info="Usage and reimbursement metrics from your app data. Logins count WhatsApp sign-ins — not website traffic from Google Analytics."
+        info="Metrics since Razorpay payouts went live (10 Jun 2026). Pre-launch test data is excluded. Logins count WhatsApp sign-ins."
         className="mb-4"
       />
 
@@ -172,7 +172,7 @@ export default function AdminAnalyticsPage() {
                 value={String(data.claims.pendingNow)}
               />
               <StatCard
-                label="All-time claims"
+                label="Claims since live"
                 value={String(data.claims.totalAllTime)}
                 hint={
                   data.claims.averageClaimAmount > 0
