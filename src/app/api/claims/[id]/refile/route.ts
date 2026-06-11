@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
@@ -18,7 +19,10 @@ export async function PATCH(
   const formData = await request.formData();
   const body = parseClaimFieldsFromFormData(formData);
   if (!body) {
-    return Response.json({ error: "Invalid claim details" }, { status: 400 });
+    return Response.json(
+      { error: "Invalid claim details. Amount must be at least ₹1." },
+      { status: 400 },
+    );
   }
 
   const receiptFiles = receiptFilesFromFormData(formData);
@@ -76,13 +80,19 @@ export async function PATCH(
   const receiptError = await replaceClaimReceipts(id, receiptFiles);
   if (receiptError) return receiptError;
 
-  let payoutWarning: string | undefined;
   if (session.role === "ADMIN") {
-    const payoutResult = await tryAutoPayAdminClaim(id, session.id);
-    if (!payoutResult.ok && "error" in payoutResult) {
-      payoutWarning = payoutResult.error;
-    }
+    const claimId = id;
+    const actorId = session.id;
+    after(async () => {
+      const payoutResult = await tryAutoPayAdminClaim(claimId, actorId);
+      if (!payoutResult.ok && "error" in payoutResult) {
+        console.error("background admin payout failed", {
+          claimId,
+          error: payoutResult.error,
+        });
+      }
+    });
   }
 
-  return Response.json({ id, payoutWarning });
+  return Response.json({ id });
 }

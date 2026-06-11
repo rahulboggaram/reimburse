@@ -33,9 +33,14 @@ export const adminCreateEmployeeSchema = z.object({
   branchId: z.string().min(1),
 });
 
-/** Claim form fields (branch comes from the user's People profile). */
+/** RazorpayX requires at least 100 paise (₹1) per payout. */
+export const MIN_REIMBURSEMENT_AMOUNT = 1;
+
 export const createReimbursementFormSchema = z.object({
-  amount: z.number().positive().max(10_000_000),
+  amount: z
+    .number()
+    .min(MIN_REIMBURSEMENT_AMOUNT, "Amount must be at least ₹1.")
+    .max(10_000_000),
   category: z.string().trim().min(1).max(80),
   description: z.string().trim().min(3).max(2000),
 });

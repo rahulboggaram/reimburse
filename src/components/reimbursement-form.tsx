@@ -18,13 +18,23 @@ import {
 import { PageHeading } from "@/components/page-heading";
 import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
-import { invalidateClientCache } from "@/lib/client-cache";
-import { fetchFormBootstrap, readFormBootstrapCache } from "@/lib/admin-fetch";
-import { prepareReceiptFilesForUpload } from "@/lib/compress-receipt-image";
+import { MIN_REIMBURSEMENT_AMOUNT } from "@/lib/validators";
+import {
+  fetchFormBootstrap,
+  readFormBootstrapCache,
+  refreshFormBootstrapInBackground,
+} from "@/lib/admin-fetch";
+import { fetchMyClaims } from "@/lib/fetch-own-claims";
 
-type SubmitPhase = "idle" | "preparing" | "uploading";
+type SubmitPhase = "idle" | "uploading";
 
 type ExpenseCategory = { id: string; name: string };
+
+type FormBootstrap = {
+  categories: ExpenseCategory[];
+  userBranch: { id: string; name: string } | null;
+  submitBlockReason?: string | null;
+};
 
 export type ReimbursementFormValues = {
   amount?: string;
@@ -49,11 +59,7 @@ export function ReimbursementForm(props: {
 }) {
   const router = useRouter();
   const [, startNavigation] = useTransition();
-  const cachedBootstrap = readFormBootstrapCache<{
-    categories: ExpenseCategory[];
-    userBranch: { id: string; name: string } | null;
-    submitBlockReason?: string | null;
-  }>();
+  const cachedBootstrap = readFormBootstrapCache<FormBootstrap>();
   const [userBranch, setUserBranch] = useState(
     () => cachedBootstrap?.userBranch ?? null,
   );
@@ -66,6 +72,7 @@ export function ReimbursementForm(props: {
   const [loadingOptions, setLoadingOptions] = useState(
     () => (cachedBootstrap?.categories ?? []).length === 0,
   );
+  const [refreshingCategories, setRefreshingCategories] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
 
@@ -78,21 +85,38 @@ export function ReimbursementForm(props: {
   const { user: meUser } = useMe();
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
 
+  function applyBootstrap(data: FormBootstrap) {
+    setCategories(data.categories);
+    setUserBranch(data.userBranch);
+    setSubmitBlockReason(data.submitBlockReason ?? null);
+  }
+
   useEffect(() => {
-    void fetchFormBootstrap<{
-      categories: ExpenseCategory[];
-      userBranch: { id: string; name: string } | null;
-      submitBlockReason?: string | null;
-    }>({ fresh: true })
-      .then((data) => {
-        setCategories(data.categories);
-        setUserBranch(data.userBranch);
-        setSubmitBlockReason(data.submitBlockReason ?? null);
-      })
+    const cached = readFormBootstrapCache<FormBootstrap>();
+    if (cached) {
+      applyBootstrap(cached);
+      setLoadingOptions(false);
+      void refreshFormBootstrapInBackground<FormBootstrap>()
+        .then(applyBootstrap)
+        .catch(() => {});
+      return;
+    }
+
+    void fetchFormBootstrap<FormBootstrap>()
+      .then(applyBootstrap)
       .catch(() => setError("Could not load form options."))
       .finally(() => setLoadingOptions(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once
   }, []);
+
+  function handleCategoryFocus() {
+    if (refreshingCategories) return;
+    setRefreshingCategories(true);
+    void refreshFormBootstrapInBackground<FormBootstrap>()
+      .then((data) => setCategories(data.categories))
+      .catch(() => {})
+      .finally(() => setRefreshingCategories(false));
+  }
 
   useEffect(() => {
     if (!props.claimId) {
@@ -109,6 +133,8 @@ export function ReimbursementForm(props: {
       const parsedAmount = Number.parseFloat(amount);
       if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
         errors.amount = "Enter a valid amount greater than zero.";
+      } else if (parsedAmount < MIN_REIMBURSEMENT_AMOUNT) {
+        errors.amount = "Amount must be at least ₹1.";
       }
     }
 
@@ -125,6 +151,8 @@ export function ReimbursementForm(props: {
 
     if (receipts.length === 0) {
       errors.receipts = "Add at least one receipt photo.";
+    } else if (receipts.some((item) => item.processing)) {
+      errors.receipts = "Wait a moment — photos are still being optimized.";
     }
 
     return errors;
@@ -134,18 +162,14 @@ export function ReimbursementForm(props: {
     const parsedAmount = Number.parseFloat(amount);
 
     setSubmitting(true);
-    setSubmitPhase("preparing");
+    setSubmitPhase("uploading");
     try {
-      const preparedReceipts = await prepareReceiptFilesForUpload(
-        receipts.map((item) => item.file),
-      );
-
       const formData = new FormData();
       formData.set("amount", String(parsedAmount));
       formData.set("category", category);
       formData.set("description", description.trim());
-      for (const file of preparedReceipts) {
-        formData.append("receipts", file);
+      for (const item of receipts) {
+        formData.append("receipts", item.file);
       }
 
       const url = props.claimId
@@ -153,7 +177,6 @@ export function ReimbursementForm(props: {
         : "/api/claims";
       const method = props.claimId ? "PATCH" : "POST";
 
-      setSubmitPhase("uploading");
       const response = await fetch(url, {
         method,
         body: formData,
@@ -161,8 +184,10 @@ export function ReimbursementForm(props: {
       const result = await readJson<{ id: string; payoutWarning?: string }>(
         response,
       );
-      invalidateClientCache("claims-mine:");
-      invalidateClientCache("claims-rejected:");
+
+      if (meUser?.id) {
+        void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+      }
 
       if (result.payoutWarning) {
         setError(
@@ -192,10 +217,11 @@ export function ReimbursementForm(props: {
 
   function renderSubmitLabel() {
     if (!submitting) return props.submitLabel;
-    if (submitPhase === "preparing") return <LoadingText>Preparing photos</LoadingText>;
     if (submitPhase === "uploading") return <LoadingText>Submitting</LoadingText>;
     return <LoadingText>Saving</LoadingText>;
   }
+
+  const receiptsStillProcessing = receipts.some((item) => item.processing);
 
   const missingBranch = !loadingOptions && !userBranch;
   const blockedFromSubmit = Boolean(submitBlockReason);
@@ -285,6 +311,7 @@ export function ReimbursementForm(props: {
             error={Boolean(fieldErrors.category)}
             fieldError={fieldErrors.category}
             value={category}
+            onFocus={handleCategoryFocus}
             onChange={(e) => {
               setCategory(e.target.value);
               setFieldErrors((prev) => ({ ...prev, category: undefined }));
@@ -333,7 +360,8 @@ export function ReimbursementForm(props: {
           submitting ||
           missingBranch ||
           blockedFromSubmit ||
-          categories.length === 0
+          categories.length === 0 ||
+          receiptsStillProcessing
         }
       >
         {renderSubmitLabel()}
@@ -347,12 +375,13 @@ export function ReimbursementForm(props: {
     >
       <div className="space-y-4">
         <p className="text-sm text-zinc-700">
-          Admin reimbursements do not go through an approval process. After you
-          submit, payment is sent to your bank account right away.
+          Admin reimbursements do not go through an approval process. Your claim
+          saves right away and payment to your bank account starts in the
+          background.
         </p>
         <p className="text-sm font-medium text-zinc-900">
-          Please check the amount, category, receipts, and other details
-          carefully before continuing.
+          Please check the amount (minimum ₹1), category, receipts, and other
+          details carefully before continuing.
         </p>
         <div className="flex flex-col gap-2 pt-2">
           <Button

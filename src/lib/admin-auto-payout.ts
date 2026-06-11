@@ -58,6 +58,14 @@ async function runPayout(
     const message =
       err instanceof Error ? err.message : "Could not send payout to RazorpayX.";
     console.error("auto-payout failed", { claimId, err });
+    await prisma.reimbursement
+      .update({
+        where: { id: claimId },
+        data: { payoutError: message },
+      })
+      .catch((updateErr) => {
+        console.error("could not save payout error on claim", { claimId, updateErr });
+      });
     return { ok: false, error: message };
   }
 }

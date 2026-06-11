@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { compressReceiptFile } from "@/lib/compress-receipt-image";
 import { MAX_RECEIPTS } from "@/lib/receipt-limits";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,8 @@ export type ReceiptFileItem = {
   id: string;
   file: File;
   previewUrl: string;
+  /** True while a large photo is being shrunk in the background. */
+  processing?: boolean;
 };
 
 type ReceiptUploadFieldProps = {
@@ -148,11 +151,39 @@ function ReceiptGalleryButton(props: {
   );
 }
 
+function receiptNeedsCompression(file: File) {
+  return file.type.startsWith("image/") && file.type !== "image/gif";
+}
+
 export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
   const baseId = useId();
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const filesRef = useRef(props.files);
+  filesRef.current = props.files;
+
+  useEffect(() => {
+    return () => {
+      for (const item of filesRef.current) {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      }
+    };
+  }, []);
+
+  function replaceFileItem(id: string, file: File) {
+    const latest = filesRef.current;
+    props.onChange(
+      latest.map((item) => (item.id === id ? { ...item, file, processing: false } : item)),
+    );
+  }
+
+  function compressInBackground(item: ReceiptFileItem) {
+    void compressReceiptFile(item.file).then((compressed) => {
+      if (!filesRef.current.some((entry) => entry.id === item.id)) return;
+      replaceFileItem(item.id, compressed);
+    });
+  }
 
   function addFiles(fileList: FileList | null) {
     if (!fileList?.length) return;
@@ -166,17 +197,19 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
       return;
     }
 
-    const next: ReceiptFileItem[] = [
-      ...props.files,
-      ...incoming.map((file) => ({
-        id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
-        file,
-        previewUrl: file.type.startsWith("image/")
-          ? URL.createObjectURL(file)
-          : "",
-      })),
-    ];
+    const added: ReceiptFileItem[] = incoming.map((file) => ({
+      id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
+      file,
+      previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
+      processing: receiptNeedsCompression(file),
+    }));
+
+    const next = [...props.files, ...added];
     props.onChange(next);
+
+    for (const item of added) {
+      if (item.processing) compressInBackground(item);
+    }
   }
 
   function removeFile(id: string) {
@@ -245,12 +278,19 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
                 className="relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50"
               >
                 {item.file.type.startsWith("image/") && item.previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- blob preview
-                  <img
-                    src={item.previewUrl}
-                    alt={item.file.name}
-                    className="aspect-[4/3] w-full object-cover"
-                  />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- blob preview */}
+                    <img
+                      src={item.previewUrl}
+                      alt={item.file.name}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    {item.processing ? (
+                      <span className="absolute inset-x-0 bottom-0 bg-zinc-900/70 px-2 py-1 text-center text-xs font-medium text-white">
+                        Optimizing…
+                      </span>
+                    ) : null}
+                  </>
                 ) : (
                   <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 px-2 text-center">
                     <span className="text-2xl" aria-hidden>

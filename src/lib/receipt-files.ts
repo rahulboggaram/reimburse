@@ -63,19 +63,19 @@ export async function saveReceiptFiles(
   // will fail at runtime. For prototypes, store receipts as data URLs in the DB.
   // This keeps uploads working without external storage setup.
   if (process.env.VERCEL) {
-    const saved: SavedReceipt[] = [];
-    for (const file of files) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const base64 = buffer.toString("base64");
-      const mimeType = file.type || "application/octet-stream";
-      saved.push({
-        filePath: `data:${mimeType};base64,${base64}`,
-        fileName: file.name || `receipt-${randomUUID()}`,
-        mimeType,
-        sizeBytes: file.size,
-      });
-    }
-    return saved;
+    return Promise.all(
+      files.map(async (file) => {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const base64 = buffer.toString("base64");
+        const mimeType = file.type || "application/octet-stream";
+        return {
+          filePath: `data:${mimeType};base64,${base64}`,
+          fileName: file.name || `receipt-${randomUUID()}`,
+          mimeType,
+          sizeBytes: file.size,
+        };
+      }),
+    );
   }
 
   const dir = path.join(
@@ -87,21 +87,21 @@ export async function saveReceiptFiles(
   );
   await mkdir(dir, { recursive: true });
 
-  const saved: SavedReceipt[] = [];
-  for (const file of files) {
-    const ext = EXT_BY_MIME[file.type] ?? (path.extname(file.name) || ".bin");
-    const storedName = `${randomUUID()}${ext}`;
-    const absolutePath = path.join(dir, storedName);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(absolutePath, buffer);
-    saved.push({
-      filePath: `/uploads/receipts/${reimbursementId}/${storedName}`,
-      fileName: file.name || storedName,
-      mimeType: file.type,
-      sizeBytes: file.size,
-    });
-  }
-  return saved;
+  return Promise.all(
+    files.map(async (file) => {
+      const ext = EXT_BY_MIME[file.type] ?? (path.extname(file.name) || ".bin");
+      const storedName = `${randomUUID()}${ext}`;
+      const absolutePath = path.join(dir, storedName);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      await writeFile(absolutePath, buffer);
+      return {
+        filePath: `/uploads/receipts/${reimbursementId}/${storedName}`,
+        fileName: file.name || storedName,
+        mimeType: file.type,
+        sizeBytes: file.size,
+      };
+    }),
+  );
 }
 
 export async function deleteReceiptFilesForClaim(reimbursementId: string) {
