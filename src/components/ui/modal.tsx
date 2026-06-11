@@ -118,7 +118,7 @@ export function Modal(props: {
           {props.title && props.headerLeading ? (
             <h2
               id="modal-title"
-              className="font-brand-title mt-2 text-lg text-zinc-900"
+              className="mt-2 text-lg font-semibold text-zinc-900"
             >
               {toTitleCase(props.title)}
             </h2>

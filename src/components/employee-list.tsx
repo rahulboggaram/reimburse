@@ -54,7 +54,7 @@ export function EmployeeListRow(props: {
             {displayName}
           </p>
         </div>
-        <p className="mt-0.5 truncate text-sm text-zinc-900">
+        <p className="mt-0.5 truncate text-sm font-medium text-zinc-900">
           {formatPhoneDisplay(employee.phone)}
           {employee.signedUp
             ? ` · ${employee.claimCount} claim${employee.claimCount === 1 ? "" : "s"}`

@@ -40,10 +40,10 @@ function ReceiptActionButton(props: {
         "hover:bg-zinc-50 active:bg-zinc-100 focus-visible:outline-none",
       )}
     >
-      <span className="inline-flex items-center justify-center text-zinc-800">
+      <span className="inline-flex shrink-0 items-center text-zinc-800">
         {props.children}
       </span>
-      <span className="text-center text-sm font-medium leading-none text-zinc-500">
+      <span className="text-sm font-medium leading-none text-zinc-500">
         {props.label}
       </span>
     </button>

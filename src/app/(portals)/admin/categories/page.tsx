@@ -166,11 +166,11 @@ export default function AdminCategoriesPage() {
             ) : inactiveCategories.length === 0 ? (
               <p className="text-sm text-zinc-600">No inactive categories.</p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="divide-y divide-zinc-200">
                 {inactiveCategories.map((category) => (
                   <li
                     key={category.id}
-                    className="flex items-center justify-between gap-3"
+                    className="flex items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0"
                   >
                     <p className="text-sm font-medium text-zinc-900">
                       {category.name}
