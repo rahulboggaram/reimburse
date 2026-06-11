@@ -10,17 +10,27 @@ import {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+type FetchOwnResult =
+  | { ok: true; rows: SerializedClaim[] }
+  | { ok: false; status: number | null };
+
 async function fetchJsonOwn(
   url: string,
   ownerId: string,
-): Promise<SerializedClaim[]> {
-  const res = await fetch(url, {
-    cache: "default",
-    credentials: "include",
-  });
-  if (!res.ok) return [];
-  const data = await readJson<SerializedClaim[]>(res);
-  return ownClaimsOnly(data, ownerId);
+): Promise<FetchOwnResult> {
+  try {
+    const res = await fetch(url, {
+      cache: "no-store",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      return { ok: false, status: res.status };
+    }
+    const data = await readJson<SerializedClaim[]>(res);
+    return { ok: true, rows: ownClaimsOnly(data, ownerId) };
+  } catch {
+    return { ok: false, status: null };
+  }
 }
 
 function readValidatedCache(
@@ -57,14 +67,19 @@ export async function fetchMyClaims(
     if (cached) return cached;
   }
 
-  const rows = await fetchJsonOwn("/api/claims/mine", ownerId);
-  writeClientCache(key, rows, CACHE_TTL_MS);
-  writeClientCache(
-    claimsRejectedCacheKey(ownerId),
-    rows.filter((c) => c.status === "REJECTED"),
-    CACHE_TTL_MS,
-  );
-  return rows;
+  const result = await fetchJsonOwn("/api/claims/mine", ownerId);
+  if (!result.ok) {
+    const stale = readValidatedCache(key, ownerId);
+    if (stale) return stale;
+    throw new Error(
+      result.status === 401
+        ? "Please sign in again."
+        : "Could not load your claims. Please try again.",
+    );
+  }
+
+  writeClientCache(key, result.rows, CACHE_TTL_MS);
+  return result.rows;
 }
 
 export async function fetchMyRejectedClaims(
@@ -87,7 +102,13 @@ export async function fetchMyRejectedClaims(
     }
   }
 
-  const rows = await fetchJsonOwn("/api/claims/mine/rejected", ownerId);
-  writeClientCache(key, rows, CACHE_TTL_MS);
-  return rows;
+  const result = await fetchJsonOwn("/api/claims/mine/rejected", ownerId);
+  if (!result.ok) {
+    const stale = readValidatedCache(key, ownerId);
+    if (stale) return stale;
+    throw new Error("Could not load rejected claims. Please try again.");
+  }
+
+  writeClientCache(key, result.rows, CACHE_TTL_MS);
+  return result.rows;
 }

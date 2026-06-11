@@ -42,18 +42,22 @@ export default function MyClaimsPage() {
   const [claims, setClaims] = useState<SerializedClaim[]>([]);
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
 
   useEffect(() => {
     if (meLoading) return;
-    if (!user) return;
+    if (!user) {
+      router.replace("/login?from=/employee/claims");
+      return;
+    }
 
     if (!user.profileComplete) {
       router.replace("/employee/onboarding");
       return;
     }
     if (!canViewOwnReimbursements(user)) {
-      router.replace("/login");
+      router.replace("/login?from=/employee/claims");
     }
   }, [meLoading, user, router]);
 
@@ -71,9 +75,19 @@ export default function MyClaimsPage() {
       if (!user || !canViewOwnReimbursements(user)) return;
 
       const ownerId = user.id;
-      const rows = await fetchMyClaims(ownerId, { fresh });
-      if (user.id !== ownerId) return;
-      syncClaimsView(rows);
+      try {
+        const rows = await fetchMyClaims(ownerId, { fresh });
+        if (user.id !== ownerId) return;
+        syncClaimsView(rows);
+        setLoadError(null);
+      } catch (err) {
+        if (user.id !== ownerId) return;
+        setLoadError(
+          err instanceof Error
+            ? err.message
+            : "Could not load your claims. Please try again.",
+        );
+      }
     },
     [user, syncClaimsView],
   );
@@ -95,10 +109,20 @@ export default function MyClaimsPage() {
 
     fetchMyClaims(ownerId)
       .then((rows) => {
-        if (!cancelled) syncClaimsView(rows);
+        if (!cancelled) {
+          syncClaimsView(rows);
+          setLoadError(null);
+        }
       })
-      .catch(() => {
-        if (!cancelled && !cached) setClaims([]);
+      .catch((err) => {
+        if (!cancelled) {
+          if (!cached) setClaims([]);
+          setLoadError(
+            err instanceof Error
+              ? err.message
+              : "Could not load your claims. Please try again.",
+          );
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -159,6 +183,12 @@ export default function MyClaimsPage() {
         className={waitingForClaims || claims.length === 0 ? "mb-5" : "mb-4"}
       />
       <RejectedClaimsSection onChanged={() => loadClaims(true)} />
+
+      {loadError ? (
+        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
+          {loadError}
+        </p>
+      ) : null}
 
       {waitingForClaims ? (
         <MyClaimsLoadingSkeleton />
