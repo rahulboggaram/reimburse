@@ -1,14 +1,8 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
-import {
-  isPublicReceiptBlobPath,
-  isReceiptBlobPath,
-  promoteReceiptToPublicBlob,
-  readReceiptBlob,
-  resolveReceiptBlobPath,
-} from "@/lib/receipt-blob";
-import { receiptFileResponse, serveReceiptBytes } from "@/lib/receipt-content";
+import { materializeReceiptsToDatabase } from "@/lib/receipt-store";
+import { receiptFileResponse } from "@/lib/receipt-content";
 
 export const maxDuration = 30;
 
@@ -35,11 +29,7 @@ export async function GET(
       },
     });
 
-    if (!receipt) {
-      return Response.json({ error: "Receipt not found" }, { status: 404 });
-    }
-
-    if (!receipt.reimbursement) {
+    if (!receipt?.reimbursement) {
       return Response.json({ error: "Receipt not found" }, { status: 404 });
     }
 
@@ -47,73 +37,24 @@ export async function GET(
       return Response.json({ error: "Receipt not found" }, { status: 404 });
     }
 
-    let filePath = receipt.filePath?.trim() ?? "";
-    if (!filePath) {
+    const row = {
+      id: receipt.id,
+      filePath: receipt.filePath?.trim() ?? "",
+      fileName: receipt.fileName,
+      mimeType: receipt.mimeType,
+      sizeBytes: receipt.sizeBytes,
+    };
+
+    if (!row.filePath) {
       return Response.json(
         { error: "This receipt has no file on record. Refile with a new photo." },
         { status: 404 },
       );
     }
 
-    if (isReceiptBlobPath(filePath)) {
-      let blob = await readReceiptBlob(filePath);
+    await materializeReceiptsToDatabase([row]);
 
-      if (!blob) {
-        const resolved = await resolveReceiptBlobPath(
-          filePath,
-          receipt.reimbursement.id,
-        );
-        if (resolved) {
-          filePath = resolved;
-          if (resolved !== receipt.filePath) {
-            await prisma.reimbursementReceipt.update({
-              where: { id: receipt.id },
-              data: { filePath: resolved },
-            });
-          }
-          blob = await readReceiptBlob(filePath);
-        }
-      }
-
-      if (blob) {
-        if (!isPublicReceiptBlobPath(filePath)) {
-          const publicUrl = await promoteReceiptToPublicBlob({
-            reimbursementId: receipt.reimbursement.id,
-            fileName: receipt.fileName ?? "receipt",
-            buffer: blob.buffer,
-            mimeType: blob.mimeType || receipt.mimeType,
-            oldPath: filePath,
-          });
-          if (publicUrl) {
-            await prisma.reimbursementReceipt.update({
-              where: { id: receipt.id },
-              data: { filePath: publicUrl },
-            });
-          }
-        }
-
-        return serveReceiptBytes(
-          blob.buffer,
-          blob.mimeType || receipt.mimeType,
-          receipt.fileName,
-        );
-      }
-
-      console.error("receipt GET blob miss", {
-        receiptId: id,
-        filePathPrefix: filePath.slice(0, 80),
-        sizeBytes: receipt.sizeBytes,
-      });
-      return Response.json(
-        {
-          error:
-            "Receipt file is missing from storage. Submit a new claim with the photo, or refile this one.",
-        },
-        { status: 404 },
-      );
-    }
-
-    return receiptFileResponse(filePath, receipt.mimeType, receipt.fileName);
+    return receiptFileResponse(row.filePath, row.mimeType, row.fileName);
   } catch (err) {
     console.error("receipt GET failed", err);
     return Response.json({ error: "Receipt unavailable" }, { status: 500 });

@@ -1,5 +1,5 @@
 import { inferReceiptMimeType, isHeicMime } from "@/lib/receipt-mime";
-import { isPublicBlobUrl } from "@/lib/receipt-url";
+import { isDirectReceiptUrl } from "@/lib/receipt-url";
 
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 0.82;
@@ -91,7 +91,7 @@ export async function loadReceiptPreviewUrl(
   receipt: { url: string; mimeType: string },
   options?: { maxAttempts?: number },
 ): Promise<ReceiptPreviewResult> {
-  if (isPublicBlobUrl(receipt.url) || receipt.url.startsWith("data:")) {
+  if (isDirectReceiptUrl(receipt.url)) {
     return { url: receipt.url, pending: false };
   }
 

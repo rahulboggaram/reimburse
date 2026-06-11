@@ -6,11 +6,8 @@ import { MAX_RECEIPTS } from "@/lib/receipt-limits";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
-import {
-  deleteReceiptBlob,
-  receiptBlobStorageEnabled,
-  storeReceiptBlob,
-} from "@/lib/receipt-blob";
+import { bufferToDataUrl } from "@/lib/receipt-store";
+import { deleteReceiptBlob, isReceiptBlobPath } from "@/lib/receipt-blob";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -127,31 +124,10 @@ export async function saveReceiptInputs(
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
   if (process.env.VERCEL) {
-    const useBlob = receiptBlobStorageEnabled();
-    if (!useBlob) {
-      console.warn(
-        "receipt storage: BLOB_READ_WRITE_TOKEN / BLOB_STORE_ID missing — saving to database instead",
-      );
-    }
     return Promise.all(
       inputs.map(async (input) => {
         const normalized = await normalizeReceiptInput(input);
-        let filePath: string;
-        if (useBlob) {
-          try {
-            filePath = await storeReceiptBlob({
-              reimbursementId,
-              fileName: normalized.fileName,
-              buffer: normalized.buffer,
-              mimeType: normalized.mimeType,
-            });
-          } catch (err) {
-            console.error("blob store failed — saving receipt in database", err);
-            filePath = `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
-          }
-        } else {
-          filePath = `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
-        }
+        const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
         return {
           filePath,
           fileName: normalized.fileName,
@@ -192,7 +168,7 @@ export async function saveReceiptInputs(
 export async function deleteStoredReceiptFiles(filePaths: string[]) {
   await Promise.all(
     filePaths.map(async (filePath) => {
-      if (filePath.startsWith("blob:") || filePath.includes(".blob.vercel-storage.com/")) {
+      if (isReceiptBlobPath(filePath)) {
         await deleteReceiptBlob(filePath);
       }
     }),

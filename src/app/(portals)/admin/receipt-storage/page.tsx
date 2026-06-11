@@ -101,7 +101,7 @@ export default function AdminReceiptStoragePage() {
     <div className="space-y-6">
       <PageHeading
         title="Receipt storage"
-        description="Check whether receipt photos are saving to Vercel Blob"
+        description="Receipt photos are saved in the database for reliable previews. Blob is optional legacy storage."
       />
 
       {error ? (

@@ -1,41 +1,27 @@
-/** Max data-URL length inlined in claim JSON (avoids huge payloads). */
-const MAX_INLINE_DATA_URL = 600_000;
-
-/** Authenticated API fallback when the browser cannot load the file directly. */
+/** Authenticated API fallback for legacy storage paths only. */
 export function receiptViewUrl(receiptId: string): string {
   return `/api/receipts/${receiptId}`;
 }
 
-export function isPublicBlobUrl(filePath: string) {
-  return (
-    filePath.startsWith("https://") &&
-    filePath.includes(".blob.vercel-storage.com/")
-  );
-}
-
-/** True when the browser can show the receipt without calling /api/receipts. */
-export function isDirectReceiptUrl(url: string) {
-  return (
-    url.startsWith("blob:") ||
-    url.startsWith("data:") ||
-    isPublicBlobUrl(url)
-  );
-}
-
-/**
- * Best URL for <img src> / gallery previews.
- * Public Blob URLs and small data-URLs load directly; everything else uses the API.
- */
+/** URL the browser uses in <img src> — data URLs load directly with no extra API call. */
 export function receiptClientUrl(receipt: {
   id: string;
   filePath: string;
 }): string {
   const path = receipt.filePath?.trim() ?? "";
-  if (path.startsWith("data:") && path.length <= MAX_INLINE_DATA_URL) {
+  if (path.startsWith("data:")) {
     return path;
   }
-  if (isPublicBlobUrl(path)) {
+  if (path.startsWith("/uploads/")) {
     return path;
   }
   return receiptViewUrl(receipt.id);
+}
+
+export function isDirectReceiptUrl(url: string) {
+  return (
+    url.startsWith("data:") ||
+    url.startsWith("/uploads/") ||
+    (url.startsWith("https://") && url.includes(".blob.vercel-storage.com/"))
+  );
 }

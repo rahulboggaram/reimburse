@@ -2,10 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
-import {
-  syncClaimReceiptsFromBlob,
-  upgradeReceiptsToPublicUrls,
-} from "@/lib/receipt-blob";
+import { materializeReceiptsToDatabase } from "@/lib/receipt-store";
 import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import {
   canAccessAdminPortal,
@@ -50,31 +47,14 @@ export async function GET(
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  if (claim.receipts.length === 0) {
-    await syncClaimReceiptsFromBlob(id).catch((error) => {
-      console.error("sync claim receipts from blob failed", { claimId: id, error });
+  if (claim.receipts.length > 0) {
+    await materializeReceiptsToDatabase(claim.receipts).catch((error) => {
+      console.error("materialize receipts failed", { claimId: id, error });
     });
   }
 
-  let fresh =
-    claim.receipts.length === 0
-      ? await prisma.reimbursement.findUnique({
-          where: { id },
-          include: claimInclude,
-        })
-      : claim;
-
-  const claimForResponse = fresh ?? claim;
-  if (claimForResponse.receipts.length > 0) {
-    await upgradeReceiptsToPublicUrls(id, claimForResponse.receipts).catch(
-      (error) => {
-        console.error("upgrade receipts to public failed", { claimId: id, error });
-      },
-    );
-  }
-
-  return Response.json(serializeClaim(claimForResponse), {
-    headers: { "Cache-Control": "private, max-age=10" },
+  return Response.json(serializeClaim(claim), {
+    headers: { "Cache-Control": "private, no-store" },
   });
 }
 

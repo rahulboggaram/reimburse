@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import {
-  loadReceiptPreviewUrl,
-  openReceiptInNewTab,
-} from "@/lib/compress-receipt-image";
-import { isDirectReceiptUrl } from "@/lib/receipt-url";
+import { useEffect, useState } from "react";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
+import { isDirectReceiptUrl } from "@/lib/receipt-url";
 
 type Receipt = {
   id: string;
@@ -17,19 +13,59 @@ type Receipt = {
   previewFallbackUrl?: string;
 };
 
-function isDirectPreviewUrl(url: string) {
-  return isDirectReceiptUrl(url);
+function ReceiptImage(props: {
+  receipt: Receipt;
+  className: string;
+  onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
+}) {
+  const [failed, setFailed] = useState(false);
+  const src =
+    failed && props.receipt.previewFallbackUrl
+      ? props.receipt.previewFallbackUrl
+      : props.receipt.url;
+
+  useEffect(() => {
+    setFailed(false);
+    props.onStatusChange?.("loading");
+  }, [props.receipt.id, props.receipt.url, props.onStatusChange]);
+
+  useEffect(() => {
+    if (isDirectReceiptUrl(src)) {
+      props.onStatusChange?.("ready");
+    }
+  }, [src, props.onStatusChange]);
+
+  if (failed && !props.receipt.previewFallbackUrl) {
+    return (
+      <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
+        Unavailable
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- data URLs and same-origin receipt API
+    <img
+      src={src}
+      alt={props.receipt.fileName ?? "Receipt"}
+      className={props.className}
+      onLoad={() => props.onStatusChange?.("ready")}
+      onError={() => {
+        if (!failed && props.receipt.previewFallbackUrl) {
+          setFailed(true);
+          return;
+        }
+        setFailed(true);
+        props.onStatusChange?.("error");
+      }}
+    />
+  );
 }
 
 function ReceiptLightbox(props: {
   receipt: Receipt;
   onClose: () => void;
 }) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") props.onClose();
@@ -38,58 +74,9 @@ function ReceiptLightbox(props: {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [props]);
 
-  useEffect(() => {
-    let objectUrl: string | null = null;
-    let cancelled = false;
-
-    setLoading(true);
-    setFailed(false);
-    setErrorMessage(null);
-    setPreviewUrl(null);
-
-    if (isDirectPreviewUrl(props.receipt.url)) {
-      setPreviewUrl(props.receipt.url);
-      setFailed(false);
-      setLoading(false);
-      return () => {};
-    }
-
-    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 6 })
-      .then((result) => {
-        if (cancelled) return;
-        if ("error" in result || !result.url) {
-          const fallback = props.receipt.previewFallbackUrl;
-          if (fallback && isDirectPreviewUrl(fallback)) {
-            setPreviewUrl(fallback);
-            setFailed(false);
-            return;
-          }
-          if ("error" in result) {
-            setFailed(true);
-            setErrorMessage(result.message);
-            return;
-          }
-          setFailed(true);
-          setErrorMessage("Receipt photo is still loading. Try again in a moment.");
-          return;
-        }
-        objectUrl = result.url;
-        setPreviewUrl(result.url);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-      if (objectUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl]);
+  const openInTab = () => {
+    window.open(props.receipt.url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
@@ -117,29 +104,9 @@ function ReceiptLightbox(props: {
         </button>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        {loading ? (
-          <div className="size-12 animate-pulse rounded-full bg-white/20" />
-        ) : failed || !previewUrl ? (
-          <div className="max-w-sm rounded-xl bg-white px-6 py-8 text-center">
-            <p className="text-sm font-medium text-zinc-900">
-              {props.receipt.fileName ?? "Receipt"}
-            </p>
-            {errorMessage ? (
-              <p className="mt-2 text-sm text-amber-900">{errorMessage}</p>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void openReceiptInNewTab(props.receipt)}
-              className={cn("mt-3 inline-block text-sm", textLinkClassName)}
-            >
-              Try opening again
-            </button>
-          </div>
-        ) : props.receipt.mimeType.startsWith("image/") ? (
-          // eslint-disable-next-line @next/next/no-img-element -- blob preview from authenticated fetch
-          <img
-            src={previewUrl}
-            alt={props.receipt.fileName ?? "Receipt"}
+        {props.receipt.mimeType.startsWith("image/") ? (
+          <ReceiptImage
+            receipt={props.receipt}
             className="max-h-full max-w-full rounded-lg object-contain"
           />
         ) : (
@@ -149,7 +116,7 @@ function ReceiptLightbox(props: {
             </p>
             <button
               type="button"
-              onClick={() => void openReceiptInNewTab(props.receipt)}
+              onClick={openInTab}
               className={cn("mt-3 inline-block text-sm", textLinkClassName)}
             >
               Open PDF
@@ -167,92 +134,6 @@ function ReceiptHeading(props: { title: string; count: number; hideCount?: boole
       {props.title}
       {!props.hideCount && props.count > 0 ? ` (${props.count})` : ""}
     </p>
-  );
-}
-
-function AuthenticatedReceiptImage(props: {
-  receipt: Receipt;
-  className: string;
-  onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
-}) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const onStatusChangeRef = useRef(props.onStatusChange);
-  onStatusChangeRef.current = props.onStatusChange;
-
-  useEffect(() => {
-    let objectUrl: string | null = null;
-    let cancelled = false;
-
-    setStatus("loading");
-    setPreviewUrl(null);
-    onStatusChangeRef.current?.("loading");
-
-    if (isDirectPreviewUrl(props.receipt.url)) {
-      setPreviewUrl(props.receipt.url);
-      setStatus("ready");
-      onStatusChangeRef.current?.("ready");
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 6 })
-      .then((result) => {
-        if (cancelled) return;
-        if ("error" in result || !result.url) {
-          const fallback = props.receipt.previewFallbackUrl;
-          if (fallback && isDirectPreviewUrl(fallback)) {
-            setPreviewUrl(fallback);
-            setStatus("ready");
-            onStatusChangeRef.current?.("ready");
-            return;
-          }
-          setStatus("error");
-          onStatusChangeRef.current?.("error");
-          return;
-        }
-        objectUrl = result.url;
-        setPreviewUrl(result.url);
-        setStatus("ready");
-        onStatusChangeRef.current?.("ready");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setStatus("error");
-        onStatusChangeRef.current?.("error");
-      });
-
-    return () => {
-      cancelled = true;
-      if (objectUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl]);
-
-  if (status === "error") {
-    return (
-      <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
-        Tap to open
-      </span>
-    );
-  }
-
-  return (
-    <>
-      {status === "loading" ? (
-        <span className="absolute inset-0 block animate-pulse bg-zinc-200" />
-      ) : null}
-      {previewUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- blob preview from authenticated fetch
-        <img
-          src={previewUrl}
-          alt={props.receipt.fileName ?? "Receipt"}
-          className={props.className}
-        />
-      ) : null}
-    </>
   );
 }
 
@@ -327,7 +208,7 @@ export function ReceiptGallery(props: {
                 className="relative block w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
-                  <AuthenticatedReceiptImage
+                  <ReceiptImage
                     receipt={receipt}
                     className="aspect-[4/3] w-full object-cover"
                     onStatusChange={(status) => handleStatusChange(receipt.id, status)}
@@ -370,7 +251,7 @@ export function ReceiptGallery(props: {
                 className="group relative size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
-                  <AuthenticatedReceiptImage
+                  <ReceiptImage
                     receipt={receipt}
                     className="size-full object-cover"
                     onStatusChange={(status) => handleStatusChange(receipt.id, status)}
@@ -395,8 +276,8 @@ export function ReceiptGallery(props: {
         {errorCount > 0 ? (
           <p className="text-xs text-amber-800">
             {errorCount === 1
-              ? "One receipt could not be previewed. Tap it for details — older claims may need to be refiled with a new photo."
-              : "Some receipts could not be previewed. Tap for details — older claims may need to be refiled."}
+              ? "One receipt could not be previewed — refile the claim with a new photo."
+              : "Some receipts could not be previewed — refile with new photos."}
           </p>
         ) : null}
       </div>

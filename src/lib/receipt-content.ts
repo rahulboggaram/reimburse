@@ -1,7 +1,7 @@
 import { readFile } from "fs/promises";
 import path from "path";
 
-import { isReceiptBlobPath, readReceiptBlob } from "@/lib/receipt-blob";
+import { isDatabaseReceiptPath } from "@/lib/receipt-store";
 
 function parseDataUrl(filePath: string): { mimeType: string; buffer: Buffer } | null {
   const comma = filePath.indexOf(",");
@@ -34,73 +34,31 @@ export function serveReceiptBytes(
   });
 }
 
-function serveBytes(buffer: Buffer, mimeType: string, disposition: string) {
-  return new Response(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": mimeType || "application/octet-stream",
-      "Content-Disposition": disposition,
-      "Cache-Control": "private, no-store",
-    },
-  });
-}
-
 const LEGACY_RECEIPT_ERROR =
-  "This receipt photo was saved before storage was fixed. Refile the claim with a new photo.";
+  "This receipt photo could not be loaded. Refile the claim with a new photo.";
 
 export async function receiptFileResponse(
   filePath: string,
   mimeType: string,
   fileName: string | null,
 ): Promise<Response> {
-  const inlineName = (fileName ?? "receipt").replace(/"/g, "'");
-  const disposition = `inline; filename="${inlineName}"`;
-
   if (!filePath?.trim()) {
     return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
   }
 
-  if (isReceiptBlobPath(filePath)) {
-    const blob = await readReceiptBlob(filePath);
-    if (blob) {
-      try {
-        return serveReceiptBytes(
-          blob.buffer,
-          blob.mimeType || mimeType,
-          fileName,
-        );
-      } catch (serveErr) {
-        console.error("receipt blob serve failed", {
-          filePath: filePath.slice(0, 80),
-          serveErr,
-        });
-      }
-    }
-
-    console.error("receipt blob not found", {
-      filePath: filePath.slice(0, 120),
-    });
-    return Response.json(
-      {
-        error:
-          "Receipt file is missing from storage. Submit a new claim with the photo, or refile this one.",
-      },
-      { status: 404 },
-    );
-  }
-
-  if (filePath.startsWith("data:")) {
+  if (isDatabaseReceiptPath(filePath)) {
     const parsed = parseDataUrl(filePath);
     if (!parsed) {
       return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
     }
-    return serveBytes(parsed.buffer, parsed.mimeType, disposition);
+    return serveReceiptBytes(parsed.buffer, parsed.mimeType, fileName);
   }
 
   if (filePath.startsWith("/uploads/")) {
     const absolute = path.join(process.cwd(), "public", filePath);
     try {
       const buffer = await readFile(absolute);
-      return serveBytes(buffer, mimeType, disposition);
+      return serveReceiptBytes(buffer, mimeType, fileName);
     } catch {
       return Response.json(
         { error: "Receipt file is no longer on the server. Re-upload if needed." },
