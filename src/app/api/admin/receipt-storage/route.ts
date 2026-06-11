@@ -1,7 +1,9 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { prisma } from "@/lib/db";
 import {
+  isReceiptBlobPath,
   probeReceiptBlobStorage,
+  readReceiptBlob,
   receiptBlobEnvStatus,
   receiptBlobStorageEnabled,
 } from "@/lib/receipt-blob";
@@ -28,11 +30,30 @@ export async function GET() {
   });
 
   const blobCount = recentReceipts.filter((row) =>
-    row.filePath.startsWith("blob:"),
+    isReceiptBlobPath(row.filePath),
   ).length;
   const databaseCount = recentReceipts.filter((row) =>
     row.filePath.startsWith("data:"),
   ).length;
+
+  const latestBlobReceipt = recentReceipts.find((row) =>
+    isReceiptBlobPath(row.filePath),
+  );
+  let latestBlobRead: { ok: boolean; bytes?: number; error?: string } | null =
+    null;
+  if (latestBlobReceipt) {
+    try {
+      const bytes = await readReceiptBlob(latestBlobReceipt.filePath);
+      latestBlobRead = bytes
+        ? { ok: true, bytes: bytes.buffer.length }
+        : { ok: false, error: "readReceiptBlob returned empty" };
+    } catch (err) {
+      latestBlobRead = {
+        ok: false,
+        error: err instanceof Error ? err.message : "read failed",
+      };
+    }
+  }
 
   const storageMode = !env.runningOnVercel
     ? "local-files"
@@ -46,20 +67,20 @@ export async function GET() {
     storageMode,
     env,
     probe,
+    latestBlobRead,
     recentReceipts: recentReceipts.map((row) => ({
       id: row.id,
       createdAt: row.createdAt.toISOString(),
       fileName: row.fileName,
       employeeName: row.reimbursement.employeeName,
       amount: Number(row.reimbursement.amount),
-      storage:
-        row.filePath.startsWith("blob:")
-          ? "blob"
-          : row.filePath.startsWith("data:")
-            ? "database"
-            : row.filePath.startsWith("/uploads/")
-              ? "local-file"
-              : "unknown",
+      storage: isReceiptBlobPath(row.filePath)
+        ? "blob"
+        : row.filePath.startsWith("data:")
+          ? "database"
+          : row.filePath.startsWith("/uploads/")
+            ? "local-file"
+            : "unknown",
     })),
     summary: {
       recentSampleSize: recentReceipts.length,

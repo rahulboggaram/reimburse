@@ -19,6 +19,7 @@ type ReceiptStorageStatus = {
     enabled: boolean;
   };
   probe: { ok: boolean; error?: string } | null;
+  latestBlobRead: { ok: boolean; bytes?: number; error?: string } | null;
   recentReceipts: Array<{
     id: string;
     createdAt: string;
@@ -142,6 +143,17 @@ export default function AdminReceiptStoragePage() {
                     : status.probe?.error ?? "Not run"
                 }
               />
+              {status.latestBlobRead ? (
+                <StatusRow
+                  ok={status.latestBlobRead.ok}
+                  label="Read latest saved receipt from Blob"
+                  detail={
+                    status.latestBlobRead.ok
+                      ? `${status.latestBlobRead.bytes ?? 0} bytes loaded`
+                      : status.latestBlobRead.error ?? "Failed"
+                  }
+                />
+              ) : null}
             </ul>
           </Card>
 

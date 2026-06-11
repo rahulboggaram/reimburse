@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { loadReceiptPreviewUrl } from "@/lib/compress-receipt-image";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,9 @@ function ReceiptLightbox(props: {
   receipt: Receipt;
   onClose: () => void;
 }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -26,8 +29,41 @@ function ReceiptLightbox(props: {
   }, [props]);
 
   useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    setLoading(true);
     setFailed(false);
-  }, [props.receipt.id]);
+    setPreviewUrl(null);
+
+    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 4 })
+      .then((result) => {
+        if (cancelled) return;
+        if ("error" in result) {
+          setFailed(true);
+          return;
+        }
+        if (!result.url) {
+          setFailed(true);
+          return;
+        }
+        objectUrl = result.url;
+        setPreviewUrl(result.url);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [props.receipt.id, props.receipt.url]);
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
@@ -55,7 +91,9 @@ function ReceiptLightbox(props: {
         </button>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        {failed ? (
+        {loading ? (
+          <div className="size-12 animate-pulse rounded-full bg-white/20" />
+        ) : failed || !previewUrl ? (
           <div className="max-w-sm rounded-xl bg-white px-6 py-8 text-center">
             <p className="text-sm font-medium text-zinc-900">
               {props.receipt.fileName ?? "Receipt"}
@@ -70,12 +108,11 @@ function ReceiptLightbox(props: {
             </a>
           </div>
         ) : props.receipt.mimeType.startsWith("image/") ? (
-          // eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin receipt
+          // eslint-disable-next-line @next/next/no-img-element -- blob preview from authenticated fetch
           <img
-            src={props.receipt.url}
+            src={previewUrl}
             alt={props.receipt.fileName ?? "Receipt"}
             className="max-h-full max-w-full rounded-lg object-contain"
-            onError={() => setFailed(true)}
           />
         ) : (
           <div className="max-w-sm rounded-xl bg-white px-6 py-8 text-center">
@@ -111,11 +148,42 @@ function AuthenticatedReceiptImage(props: {
   className: string;
   onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
 }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
     setStatus("loading");
+    setPreviewUrl(null);
     props.onStatusChange?.("loading");
+
+    void loadReceiptPreviewUrl(props.receipt, { maxAttempts: 4 })
+      .then((result) => {
+        if (cancelled) return;
+        if ("error" in result || !result.url) {
+          setStatus("error");
+          props.onStatusChange?.("error");
+          return;
+        }
+        objectUrl = result.url;
+        setPreviewUrl(result.url);
+        setStatus("ready");
+        props.onStatusChange?.("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStatus("error");
+        props.onStatusChange?.("error");
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
   }, [props.receipt.id, props.receipt.url, props.onStatusChange]);
 
   if (status === "error") {
@@ -131,20 +199,14 @@ function AuthenticatedReceiptImage(props: {
       {status === "loading" ? (
         <span className="absolute inset-0 block animate-pulse bg-zinc-200" />
       ) : null}
-      {/* eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin receipt */}
-      <img
-        src={props.receipt.url}
-        alt={props.receipt.fileName ?? "Receipt"}
-        className={props.className}
-        onLoad={() => {
-          setStatus("ready");
-          props.onStatusChange?.("ready");
-        }}
-        onError={() => {
-          setStatus("error");
-          props.onStatusChange?.("error");
-        }}
-      />
+      {previewUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- blob preview from authenticated fetch
+        <img
+          src={previewUrl}
+          alt={props.receipt.fileName ?? "Receipt"}
+          className={props.className}
+        />
+      ) : null}
     </>
   );
 }

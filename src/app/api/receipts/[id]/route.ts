@@ -35,11 +35,19 @@ export async function GET(
       return Response.json({ error: "Receipt not found" }, { status: 404 });
     }
 
-    return await receiptFileResponse(
+    const response = await receiptFileResponse(
       receipt.filePath,
       receipt.mimeType,
       receipt.fileName,
     );
+    if (response.status >= 400) {
+      console.error("receipt GET miss", {
+        receiptId: id,
+        filePathPrefix: receipt.filePath.slice(0, 60),
+        sizeBytes: receipt.sizeBytes,
+      });
+    }
+    return response;
   } catch (err) {
     console.error("receipt GET failed", err);
     return Response.json({ error: "Receipt unavailable" }, { status: 500 });
