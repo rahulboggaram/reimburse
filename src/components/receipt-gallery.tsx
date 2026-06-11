@@ -44,7 +44,9 @@ function resolveReceiptForView(
   return null;
 }
 
-function ReceiptThumbnailTile(props: { fileName: string | null; isPdf: boolean }) {
+const receiptPreviewCache = new Map<string, string>();
+
+function ReceiptThumbnailTile(props: { isPdf: boolean }) {
   return (
     <div className="flex size-full flex-col items-center justify-center gap-0.5 bg-zinc-100 text-zinc-500">
       {props.isPdf ? (
@@ -90,6 +92,13 @@ function ReceiptImage(props: {
     setSrc(null);
     props.onStatusChange?.("loading");
 
+    const cached = receiptPreviewCache.get(props.receipt.id);
+    if (cached) {
+      setSrc(cached);
+      props.onStatusChange?.("ready");
+      return;
+    }
+
     const directSrc =
       props.receipt.previewFallbackUrl &&
       isDirectReceiptUrl(props.receipt.previewFallbackUrl)
@@ -99,6 +108,7 @@ function ReceiptImage(props: {
           : null;
 
     if (directSrc) {
+      receiptPreviewCache.set(props.receipt.id, directSrc);
       setSrc(directSrc);
       props.onStatusChange?.("ready");
       return () => {
@@ -123,6 +133,7 @@ function ReceiptImage(props: {
       .then((blob) => {
         if (cancelled || blob.size === 0) return;
         objectUrl = URL.createObjectURL(blob);
+        receiptPreviewCache.set(props.receipt.id, objectUrl);
         setSrc(objectUrl);
         props.onStatusChange?.("ready");
       })
@@ -134,9 +145,6 @@ function ReceiptImage(props: {
 
     return () => {
       cancelled = true;
-      if (objectUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(objectUrl);
-      }
     };
   }, [
     props.receipt.id,
@@ -244,6 +252,37 @@ function ReceiptLightbox(props: {
         )}
       </div>
     </div>
+  );
+}
+
+function ReceiptCompactThumbnail(props: { receipt: Receipt }) {
+  const canPreview =
+    props.receipt.mimeType.startsWith("image/") &&
+    (!isPlaceholderReceipt(props.receipt) || Boolean(props.receipt.previewFallbackUrl));
+
+  if (!canPreview) {
+    return (
+      <ReceiptThumbnailTile
+        isPdf={!props.receipt.mimeType.startsWith("image/")}
+      />
+    );
+  }
+
+  return (
+    <>
+      <ReceiptImage
+        receipt={props.receipt}
+        className="size-full object-cover"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+      >
+        <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold text-zinc-900">
+          View
+        </span>
+      </span>
+    </>
   );
 }
 
@@ -365,12 +404,9 @@ export function ReceiptGallery(props: {
                 type="button"
                 onClick={() => setExpanded(receipt)}
                 aria-label={`View ${receipt.fileName ?? "receipt"}`}
-                className="relative size-16 overflow-hidden rounded-lg border border-zinc-200 transition-shadow hover:shadow-md"
+                className="group relative size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
               >
-                <ReceiptThumbnailTile
-                  fileName={receipt.fileName}
-                  isPdf={!receipt.mimeType.startsWith("image/")}
-                />
+                <ReceiptCompactThumbnail receipt={receipt} />
               </button>
             </li>
           ))}
