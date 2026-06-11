@@ -352,6 +352,13 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
               >
                 Insights
               </MenuLink>
+              <MenuLink
+                href="/admin/receipt-storage"
+                onNavigate={closeMenu}
+                active={pathname.startsWith("/admin/receipt-storage")}
+              >
+                Receipt storage
+              </MenuLink>
               {profileLink}
               <MenuDivider />
               {logoutButton}

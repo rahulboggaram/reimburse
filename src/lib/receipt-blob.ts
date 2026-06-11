@@ -3,16 +3,19 @@ import { randomUUID } from "crypto";
 
 const BLOB_PREFIX = "blob:";
 
+/** True when Vercel Blob is linked to this project (token or OIDC store id). */
 export function receiptBlobStorageEnabled() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+  if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return true;
+  if (process.env.VERCEL && process.env.BLOB_STORE_ID?.trim()) return true;
+  return false;
 }
 
-function blobToken() {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    throw new Error("BLOB_READ_WRITE_TOKEN is not configured");
-  }
-  return token;
+function putOptions(contentType: string) {
+  return {
+    access: "private" as const,
+    contentType,
+    // Let the SDK use BLOB_READ_WRITE_TOKEN or Vercel OIDC automatically.
+  };
 }
 
 function sanitizeFileName(fileName: string) {
@@ -47,11 +50,7 @@ export async function storeReceiptBlob(input: {
   mimeType: string;
 }): Promise<string> {
   const pathname = `receipts/${input.reimbursementId}/${randomUUID()}-${sanitizeFileName(input.fileName)}`;
-  const blob = await put(pathname, input.buffer, {
-    access: "private",
-    contentType: input.mimeType,
-    token: blobToken(),
-  });
+  const blob = await put(pathname, input.buffer, putOptions(input.mimeType));
   return `${BLOB_PREFIX}${blob.pathname}`;
 }
 
@@ -61,10 +60,7 @@ export async function readReceiptBlob(
   const pathname = blobPathname(filePath);
   if (!pathname) return null;
 
-  const result = await get(pathname, {
-    access: "private",
-    token: blobToken(),
-  });
+  const result = await get(pathname, { access: "private" });
   if (!result || result.statusCode !== 200) return null;
 
   const bytes = await new Response(result.stream).arrayBuffer();
@@ -81,8 +77,43 @@ export async function deleteReceiptBlob(filePath: string) {
   const pathname = blobPathname(filePath);
   if (!pathname || !receiptBlobStorageEnabled()) return;
   try {
-    await del(pathname, { token: blobToken() });
+    await del(pathname);
   } catch (err) {
     console.error("receipt blob delete failed", { pathname, err });
   }
+}
+
+export async function probeReceiptBlobStorage(): Promise<{
+  ok: boolean;
+  error?: string;
+  pathname?: string;
+}> {
+  if (!receiptBlobStorageEnabled()) {
+    return { ok: false, error: "Blob is not configured on this deployment." };
+  }
+
+  const pathname = `_healthcheck/receipt-storage-${randomUUID()}.txt`;
+  try {
+    await put(pathname, Buffer.from("ok"), {
+      access: "private",
+      contentType: "text/plain",
+    });
+    await del(pathname);
+    return { ok: true, pathname };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Blob upload test failed.",
+    };
+  }
+}
+
+export function receiptBlobEnvStatus() {
+  return {
+    runningOnVercel: Boolean(process.env.VERCEL),
+    blobReadWriteToken: Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim()),
+    blobStoreId: Boolean(process.env.BLOB_STORE_ID?.trim()),
+    vercelOidcToken: Boolean(process.env.VERCEL_OIDC_TOKEN?.trim()),
+    enabled: receiptBlobStorageEnabled(),
+  };
 }

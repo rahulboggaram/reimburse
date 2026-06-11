@@ -128,6 +128,11 @@ export async function saveReceiptInputs(
 ): Promise<SavedReceipt[]> {
   if (process.env.VERCEL) {
     const useBlob = receiptBlobStorageEnabled();
+    if (!useBlob) {
+      console.warn(
+        "receipt storage: BLOB_READ_WRITE_TOKEN / BLOB_STORE_ID missing — saving to database instead",
+      );
+    }
     return Promise.all(
       inputs.map(async (input) => {
         const normalized = await normalizeReceiptInput(input);
