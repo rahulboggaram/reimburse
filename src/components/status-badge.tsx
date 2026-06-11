@@ -4,6 +4,7 @@ const labels: Record<string, string> = {
   AWAITING: "Awaiting",
   QUEUED: "Queued",
   submitting: "Submitting",
+  submitFailed: "Not submitted",
 };
 
 /** Light tint background + saturated text for readable compact badges. */
@@ -31,6 +32,7 @@ const styles: Record<string, string> = {
   paying: progressStyle,
   processing: progressStyle,
   submitting: progressStyle,
+  submitFailed: errorStyle,
   "not started": neutralStyle,
   not_started: neutralStyle,
 };

@@ -59,17 +59,19 @@ export function subscribePendingClaims(listener: () => void) {
 }
 
 export function readPendingClaimSubmits(userId: string) {
-  return readAll(userId).filter((row) => row.state === "uploading");
+  return readAll(userId).filter(
+    (row) => row.state === "uploading" || row.state === "failed",
+  );
 }
 
-export function readFailedClaimSubmit(userId: string) {
-  return readAll(userId).find((row) => row.state === "failed") ?? null;
-}
-
-export function clearFailedClaimSubmit(userId: string) {
+export function clearFailedClaimSubmit(userId: string, tempId?: string) {
   writeAll(
     userId,
-    readAll(userId).filter((row) => row.state !== "failed"),
+    readAll(userId).filter((row) => {
+      if (row.state !== "failed") return true;
+      if (!tempId) return false;
+      return row.tempId !== tempId;
+    }),
   );
 }
 
@@ -152,7 +154,8 @@ export function buildOptimisticClaim(input: PendingClaimSubmit): SerializedClaim
     receiptCount: input.receiptCount,
     createdAt: now,
     updatedAt: now,
-    submitting: true,
+    submitting: input.state === "uploading",
+    submitError: input.state === "failed" ? (input.error ?? "Could not submit claim.") : null,
   };
 }
 

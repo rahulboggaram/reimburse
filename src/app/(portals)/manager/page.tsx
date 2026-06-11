@@ -19,7 +19,9 @@ import {
   fetchClientCache,
   invalidateClientCache,
   readClientCache,
+  writeClientCache,
 } from "@/lib/client-cache";
+import type { ClaimInstantAction } from "@/components/claim-detail-modal";
 
 type ActionCounts = {
   paymentWaiting: number;
@@ -80,7 +82,6 @@ export default function ManagerPendingPage() {
   const [selected, setSelected] = useState<SerializedClaim | null>(null);
   const [counts, setCounts] = useState<ActionCounts | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const showStatus = !(user?.role === "BRANCH_MANAGER" && tab === "approved");
@@ -121,21 +122,69 @@ export default function ManagerPendingPage() {
     return readJson<ActionCounts>(response);
   }, [wantsCounts]);
 
-  const refreshQueue = useCallback(async () => {
-    invalidateClientCache("claims-pending");
-    setLoading(true);
-    const data = await loadTab(tab, true);
-    applyTabPayload(data);
-    setLoading(false);
-    if (wantsCounts) {
-      void loadActionCounts().then((nextCounts) => {
-        if (nextCounts) setCounts(nextCounts);
+  const patchTabCache = useCallback(
+    (activeTab: QueueTab, nextClaims: SerializedClaim[]) => {
+      const cached = readTabCache(activeTab);
+      writeClientCache(
+        cacheKey(activeTab),
+        { claims: nextClaims, counts: cached?.counts ?? null },
+        90_000,
+      );
+    },
+    [],
+  );
+
+  const removeClaimsFromQueue = useCallback(
+    (claimIds: string[]) => {
+      if (claimIds.length === 0) return;
+      const idSet = new Set(claimIds);
+      setClaims((current) => {
+        const next = current.filter((claim) => !idSet.has(claim.id));
+        patchTabCache(tab, next);
+        return next;
       });
+      setSelected(null);
+      setSelectedIds((current) => {
+        const next = new Set(current);
+        for (const id of claimIds) next.delete(id);
+        return next;
+      });
+    },
+    [patchTabCache, tab],
+  );
+
+  const refreshQueue = useCallback(
+    async (options?: { silent?: boolean }) => {
+      invalidateClientCache("claims-pending");
+      if (!options?.silent) setLoading(true);
+      const data = await loadTab(tab, true);
+      applyTabPayload(data);
+      if (!options?.silent) setLoading(false);
+      if (wantsCounts) {
+        void loadActionCounts().then((nextCounts) => {
+          if (nextCounts) setCounts(nextCounts);
+        });
+      }
+      void Promise.all(
+        TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)),
+      );
+    },
+    [loadTab, loadActionCounts, tab, applyTabPayload, wantsCounts],
+  );
+
+  function handleInstantAction(input: {
+    claimId: string;
+    action: ClaimInstantAction;
+  }) {
+    removeClaimsFromQueue([input.claimId]);
+    if (input.action === "approve") {
+      setBulkMessage("Approved. Payment continues in the background.");
+    } else if (input.action === "pay") {
+      setBulkMessage("Sent to Razorpay. Status will update shortly.");
+    } else {
+      setBulkMessage("Claim rejected.");
     }
-    void Promise.all(
-      TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)),
-    );
-  }, [loadTab, loadActionCounts, tab, applyTabPayload, wantsCounts]);
+  }
 
   const hasApprovableInQueue = claims.some((claim) =>
     isAdminApprovalQueueClaim({
@@ -265,52 +314,58 @@ export default function ManagerPendingPage() {
     return () => window.clearTimeout(timer);
   }, [fetchTab, tab, wantsCounts]);
 
-  async function runBulk(
+  function runBulk(
     endpoint: string,
     claimIds: string[],
     confirmText: string,
     emptyText: string,
   ) {
-    if (bulkBusy) return;
     if (claimIds.length === 0) {
       setBulkMessage("Nothing in the queue to process.");
       return;
     }
     if (!window.confirm(confirmText)) return;
-    setBulkBusy(true);
-    setBulkMessage(null);
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claimIds }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        setBulkMessage(body.error ?? "Something went wrong. Try again.");
-        return;
+
+    const processingIds = [...claimIds];
+    removeClaimsFromQueue(processingIds);
+
+    const isPay = endpoint.includes("bulk-pay");
+    setBulkMessage(
+      isPay
+        ? `Sending ${processingIds.length} payment${processingIds.length === 1 ? "" : "s"} to Razorpay in the background…`
+        : `Approved ${processingIds.length} claim${processingIds.length === 1 ? "" : "s"}. Payment continues in the background.`,
+    );
+
+    void (async () => {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ claimIds: processingIds }),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          setBulkMessage(body.error ?? "Something went wrong. Try again.");
+          void refreshQueue({ silent: true });
+          return;
+        }
+        const summary = body as BulkActionSummary;
+        if (summary.total === 0) {
+          setBulkMessage(emptyText);
+          void refreshQueue({ silent: true });
+          return;
+        }
+        let msg = `Done: ${summary.succeeded} of ${summary.total} succeeded.`;
+        if (summary.failed > 0) {
+          msg += ` ${summary.failed} could not be completed.`;
+        }
+        setBulkMessage(msg);
+        void refreshQueue({ silent: true });
+      } catch {
+        setBulkMessage("Something went wrong. Try again.");
+        void refreshQueue({ silent: true });
       }
-      const summary = body as BulkActionSummary;
-      if (summary.total === 0) {
-        setBulkMessage(emptyText);
-        return;
-      }
-      const partial = summary.results.filter((r) => r.ok && r.error).length;
-      let msg = `Done: ${summary.succeeded} of ${summary.total} succeeded.`;
-      if (summary.failed > 0) {
-        msg += ` ${summary.failed} could not be completed.`;
-      }
-      if (partial > 0) {
-        msg += ` ${partial} approved but payout needs attention.`;
-      }
-      setBulkMessage(msg);
-      setSelectedIds(new Set());
-      await refreshQueue();
-    } catch {
-      setBulkMessage("Something went wrong. Try again.");
-    } finally {
-      setBulkBusy(false);
-    }
+    })();
   }
 
   return (
@@ -376,7 +431,7 @@ export default function ManagerPendingPage() {
                 <Button
                   className="w-full"
                   size="sm"
-                  disabled={bulkBusy || selectedApproveIds.length === 0}
+                  disabled={selectedApproveIds.length === 0}
                   onClick={() =>
                     void runBulk(
                       "/api/claims/bulk-decide",
@@ -386,9 +441,7 @@ export default function ManagerPendingPage() {
                     )
                   }
                 >
-                  {bulkBusy
-                    ? "Working…"
-                    : `Approve selected (${selectedApproveIds.length})`}
+                  {`Approve selected (${selectedApproveIds.length})`}
                 </Button>
               ) : null}
               {showPaySelected ? (
@@ -396,7 +449,7 @@ export default function ManagerPendingPage() {
                   className="w-full"
                   size="sm"
                   variant={showApproveSelected ? "outline" : "default"}
-                  disabled={bulkBusy || selectedPayIds.length === 0}
+                  disabled={selectedPayIds.length === 0}
                   onClick={() =>
                     void runBulk(
                       "/api/claims/bulk-pay",
@@ -406,9 +459,7 @@ export default function ManagerPendingPage() {
                     )
                   }
                 >
-                  {bulkBusy
-                    ? "Working…"
-                    : `Pay selected (${selectedPayIds.length})`}
+                  {`Pay selected (${selectedPayIds.length})`}
                 </Button>
               ) : null}
             </div>
@@ -422,10 +473,9 @@ export default function ManagerPendingPage() {
         open={selected !== null}
         onClose={() => setSelected(null)}
         variant="approver"
-        onUpdated={async () => {
-          setSelected(null);
-          await refreshQueue();
-        }}
+        onInstantAction={handleInstantAction}
+        onActionFeedback={setBulkMessage}
+        onUpdated={() => refreshQueue({ silent: true })}
       />
     </>
   );

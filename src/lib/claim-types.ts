@@ -52,6 +52,8 @@ export type SerializedClaim = {
   queueList?: boolean;
   /** Client-only: claim is still uploading in the background. */
   submitting?: boolean;
+  /** Client-only: background submit failed (shown in claim details). */
+  submitError?: string | null;
   createdAt: string;
   updatedAt: string;
 };

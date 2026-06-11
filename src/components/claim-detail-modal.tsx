@@ -35,6 +35,7 @@ function claimDetailReady(claim: SerializedClaim) {
 }
 
 function claimNeedsFullLoad(claim: SerializedClaim) {
+  if (claim.submitError || claim.id.startsWith("pending-")) return false;
   if (claim.queueList) return true;
   if (!claimDetailReady(claim)) return true;
   if (claim.receipts.length === 0 && (claim.receiptCount ?? 0) === 0) {
@@ -79,17 +80,23 @@ function claimFromCache(stub: SerializedClaim): SerializedClaim | null {
   return mergeClaimDetail(cached, stub);
 }
 
+export type ClaimInstantAction = "approve" | "reject" | "pay";
+
 export function ClaimDetailModal(props: {
   claim: SerializedClaim | null;
   open: boolean;
   onClose: () => void;
   variant: "employee" | "admin" | "approver";
   onUpdated?: () => void | Promise<void>;
+  /** Remove the claim from the queue immediately while the server catches up. */
+  onInstantAction?: (input: {
+    claimId: string;
+    action: ClaimInstantAction;
+  }) => void;
+  onActionFeedback?: (message: string) => void;
 }) {
   const [detailClaim, setDetailClaim] = useState<SerializedClaim | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [deciding, setDeciding] = useState(false);
-  const [paying, setPaying] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { user } = useMe();
@@ -217,27 +224,29 @@ export function ClaimDetailModal(props: {
 
   const claim = detailClaim ?? props.claim;
 
-  async function payClaim() {
+  function payClaim() {
     setError(null);
-    setPaying(true);
-    try {
-      const url =
-        props.variant === "admin"
-          ? `/api/admin/claims/${claim.id}/pay`
-          : `/api/claims/${claim.id}/pay`;
-      const response = await fetch(url, { method: "POST" });
-      const updated = await readJson<SerializedClaim>(response);
-      cacheClaimDetail(updated);
-      setDetailClaim(updated);
-      await props.onUpdated?.();
-      if (props.variant !== "admin") {
-        props.onClose();
+    const claimId = claim.id;
+    props.onInstantAction?.({ claimId, action: "pay" });
+    props.onClose();
+
+    void (async () => {
+      try {
+        const url =
+          props.variant === "admin"
+            ? `/api/admin/claims/${claim.id}/pay`
+            : `/api/claims/${claim.id}/pay`;
+        const response = await fetch(url, { method: "POST" });
+        const updated = await readJson<SerializedClaim>(response);
+        cacheClaimDetail(updated);
+        void props.onUpdated?.();
+      } catch (err) {
+        props.onActionFeedback?.(
+          err instanceof Error ? err.message : "Could not initiate payout.",
+        );
+        void props.onUpdated?.();
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not initiate payout.");
-    } finally {
-      setPaying(false);
-    }
+    })();
   }
 
   const canRetryPay =
@@ -250,40 +259,37 @@ export function ClaimDetailModal(props: {
     ? formatRole(claim.employee.role)
     : null;
 
-  async function decide(status: "APPROVED" | "REJECTED") {
+  function decide(status: "APPROVED" | "REJECTED") {
     setError(null);
     if (status === "REJECTED" && !rejectionReason.trim()) {
       setError("Please add a reason for rejection.");
       return;
     }
-    setDeciding(true);
-    try {
-      const response = await fetch(`/api/claims/${claim.id}/decide`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status,
-          rejectionReason: status === "REJECTED" ? rejectionReason : undefined,
-        }),
-      });
-      const updated = await readJson<
-        SerializedClaim & { payoutWarning?: string }
-      >(response);
-      if (updated.payoutWarning) {
-        setError(updated.payoutWarning);
-        await props.onUpdated?.();
-        return;
+
+    const claimId = claim.id;
+    const action = status === "APPROVED" ? "approve" : "reject";
+    props.onInstantAction?.({ claimId, action });
+    props.onClose();
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/claims/${claim.id}/decide`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            rejectionReason: status === "REJECTED" ? rejectionReason : undefined,
+          }),
+        });
+        await readJson<SerializedClaim>(response);
+        void props.onUpdated?.();
+      } catch (err) {
+        props.onActionFeedback?.(
+          err instanceof Error ? err.message : "Could not update this claim.",
+        );
+        void props.onUpdated?.();
       }
-      props.onClose();
-      await props.onUpdated?.();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not update this claim.",
-      );
-      await props.onUpdated?.();
-    } finally {
-      setDeciding(false);
-    }
+    })();
   }
 
   return (
@@ -328,6 +334,19 @@ export function ClaimDetailModal(props: {
           hideCount
           loading={loadingDetail}
         />
+
+        {props.variant === "employee" && claim.submitError ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+          >
+            <p className="text-xs font-medium text-zinc-500">Could not submit</p>
+            <p className="mt-1 text-sm text-red-800">{claim.submitError}</p>
+            <p className="mt-2 text-sm text-red-800">
+              Go to New Claim and try again with your receipt photos.
+            </p>
+          </div>
+        ) : null}
 
         {claim.rejectionReason ? (
           <div className="rounded-xl border border-red-200 bg-red-50 py-3">
@@ -377,7 +396,6 @@ export function ClaimDetailModal(props: {
             <Button
               className="w-full"
               size="sm"
-              disabled={deciding}
               onClick={() => decide("APPROVED")}
             >
               Approve
@@ -386,7 +404,6 @@ export function ClaimDetailModal(props: {
               variant="outline"
               className="w-full border-red-200 text-red-700 hover:bg-red-50"
               size="sm"
-              disabled={deciding}
               onClick={() => decide("REJECTED")}
             >
               Reject
@@ -404,17 +421,10 @@ export function ClaimDetailModal(props: {
                 {error}
               </p>
             ) : null}
-            <Button
-              className="w-full"
-              size="sm"
-              disabled={paying}
-              onClick={payClaim}
-            >
-              {paying
-                ? "Sending to RazorpayX…"
-                : props.variant === "admin"
-                  ? "Pay via RazorpayX"
-                  : "Approve payment"}
+            <Button className="w-full" size="sm" onClick={payClaim}>
+              {props.variant === "admin"
+                ? "Pay via RazorpayX"
+                : "Approve payment"}
             </Button>
           </div>
         ) : null}
@@ -426,13 +436,8 @@ export function ClaimDetailModal(props: {
                 {error}
               </p>
             ) : null}
-            <Button
-              className="w-full"
-              size="sm"
-              disabled={paying}
-              onClick={() => payClaim()}
-            >
-              {paying ? "Retrying payment…" : "Retry payment"}
+            <Button className="w-full" size="sm" onClick={() => payClaim()}>
+              Retry payment
             </Button>
             <p className="text-center text-xs text-zinc-500">
               Payment failed after approval. Retry sends money to the employee’s

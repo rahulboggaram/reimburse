@@ -181,7 +181,7 @@ export function ReimbursementForm(props: {
       return;
     }
     startNavigation(() => {
-      router.replace("/employee/claims?submitted=1");
+      router.replace("/employee/claims");
     });
   }
 
@@ -196,7 +196,6 @@ export function ReimbursementForm(props: {
         const response = await fetch(input.url, {
           method: input.method,
           body: input.formData,
-          keepalive: true,
         });
         await readJson<{ id: string }>(response);
 

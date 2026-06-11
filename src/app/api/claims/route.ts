@@ -4,7 +4,8 @@ import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
 import { resolveClaimBranchForUser } from "@/lib/claim-branch";
 import { resolveClaimRouting } from "@/lib/claim-routing";
-import { finalizeClaimInBackground } from "@/lib/attach-receipts";
+import { replaceClaimReceiptsFromInputs } from "@/lib/attach-receipts";
+import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { readReceiptInputs } from "@/lib/receipt-input";
 import {
   receiptFilesFromFormData,
@@ -70,15 +71,28 @@ export async function POST(request: Request) {
       },
     });
 
-    const claimId = claim.id;
-    const adminActorId = session.role === "ADMIN" ? session.id : undefined;
-    after(async () => {
-      await finalizeClaimInBackground({
-        claimId,
-        receiptInputs,
-        adminActorId,
+    const receiptError = await replaceClaimReceiptsFromInputs(
+      claim.id,
+      receiptInputs,
+    );
+    if (receiptError) {
+      await prisma.reimbursement.delete({ where: { id: claim.id } });
+      return Response.json({ error: receiptError }, { status: 400 });
+    }
+
+    if (session.role === "ADMIN") {
+      const claimId = claim.id;
+      const actorId = session.id;
+      after(async () => {
+        const payoutResult = await tryAutoPayAdminClaim(claimId, actorId);
+        if (!payoutResult.ok && "error" in payoutResult) {
+          console.error("background admin payout failed", {
+            claimId,
+            error: payoutResult.error,
+          });
+        }
       });
-    });
+    }
 
     return Response.json({ id: claim.id }, { status: 201 });
   } catch (err) {

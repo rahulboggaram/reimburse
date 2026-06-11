@@ -103,9 +103,6 @@ export default function AdminClaimsPage() {
           invalidateAdminClaims();
           const list = await fetchAdminClaims<AdminClaim[]>();
           setClaims(list);
-          setSelected((current) =>
-            current ? list.find((c) => c.id === current.id) ?? null : null,
-          );
         }}
       />
     </>

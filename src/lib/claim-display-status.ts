@@ -59,6 +59,7 @@ function awaitingPaymentApprover(claim: {
 export function claimDisplayStatus(
   claim: {
     submitting?: boolean;
+    submitError?: string | null;
     employeeId?: string;
     approverId?: string;
     paymentApproverId?: string;
@@ -69,6 +70,10 @@ export function claimDisplayStatus(
   },
   _viewerRole?: string,
 ): string {
+  if (claim.submitError) {
+    return "submitFailed";
+  }
+
   if (claim.submitting) {
     return "submitting";
   }

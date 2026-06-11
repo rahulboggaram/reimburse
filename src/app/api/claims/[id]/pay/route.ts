@@ -1,8 +1,9 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import { claimInclude, serializeClaim } from "@/lib/claims";
-import { initiateClaimPayout, refreshPayoutIfInProgress } from "@/lib/payouts";
+import { payClaimInBackground } from "@/lib/pay-claim-background";
 import { getRazorpayConfig } from "@/lib/razorpayx";
 
 const employeeForPayoutSelect = {
@@ -83,19 +84,12 @@ export async function POST(
     );
   }
 
-  try {
-    await initiateClaimPayout({ claim, actorId: session.id });
-    await refreshPayoutIfInProgress(id);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Payment failed.";
-    return Response.json({ error: message }, { status: 502 });
-  }
-
-  const updated = await prisma.reimbursement.findUnique({
-    where: { id },
-    include: claimInclude,
+  const claimId = id;
+  const actorId = session.id;
+  after(async () => {
+    await payClaimInBackground(claimId, actorId);
   });
 
-  return Response.json(serializeClaim(updated!));
+  return Response.json(serializeClaim(claim));
 }
 

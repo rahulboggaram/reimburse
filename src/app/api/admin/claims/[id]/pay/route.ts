@@ -1,7 +1,8 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdminAccess } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
-import { initiateClaimPayout, refreshPayoutIfInProgress } from "@/lib/payouts";
+import { payClaimInBackground } from "@/lib/pay-claim-background";
 import { getRazorpayConfig } from "@/lib/razorpayx";
 
 export async function POST(
@@ -21,6 +22,7 @@ export async function POST(
           id: true,
           name: true,
           phone: true,
+          role: true,
           ifscCode: true,
           bankAccountNumber: true,
           razorpayContactId: true,
@@ -45,19 +47,11 @@ export async function POST(
     );
   }
 
-  try {
-    await initiateClaimPayout({ claim, actorId: session.id });
-    await refreshPayoutIfInProgress(id);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Could not initiate payout.";
-    return Response.json({ error: message }, { status: 400 });
-  }
-
-  const updated = await prisma.reimbursement.findUnique({
-    where: { id },
-    include: claimInclude,
+  const claimId = id;
+  const actorId = session.id;
+  after(async () => {
+    await payClaimInBackground(claimId, actorId);
   });
 
-  return Response.json(serializeClaim(updated!));
+  return Response.json(serializeClaim(claim));
 }

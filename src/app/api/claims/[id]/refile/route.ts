@@ -4,7 +4,8 @@ import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
 import { resolveClaimBranchForUser } from "@/lib/claim-branch";
 import { resolveClaimRouting } from "@/lib/claim-routing";
-import { finalizeRefileInBackground } from "@/lib/attach-receipts";
+import { replaceClaimReceiptsFromInputs } from "@/lib/attach-receipts";
+import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { readReceiptInputs } from "@/lib/receipt-input";
 import {
   receiptFilesFromFormData,
@@ -85,14 +86,24 @@ export async function PATCH(
     },
   });
 
-  const adminActorId = session.role === "ADMIN" ? session.id : undefined;
-  after(async () => {
-    await finalizeRefileInBackground({
-      claimId: id,
-      receiptInputs,
-      adminActorId,
+  const receiptError = await replaceClaimReceiptsFromInputs(id, receiptInputs);
+  if (receiptError) {
+    return Response.json({ error: receiptError }, { status: 400 });
+  }
+
+  if (session.role === "ADMIN") {
+    const claimId = id;
+    const actorId = session.id;
+    after(async () => {
+      const payoutResult = await tryAutoPayAdminClaim(claimId, actorId);
+      if (!payoutResult.ok && "error" in payoutResult) {
+        console.error("background admin payout failed", {
+          claimId,
+          error: payoutResult.error,
+        });
+      }
     });
-  });
+  }
 
   return Response.json({ id });
 }

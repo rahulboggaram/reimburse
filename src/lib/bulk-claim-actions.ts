@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import {
   tryAutoPayAfterAdminApproval,
@@ -5,7 +6,7 @@ import {
 } from "@/lib/admin-auto-payout";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import { paymentWaitingWhereForSession } from "@/lib/claim-payment-queue";
-import { initiateClaimPayout } from "@/lib/payouts";
+import { payClaimInBackground } from "@/lib/pay-claim-background";
 import { getRazorpayConfig } from "@/lib/razorpayx";
 
 const employeeForPayoutSelect = {
@@ -82,35 +83,35 @@ export async function bulkPayClaimIds(
     };
   }
 
-  const results: BulkItemResult[] = [];
+  const payable = claims.filter((claim) => userCanReceivePayout(claim.employee));
+  const blocked = claims.filter((claim) => !userCanReceivePayout(claim.employee));
 
-  for (const claim of claims) {
-    if (!userCanReceivePayout(claim.employee)) {
-      results.push({
-        claimId: claim.id,
-        employeeName: claim.employeeName,
-        ok: false,
-        error: "Missing name or bank details on profile",
-      });
-      continue;
-    }
+  const results: BulkItemResult[] = blocked.map((claim) => ({
+    claimId: claim.id,
+    employeeName: claim.employeeName,
+    ok: false,
+    error: "Missing name or bank details on profile",
+  }));
 
-    try {
-      await initiateClaimPayout({ claim, actorId: session.id });
-      results.push({
-        claimId: claim.id,
-        employeeName: claim.employeeName,
-        ok: true,
-      });
-    } catch (err) {
-      results.push({
-        claimId: claim.id,
-        employeeName: claim.employeeName,
-        ok: false,
-        error: err instanceof Error ? err.message : "Payment failed",
-      });
-    }
+  if (payable.length === 0) {
+    return summarize(results);
   }
+
+  const actorId = session.id;
+  const payableIds = payable.map((claim) => claim.id);
+  after(async () => {
+    for (const claimId of payableIds) {
+      await payClaimInBackground(claimId, actorId);
+    }
+  });
+
+  results.push(
+    ...payable.map((claim) => ({
+      claimId: claim.id,
+      employeeName: claim.employeeName,
+      ok: true as const,
+    })),
+  );
 
   return summarize(results);
 }
@@ -161,6 +162,7 @@ export async function bulkAdminApproveClaimIds(
   }
 
   const results: BulkItemResult[] = [];
+  const approvedIds: string[] = [];
 
   for (const claim of claims) {
     try {
@@ -173,18 +175,7 @@ export async function bulkAdminApproveClaimIds(
           rejectionReason: null,
         },
       });
-
-      const payoutResult = await tryAutoPayAfterAdminApproval(claim.id, adminId);
-      if (!payoutResult.ok && "error" in payoutResult) {
-        results.push({
-          claimId: claim.id,
-          employeeName: claim.employeeName,
-          ok: true,
-          error: `Approved; payout: ${payoutResult.error}`,
-        });
-        continue;
-      }
-
+      approvedIds.push(claim.id);
       results.push({
         claimId: claim.id,
         employeeName: claim.employeeName,
@@ -198,6 +189,20 @@ export async function bulkAdminApproveClaimIds(
         error: err instanceof Error ? err.message : "Could not approve",
       });
     }
+  }
+
+  if (approvedIds.length > 0) {
+    after(async () => {
+      for (const claimId of approvedIds) {
+        const payoutResult = await tryAutoPayAfterAdminApproval(claimId, adminId);
+        if (!payoutResult.ok && "error" in payoutResult) {
+          console.error("background payout after bulk admin approval failed", {
+            claimId,
+            error: payoutResult.error,
+          });
+        }
+      }
+    });
   }
 
   return summarize(results);

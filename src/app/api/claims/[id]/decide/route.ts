@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireManagerAccess } from "@/lib/auth-api";
 import { tryAutoPayAfterAdminApproval } from "@/lib/admin-auto-payout";
@@ -59,12 +60,18 @@ export async function POST(
     },
   });
 
-  let payoutWarning: string | undefined;
   if (body.data.status === "APPROVED" && session.role === "ADMIN") {
-    const payoutResult = await tryAutoPayAfterAdminApproval(id, session.id);
-    if (!payoutResult.ok && "error" in payoutResult) {
-      payoutWarning = payoutResult.error;
-    }
+    const claimId = id;
+    const adminId = session.id;
+    after(async () => {
+      const payoutResult = await tryAutoPayAfterAdminApproval(claimId, adminId);
+      if (!payoutResult.ok && "error" in payoutResult) {
+        console.error("background payout after admin approval failed", {
+          claimId,
+          error: payoutResult.error,
+        });
+      }
+    });
   }
 
   const claim = await prisma.reimbursement.findUnique({
@@ -72,8 +79,5 @@ export async function POST(
     include: claimInclude,
   });
 
-  return Response.json({
-    ...serializeClaim(claim!),
-    payoutWarning,
-  });
+  return Response.json(serializeClaim(claim!));
 }
