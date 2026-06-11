@@ -1,9 +1,25 @@
+import { after } from "next/server";
+import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-retry";
+import { queuePayoutSync, syncPayoutFromWebhook } from "@/lib/payouts";
 import {
   getRazorpayConfig,
   verifyWebhookSignature,
+  type RazorpayPayoutResponse,
   type RazorpayWebhookPayload,
 } from "@/lib/razorpayx";
-import { syncPayoutFromWebhook } from "@/lib/payouts";
+
+export const maxDuration = 60;
+
+const RELEVANT_PAYOUT_EVENTS = new Set([
+  "payout.processed",
+  "payout.failed",
+  "payout.reversed",
+  "payout.queued",
+  "payout.pending",
+  "payout.processing",
+  "payout.rejected",
+]);
 
 // Razorpay's webhook "verification" often probes the URL with GET/HEAD.
 // Keep it lightweight so the dashboard can validate connectivity.
@@ -13,6 +29,45 @@ export async function GET() {
 
 export async function HEAD() {
   return new Response(null, { status: 200 });
+}
+
+function queuePayoutSyncFallback(payoutId: string) {
+  void prisma.reimbursement
+    .findFirst({
+      where: { razorpayPayoutId: payoutId },
+      select: { id: true },
+    })
+    .then((claim) => {
+      if (claim) queuePayoutSync([claim.id]);
+    })
+    .catch((fallbackErr) => {
+      console.error("[razorpayx webhook] fallback queue failed", {
+        payoutId,
+        error:
+          fallbackErr instanceof Error ? fallbackErr.message : fallbackErr,
+      });
+    });
+}
+
+function processPayoutWebhookInBackground(
+  event: string,
+  payout: RazorpayPayoutResponse,
+) {
+  after(async () => {
+    try {
+      await withDbRetry(() => syncPayoutFromWebhook(payout), {
+        retries: 3,
+        delayMs: 500,
+      });
+    } catch (err) {
+      console.error("[razorpayx webhook] payout sync failed", {
+        event,
+        payoutId: payout.id,
+        error: err instanceof Error ? err.message : err,
+      });
+      queuePayoutSyncFallback(payout.id);
+    }
+  });
 }
 
 export async function POST(request: Request) {
@@ -38,20 +93,12 @@ export async function POST(request: Request) {
     return Response.json({ received: true });
   }
 
-  const relevantEvents = [
-    "payout.processed",
-    "payout.failed",
-    "payout.reversed",
-    "payout.queued",
-    "payout.pending",
-    "payout.processing",
-    "payout.rejected",
-  ];
-
-  if (!relevantEvents.includes(payload.event)) {
+  if (!RELEVANT_PAYOUT_EVENTS.has(payload.event)) {
     return Response.json({ received: true });
   }
 
-  await syncPayoutFromWebhook(payout);
+  // Acknowledge immediately so Razorpay does not mark delivery as failed.
+  // Payout status is applied in the background; polling is the fallback.
+  processPayoutWebhookInBackground(payload.event, payout);
   return Response.json({ received: true });
 }
