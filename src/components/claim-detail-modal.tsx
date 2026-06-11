@@ -342,10 +342,12 @@ export function ClaimDetailModal(props: {
     })();
   }
 
-  const canRetryPay =
+  const paymentFailed = payoutFailed(claim.payoutStatus);
+  const showPayAction =
     canPay &&
     claim.status === "APPROVED" &&
-    payoutFailed(claim.payoutStatus);
+    !claim.paidAt &&
+    !payoutInProgress(claim.payoutStatus);
 
   const receiptsTotal = claimReceiptCount(claim);
   const employeeRole = claim.employee?.role
@@ -504,10 +506,7 @@ export function ClaimDetailModal(props: {
           </div>
         ) : null}
 
-        {canPay &&
-        claim.status === "APPROVED" &&
-        !claim.paidAt &&
-        !payoutInProgress(claim.payoutStatus) ? (
+        {showPayAction ? (
           <div className="space-y-4 border-t border-zinc-100 pt-8">
             {error ? (
               <p className="text-sm text-red-700" role="alert">
@@ -515,27 +514,18 @@ export function ClaimDetailModal(props: {
               </p>
             ) : null}
             <Button className="w-full" size="sm" onClick={payClaim}>
-              {props.variant === "admin"
-                ? "Pay via RazorpayX"
-                : "Approve payment"}
+              {paymentFailed
+                ? "Retry payment"
+                : props.variant === "admin"
+                  ? "Pay via RazorpayX"
+                  : "Approve payment"}
             </Button>
-          </div>
-        ) : null}
-
-        {canRetryPay ? (
-          <div className="space-y-4 border-t border-zinc-100 pt-8">
-            {error ? (
-              <p className="text-sm text-red-700" role="alert">
-                {error}
+            {paymentFailed ? (
+              <p className="text-center text-xs text-zinc-500">
+                Payment failed after approval. Retry sends money to the
+                employee’s bank account.
               </p>
             ) : null}
-            <Button className="w-full" size="sm" onClick={() => payClaim()}>
-              Retry payment
-            </Button>
-            <p className="text-center text-xs text-zinc-500">
-              Payment failed after approval. Retry sends money to the employee’s
-              bank account.
-            </p>
           </div>
         ) : null}
 
