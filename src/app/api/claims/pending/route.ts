@@ -12,6 +12,7 @@ import {
   approverPaymentWaitingWhere,
   orgPaymentWaitingWhere,
 } from "@/lib/claim-payment-queue";
+import { withDbRetry } from "@/lib/db-retry";
 import { claimNeedsPayoutSync, queuePayoutSync } from "@/lib/payouts";
 
 type QueueTab = "waiting" | "approved";
@@ -82,12 +83,14 @@ export async function GET(request: Request) {
     const tabParam = new URL(request.url).searchParams.get("tab");
     const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
 
-    const claims = await prisma.reimbursement.findMany({
-      where: queueWhere(session, tab),
-      orderBy: queueOrderBy(session, tab),
-      take: LIST_LIMIT,
-      include: claimPendingListInclude,
-    });
+    const claims = await withDbRetry(() =>
+      prisma.reimbursement.findMany({
+        where: queueWhere(session, tab),
+        orderBy: queueOrderBy(session, tab),
+        take: LIST_LIMIT,
+        include: claimPendingListInclude,
+      }),
+    );
 
     queuePayoutSync(claims.filter(claimNeedsPayoutSync).map((c) => c.id));
 

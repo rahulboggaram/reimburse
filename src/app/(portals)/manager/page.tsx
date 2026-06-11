@@ -123,8 +123,12 @@ export default function ManagerPendingPage() {
 
   const loadActionCounts = useCallback(async (): Promise<ActionCounts | null> => {
     if (!wantsCounts) return null;
-    const response = await fetch("/api/claims/action-counts");
-    return readJson<ActionCounts>(response);
+    try {
+      const response = await fetch("/api/claims/action-counts");
+      return readJson<ActionCounts>(response);
+    } catch {
+      return null;
+    }
   }, [wantsCounts]);
 
   const patchTabCache = useCallback(
@@ -165,7 +169,7 @@ export default function ManagerPendingPage() {
       const data = await loadTab(tab, true);
       applyTabPayload(data);
       if (!options?.silent) setLoading(false);
-      if (wantsCounts) {
+      if (wantsCounts && !options?.silent) {
         void loadActionCounts().then((nextCounts) => {
           if (nextCounts) setCounts(nextCounts);
         });
