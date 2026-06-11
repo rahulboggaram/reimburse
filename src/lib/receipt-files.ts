@@ -7,7 +7,6 @@ import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { bufferToDataUrl } from "@/lib/receipt-store";
-import { deleteReceiptBlob, isReceiptBlobPath } from "@/lib/receipt-blob";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
@@ -165,14 +164,8 @@ export async function saveReceiptInputs(
   );
 }
 
-export async function deleteStoredReceiptFiles(filePaths: string[]) {
-  await Promise.all(
-    filePaths.map(async (filePath) => {
-      if (isReceiptBlobPath(filePath)) {
-        await deleteReceiptBlob(filePath);
-      }
-    }),
-  );
+export async function deleteStoredReceiptFiles(_filePaths: string[]) {
+  // Receipt bytes live in the database on Vercel — nothing to delete externally.
 }
 
 export async function deleteReceiptFilesForClaim(reimbursementId: string) {

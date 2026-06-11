@@ -19,9 +19,5 @@ export function receiptClientUrl(receipt: {
 }
 
 export function isDirectReceiptUrl(url: string) {
-  return (
-    url.startsWith("data:") ||
-    url.startsWith("/uploads/") ||
-    (url.startsWith("https://") && url.includes(".blob.vercel-storage.com/"))
-  );
+  return url.startsWith("data:") || url.startsWith("/uploads/");
 }

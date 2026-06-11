@@ -357,7 +357,7 @@ export function UserMenu(props: { initialUser?: SessionUser | null }) {
                 onNavigate={closeMenu}
                 active={pathname.startsWith("/admin/receipt-storage")}
               >
-                Receipt storage
+                Receipt photos
               </MenuLink>
               {profileLink}
               <MenuDivider />

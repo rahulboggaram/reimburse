@@ -3,110 +3,112 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { PageHeading } from "@/components/page-heading";
+import { Button } from "@/components/ui/button";
 import { readJson } from "@/lib/api";
-import { openReceiptInNewTab } from "@/lib/compress-receipt-image";
-
-type FlowCheck = {
-  id: string;
-  label: string;
-  ok: boolean;
-  fix: string;
-};
 
 type ReceiptStorageStatus = {
-  connected?: boolean;
-  storageMode:
-    | "blob"
-    | "database-fallback"
-    | "blob-misconfigured"
-    | "local-files";
-  flowChecks?: FlowCheck[];
-  blobFilesInStorage?: number | null;
-  totalReceiptRows?: number;
-  blobLinkedRows?: number;
-  env: {
-    runningOnVercel: boolean;
-    blobReadWriteToken: boolean;
-    blobStoreId: boolean;
-    vercelOidcToken: boolean;
-    enabled: boolean;
-    deploymentUrl?: string | null;
+  stats: {
+    total: number;
+    inDatabase: number;
+    legacyBlob: number;
+    localFiles: number;
   };
-  probe: { ok: boolean; error?: string } | null;
-  latestBlobRead: { ok: boolean; bytes?: number; error?: string } | null;
-  latestReceiptViewUrl: string | null;
-  latestReceiptReadError?: string | null;
+  blobFilesRemaining: number | null;
   recentReceipts: Array<{
     id: string;
     createdAt: string;
     fileName: string | null;
     employeeName: string;
     amount: number;
-    storage: string;
+    storage: "database" | "legacy-blob" | "local-file";
   }>;
-  summary: {
-    recentSampleSize: number;
-    blobCount: number;
-    databaseCount: number;
-  };
-  nextSteps: string[];
 };
 
-function StatusRow(props: { ok: boolean; label: string; detail?: string }) {
-  return (
-    <li className="flex gap-3 text-sm">
-      <span
-        className={props.ok ? "text-emerald-700" : "text-amber-700"}
-        aria-hidden
-      >
-        {props.ok ? "✓" : "○"}
-      </span>
-      <span>
-        <span className="font-medium text-zinc-900">{props.label}</span>
-        {props.detail ? (
-          <span className="mt-0.5 block text-zinc-600">{props.detail}</span>
-        ) : null}
-      </span>
-    </li>
-  );
-}
-
-function modeLabel(mode: ReceiptStorageStatus["storageMode"]) {
-  switch (mode) {
-    case "blob":
-      return "Blob storage — working";
-    case "database-fallback":
-      return "Database fallback — Blob not connected";
-    case "blob-misconfigured":
-      return "Blob linked but upload test failed";
-    default:
-      return "Local files (development)";
-  }
-}
+type CleanupResult = {
+  ok: boolean;
+  migrated: number;
+  migrateFailed: number;
+  blobFilesDeleted: number;
+  purgeError?: string;
+  stats: ReceiptStorageStatus["stats"];
+  blobFilesRemaining: number | null;
+};
 
 export default function AdminReceiptStoragePage() {
   const [status, setStatus] = useState<ReceiptStorageStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cleaning, setCleaning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
+
+  async function loadStatus() {
+    const response = await fetch("/api/admin/receipt-storage");
+    const data = await readJson<ReceiptStorageStatus>(response);
+    setStatus(data);
+  }
 
   useEffect(() => {
-    fetch("/api/admin/receipt-storage")
-      .then((r) => readJson<ReceiptStorageStatus>(r))
-      .then(setStatus)
-      .catch(() => setError("Could not load receipt storage status."))
+    loadStatus()
+      .catch(() => setError("Could not load receipt status."))
       .finally(() => setLoading(false));
   }, []);
+
+  async function runCleanup() {
+    setCleaning(true);
+    setCleanupMessage(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/receipt-storage", {
+        method: "POST",
+      });
+      const result = await readJson<CleanupResult>(response);
+      setStatus({
+        stats: result.stats,
+        blobFilesRemaining: result.blobFilesRemaining,
+        recentReceipts: status?.recentReceipts ?? [],
+      });
+      await loadStatus();
+
+      if (result.ok) {
+        setCleanupMessage(
+          `Done. Moved ${result.migrated} receipt(s) to the database and removed ${result.blobFilesDeleted} file(s) from Vercel Blob.`,
+        );
+      } else {
+        const parts = [
+          `Moved ${result.migrated} to the database.`,
+          result.migrateFailed > 0
+            ? `${result.migrateFailed} could not be moved — refile those claims.`
+            : null,
+          result.blobFilesDeleted > 0
+            ? `Removed ${result.blobFilesDeleted} Blob file(s).`
+            : null,
+          result.purgeError ? `Blob cleanup: ${result.purgeError}` : null,
+        ].filter(Boolean);
+        setCleanupMessage(parts.join(" "));
+      }
+    } catch {
+      setError("Cleanup failed. Try again in a moment.");
+    } finally {
+      setCleaning(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
       <PageHeading
-        title="Receipt storage"
-        description="Receipt photos are saved in the database for reliable previews. Blob is optional legacy storage."
+        title="Receipt photos"
+        description="Receipts are stored in the database. Vercel Blob is no longer used."
       />
 
       {error ? (
         <p className="text-sm text-red-700" role="alert">
           {error}
+        </p>
+      ) : null}
+
+      {cleanupMessage ? (
+        <p className="text-sm text-emerald-900" role="status">
+          {cleanupMessage}
         </p>
       ) : null}
 
@@ -116,159 +118,55 @@ export default function AdminReceiptStoragePage() {
         <>
           <Card className="space-y-4">
             <p className="text-sm font-semibold text-zinc-900">
-              {status.connected
-                ? "Blob is connected and the receipt flow is working"
-                : modeLabel(status.storageMode)}
+              Database storage
             </p>
-            {status.flowChecks ? (
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                  Connection checklist
-                </p>
-                <ul className="space-y-3">
-                  {status.flowChecks.map((check) => (
-                    <li key={check.id} className="flex gap-3 text-sm">
-                      <span
-                        className={check.ok ? "text-emerald-700" : "text-amber-700"}
-                        aria-hidden
-                      >
-                        {check.ok ? "✓" : "○"}
-                      </span>
-                      <span>
-                        <span className="font-medium text-zinc-900">
-                          {check.label}
-                        </span>
-                        {!check.ok ? (
-                          <span className="mt-0.5 block text-amber-900">
-                            {check.fix}
-                          </span>
-                        ) : null}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {typeof status.blobFilesInStorage === "number" ? (
-              <p className="text-sm text-zinc-600">
-                Files in Blob under <code className="text-xs">receipts/</code>:{" "}
-                <strong>{status.blobFilesInStorage}</strong>
-                {typeof status.blobLinkedRows === "number" ? (
-                  <>
-                    {" "}
-                    · Database rows linked to Blob:{" "}
-                    <strong>{status.blobLinkedRows}</strong>
-                    {typeof status.totalReceiptRows === "number"
-                      ? ` of ${status.totalReceiptRows} total`
-                      : ""}
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-            {status.env.deploymentUrl ? (
-              <p className="text-xs text-zinc-500">
-                This status is for deployment: {status.env.deploymentUrl}
-              </p>
-            ) : null}
-            {status.storageMode === "database-fallback" ? (
-              <p className="text-sm text-amber-900">
-                If Vercel Storage already shows &ldquo;Connected&rdquo;, the
-                store is linked — but this live deployment still does not have
-                Blob credentials. Redeploy Production (see steps below), then
-                refresh this page.
-              </p>
-            ) : null}
-            <ul className="space-y-3">
-              <StatusRow
-                ok={status.env.runningOnVercel}
-                label="Running on Vercel"
-              />
-              <StatusRow
-                ok={status.env.enabled}
-                label="Blob credentials on this deployment"
-                detail={
-                  status.env.enabled
-                    ? "The running app can talk to Blob"
-                    : "Not available yet — redeploy after connecting the store"
-                }
-              />
-              <StatusRow
-                ok={
-                  status.env.blobReadWriteToken ||
-                  (status.latestBlobRead?.ok ?? false)
-                }
-                label="BLOB_READ_WRITE_TOKEN"
-                detail={
-                  status.env.blobReadWriteToken
-                    ? "Set — fastest receipt reads"
-                    : status.latestBlobRead?.ok
-                      ? "Not set, but reads work via BLOB_STORE_ID"
-                      : "Missing — connect Storage to project or add manually"
-                }
-              />
-              <StatusRow
-                ok={status.env.blobStoreId}
-                label="BLOB_STORE_ID"
-                detail="Common on newer Vercel Blob setups"
-              />
-              <StatusRow
-                ok={status.probe?.ok ?? false}
-                label="Test upload to Blob"
-                detail={
-                  status.probe?.ok
-                    ? "Succeeded"
-                    : status.probe?.error ?? "Not run"
-                }
-              />
-              {status.latestBlobRead ? (
-                <StatusRow
-                  ok={status.latestBlobRead.ok}
-                  label="Read latest saved receipt from Blob"
-                  detail={
-                    status.latestBlobRead.ok
-                      ? `${status.latestBlobRead.bytes ?? 0} bytes loaded`
-                      : status.latestBlobRead.error ?? "Failed"
-                  }
-                />
+            <ul className="space-y-2 text-sm text-zinc-700">
+              <li>
+                <strong>{status.stats.inDatabase}</strong> receipt photos in
+                the database (active)
+              </li>
+              <li>
+                <strong>{status.stats.total}</strong> total receipt rows
+              </li>
+              {status.stats.legacyBlob > 0 ? (
+                <li className="text-amber-900">
+                  <strong>{status.stats.legacyBlob}</strong> still pointing at
+                  old Vercel Blob — run cleanup below
+                </li>
+              ) : null}
+              {typeof status.blobFilesRemaining === "number" &&
+              status.blobFilesRemaining > 0 ? (
+                <li className="text-amber-900">
+                  <strong>{status.blobFilesRemaining}</strong> file(s) still in
+                  Vercel Blob storage
+                </li>
               ) : null}
             </ul>
-            {status.latestReceiptViewUrl ? (
-              <p className="text-xs text-zinc-600">
-                Test the live receipt API:{" "}
-                <button
+
+            {(status.stats.legacyBlob > 0 ||
+              (status.blobFilesRemaining ?? 0) > 0) && (
+              <div className="space-y-2 border-t border-zinc-100 pt-4">
+                <p className="text-sm text-zinc-600">
+                  Move any remaining Blob receipts into the database, then empty
+                  Vercel Blob storage.
+                </p>
+                <Button
                   type="button"
-                  className="font-medium text-emerald-800 underline"
-                  onClick={() =>
-                    void openReceiptInNewTab({
-                      url: status.latestReceiptViewUrl!,
-                      mimeType: "image/jpeg",
-                      fileName: "receipt",
-                    })
-                  }
+                  onClick={() => void runCleanup()}
+                  disabled={cleaning}
                 >
-                  open latest saved receipt
-                </button>{" "}
-                (should show a photo in a new tab).
-              </p>
-            ) : status.latestReceiptReadError ? (
-              <p className="text-xs text-amber-900">
-                Latest Blob receipt could not be read:{" "}
-                <span className="font-medium">{status.latestReceiptReadError}</span>
-                . Submit a new test claim after redeploying, or reconnect the Blob
-                store.
-              </p>
-            ) : null}
+                  {cleaning ? "Cleaning up…" : "Move to database & clear Blob"}
+                </Button>
+              </div>
+            )}
           </Card>
 
           <Card className="space-y-3">
             <p className="text-sm font-semibold text-zinc-900">
-              Recent receipts (last {status.summary.recentSampleSize})
+              Recent receipts
             </p>
             {status.recentReceipts.length === 0 ? (
-              <p className="text-sm text-zinc-600">
-                No receipts in the database yet. Submit a test claim to create
-                one.
-              </p>
+              <p className="text-sm text-zinc-600">No receipts yet.</p>
             ) : (
               <ul className="space-y-2 text-sm text-zinc-700">
                 {status.recentReceipts.map((row) => (
@@ -279,15 +177,15 @@ export default function AdminReceiptStoragePage() {
                     · ₹{row.amount} ·{" "}
                     <span
                       className={
-                        row.storage === "blob"
+                        row.storage === "database"
                           ? "text-emerald-700"
                           : "text-amber-800"
                       }
                     >
-                      {row.storage === "blob"
-                        ? "saved in Blob"
-                        : row.storage === "database"
-                          ? "saved in database (not Blob)"
+                      {row.storage === "database"
+                        ? "database"
+                        : row.storage === "legacy-blob"
+                          ? "legacy Blob (needs cleanup)"
                           : row.storage}
                     </span>
                     <span className="mt-0.5 block text-xs text-zinc-500">
@@ -299,19 +197,9 @@ export default function AdminReceiptStoragePage() {
               </ul>
             )}
             <p className="text-xs text-zinc-500">
-              If recent rows say “saved in database”, Blob was not active when
-              those claims were submitted. Only new claims after Blob is fixed
-              will appear under Storage → Browse.
+              Only rows marked &ldquo;database&rdquo; are used for thumbnails.
+              New claims always save to the database.
             </p>
-          </Card>
-
-          <Card className="space-y-2">
-            <p className="text-sm font-semibold text-zinc-900">What to do</p>
-            <ol className="list-decimal space-y-2 pl-5 text-sm text-zinc-700">
-              {status.nextSteps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
           </Card>
         </>
       ) : null}
