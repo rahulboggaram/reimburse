@@ -6,7 +6,7 @@ import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { claimReceiptCount } from "@/lib/claim-receipt-count";
@@ -372,23 +372,18 @@ export function ClaimDetailModal(props: {
 
         {user && canDecideReimbursement(user, claim) ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-xs text-zinc-500">
-                If claim is rejected, add reason for rejection here
-              </p>
-              <Textarea
-                id="rejection-reason"
-                rows={2}
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                aria-label="Reason for rejection"
-                className={cn(
-                  "min-h-[var(--min-height-textarea-2)] resize-none py-3",
-                  "border-[1.5px] border-zinc-300",
-                  "focus-visible:border-accent focus-visible:ring-accent/20",
-                )}
-              />
-            </div>
+            <Input
+              id="rejection-reason"
+              type="text"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="If claim is rejected, add reason for rejection here"
+              aria-label="Reason for rejection"
+              className={cn(
+                "border-[1.5px] border-zinc-300 placeholder:text-zinc-400",
+                "focus-visible:border-accent focus-visible:ring-accent/20",
+              )}
+            />
             {error ? (
               <p className="text-sm text-red-700" role="alert">
                 {error}
