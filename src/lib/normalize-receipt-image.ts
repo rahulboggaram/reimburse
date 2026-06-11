@@ -3,12 +3,26 @@ import { isReceiptImageMime } from "@/lib/receipt-mime";
 const MAX_DIMENSION = 1600;
 const JPEG_QUALITY = 82;
 
+let sharpLoadFailed = false;
+
 async function loadSharp() {
-  const mod = await import("sharp");
-  return mod.default;
+  if (sharpLoadFailed) return null;
+  try {
+    const mod = await import("sharp");
+    const factory = mod.default;
+    if (typeof factory !== "function") {
+      sharpLoadFailed = true;
+      return null;
+    }
+    return factory;
+  } catch (err) {
+    sharpLoadFailed = true;
+    console.error("sharp module unavailable", err);
+    return null;
+  }
 }
 
-/** Convert phone photos (incl. HEIC) to a browser-friendly JPEG for storage and preview. */
+/** Convert phone photos (incl. HEIC) to JPEG when saving new receipts. */
 export async function normalizeReceiptImageBuffer(
   buffer: Buffer,
   mimeType: string,
@@ -17,16 +31,22 @@ export async function normalizeReceiptImageBuffer(
     return { buffer, mimeType };
   }
 
+  const sharp = await loadSharp();
+  if (!sharp) {
+    return { buffer, mimeType };
+  }
+
   try {
-    const sharp = await loadSharp();
-    const output = await sharp(buffer, { failOn: "none" })
-      .rotate()
-      .resize(MAX_DIMENSION, MAX_DIMENSION, {
+    const pipeline = sharp(buffer, { failOn: "none" }).rotate().resize(
+      MAX_DIMENSION,
+      MAX_DIMENSION,
+      {
         fit: "inside",
         withoutEnlargement: true,
-      })
-      .jpeg({ quality: JPEG_QUALITY, mozjpeg: true })
-      .toBuffer();
+      },
+    );
+
+    const output = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
 
     return { buffer: output, mimeType: "image/jpeg" };
   } catch (err) {

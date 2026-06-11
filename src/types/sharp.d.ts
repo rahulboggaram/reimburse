@@ -1,5 +1,4 @@
 declare module "sharp" {
-  // Sharp's package exports do not resolve cleanly with bundler moduleResolution.
   const sharp: (input: Buffer, options?: { failOn?: string }) => {
     rotate: () => {
       resize: (
@@ -7,7 +6,7 @@ declare module "sharp" {
         height: number,
         options: { fit: string; withoutEnlargement: boolean },
       ) => {
-        jpeg: (options: { quality: number; mozjpeg: boolean }) => {
+        jpeg: (options?: { quality?: number; mozjpeg?: boolean }) => {
           toBuffer: () => Promise<Buffer>;
         };
       };
