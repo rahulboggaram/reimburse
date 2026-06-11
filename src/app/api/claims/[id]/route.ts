@@ -47,7 +47,12 @@ export async function GET(
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  if (claim.receipts.length > 0) {
+  const hasLegacyBlob = claim.receipts.some(
+    (receipt) =>
+      receipt.filePath.startsWith("blob:") ||
+      receipt.filePath.includes(".blob.vercel-storage.com/"),
+  );
+  if (hasLegacyBlob) {
     await materializeReceiptsToDatabase(claim.receipts).catch((error) => {
       console.error("materialize receipts failed", { claimId: id, error });
     });

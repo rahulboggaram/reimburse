@@ -18,24 +18,73 @@ function ReceiptImage(props: {
   className: string;
   onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
 }) {
+  const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const src =
-    failed && props.receipt.previewFallbackUrl
-      ? props.receipt.previewFallbackUrl
-      : props.receipt.url;
 
   useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
     setFailed(false);
+    setSrc(null);
     props.onStatusChange?.("loading");
-  }, [props.receipt.id, props.receipt.url, props.onStatusChange]);
 
-  useEffect(() => {
-    if (isDirectReceiptUrl(src)) {
+    const directSrc =
+      props.receipt.previewFallbackUrl &&
+      isDirectReceiptUrl(props.receipt.previewFallbackUrl)
+        ? props.receipt.previewFallbackUrl
+        : isDirectReceiptUrl(props.receipt.url)
+          ? props.receipt.url
+          : null;
+
+    if (directSrc) {
+      setSrc(directSrc);
       props.onStatusChange?.("ready");
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [src, props.onStatusChange]);
 
-  if (failed && !props.receipt.previewFallbackUrl) {
+    void fetch(props.receipt.url, { credentials: "include", cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(body?.error ?? "Could not load receipt");
+        }
+        const type = response.headers.get("content-type") ?? "";
+        if (type.includes("application/json")) {
+          throw new Error("Receipt photo is missing");
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        if (cancelled || blob.size === 0) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+        props.onStatusChange?.("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFailed(true);
+        props.onStatusChange?.("error");
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [
+    props.receipt.id,
+    props.receipt.url,
+    props.receipt.previewFallbackUrl,
+    props.onStatusChange,
+  ]);
+
+  if (failed && !src) {
     return (
       <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
         Unavailable
@@ -43,18 +92,17 @@ function ReceiptImage(props: {
     );
   }
 
+  if (!src) {
+    return <span className="absolute inset-0 block animate-pulse bg-zinc-200" />;
+  }
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- data URLs and same-origin receipt API
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={props.receipt.fileName ?? "Receipt"}
       className={props.className}
-      onLoad={() => props.onStatusChange?.("ready")}
       onError={() => {
-        if (!failed && props.receipt.previewFallbackUrl) {
-          setFailed(true);
-          return;
-        }
         setFailed(true);
         props.onStatusChange?.("error");
       }}
@@ -73,10 +121,6 @@ function ReceiptLightbox(props: {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [props]);
-
-  const openInTab = () => {
-    window.open(props.receipt.url, "_blank", "noopener,noreferrer");
-  };
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
@@ -114,13 +158,14 @@ function ReceiptLightbox(props: {
             <p className="text-sm font-medium text-zinc-900">
               {props.receipt.fileName ?? "PDF receipt"}
             </p>
-            <button
-              type="button"
-              onClick={openInTab}
+            <a
+              href={props.receipt.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className={cn("mt-3 inline-block text-sm", textLinkClassName)}
             >
               Open PDF
-            </button>
+            </a>
           </div>
         )}
       </div>
@@ -276,8 +321,8 @@ export function ReceiptGallery(props: {
         {errorCount > 0 ? (
           <p className="text-xs text-amber-800">
             {errorCount === 1
-              ? "One receipt could not be previewed — refile the claim with a new photo."
-              : "Some receipts could not be previewed — refile with new photos."}
+              ? "One receipt could not be loaded — refile the claim with a new photo."
+              : "Some receipts could not be loaded — refile with new photos."}
           </p>
         ) : null}
       </div>

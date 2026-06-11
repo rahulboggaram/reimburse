@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
-import { materializeReceiptsToDatabase } from "@/lib/receipt-store";
+import {
+  isDatabaseReceiptPath,
+  materializeReceiptsToDatabase,
+} from "@/lib/receipt-store";
 import { receiptFileResponse } from "@/lib/receipt-content";
 
 export const maxDuration = 30;
@@ -52,7 +55,9 @@ export async function GET(
       );
     }
 
-    await materializeReceiptsToDatabase([row]);
+    if (!isDatabaseReceiptPath(row.filePath)) {
+      await materializeReceiptsToDatabase([row]);
+    }
 
     return receiptFileResponse(row.filePath, row.mimeType, row.fileName);
   } catch (err) {

@@ -133,7 +133,7 @@ function serializeClaimCore(
 export function serializeClaim(claim: ClaimWithRelations) {
   const receipts = claim.receipts.map((receipt) => ({
     id: receipt.id,
-    url: receiptClientUrl({ id: receipt.id, filePath: receipt.filePath }),
+    url: receiptClientUrl({ id: receipt.id }),
     fileName: receipt.fileName,
     mimeType: receipt.mimeType,
   }));

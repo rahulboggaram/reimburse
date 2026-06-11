@@ -1,23 +1,17 @@
-/** Authenticated API fallback for legacy storage paths only. */
+/** Serves receipt bytes from the database (or legacy storage) with session auth. */
 export function receiptViewUrl(receiptId: string): string {
   return `/api/receipts/${receiptId}`;
 }
 
-/** URL the browser uses in <img src> — data URLs load directly with no extra API call. */
-export function receiptClientUrl(receipt: {
-  id: string;
-  filePath: string;
-}): string {
-  const path = receipt.filePath?.trim() ?? "";
-  if (path.startsWith("data:")) {
-    return path;
-  }
-  if (path.startsWith("/uploads/")) {
-    return path;
-  }
+/** Always use the API — keeps claim JSON small (no multi‑MB base64 strings). */
+export function receiptClientUrl(receipt: { id: string }): string {
   return receiptViewUrl(receipt.id);
 }
 
 export function isDirectReceiptUrl(url: string) {
-  return url.startsWith("data:") || url.startsWith("/uploads/");
+  return (
+    url.startsWith("data:") ||
+    url.startsWith("blob:") ||
+    url.startsWith("/uploads/")
+  );
 }
