@@ -126,9 +126,13 @@ export async function GET() {
     totalReceiptRows,
     blobLinkedRows,
     flowChecks,
-    latestReceiptViewUrl: latestBlobReceipt
-      ? `/api/receipts/${latestBlobReceipt.id}`
-      : null,
+    latestReceiptViewUrl:
+      latestBlobReceipt && latestBlobRead?.ok
+        ? `/api/receipts/${latestBlobReceipt.id}`
+        : null,
+    latestReceiptReadError: latestBlobRead?.ok
+      ? null
+      : latestBlobRead?.error ?? null,
     recentReceipts: recentReceipts.map((row) => ({
       id: row.id,
       createdAt: row.createdAt.toISOString(),

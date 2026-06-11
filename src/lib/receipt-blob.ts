@@ -15,11 +15,14 @@ function blobConnectionOptions() {
   const options: {
     token?: string;
     storeId?: string;
+    oidcToken?: string;
   } = {};
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   const storeId = process.env.BLOB_STORE_ID?.trim();
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim();
   if (token) options.token = token;
   if (storeId) options.storeId = storeId;
+  if (oidcToken) options.oidcToken = oidcToken;
   return options;
 }
 
@@ -48,7 +51,8 @@ function sanitizeFileName(fileName: string) {
   return base || "receipt";
 }
 
-export function isReceiptBlobPath(filePath: string) {
+export function isReceiptBlobPath(filePath: string | null | undefined) {
+  if (!filePath?.trim()) return false;
   return (
     filePath.startsWith(BLOB_PREFIX) ||
     filePath.includes(".blob.vercel-storage.com/")
@@ -81,21 +85,24 @@ export function blobGetTargets(filePath: string): string[] {
     if (!targets.includes(value)) targets.push(value);
   };
 
-  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-    add(filePath);
-    add(pathnameFromBlobReference(filePath));
-    return targets;
-  }
-
   if (filePath.startsWith(BLOB_PREFIX)) {
     const pathname = filePath.slice(BLOB_PREFIX.length);
     add(pathname);
     return targets;
   }
 
-  if (filePath.includes(".blob.vercel-storage.com/")) {
+  const pathname = pathnameFromBlobReference(filePath);
+  if (pathname) {
+    // Pathname + store credentials is the most reliable read on Vercel.
+    add(pathname);
+  }
+
+  if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
     add(filePath);
-    add(pathnameFromBlobReference(filePath));
+  }
+
+  if (filePath.includes(".blob.vercel-storage.com/") && !pathname) {
+    add(filePath);
   }
 
   return targets;

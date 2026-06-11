@@ -64,18 +64,26 @@ export async function receiptFileResponse(
 
   if (isReceiptBlobPath(filePath)) {
     try {
-      const opened = await openReceiptBlobStream(filePath);
-      if (opened) {
-        return serveStream(
-          opened.stream,
-          opened.mimeType || mimeType,
-          disposition,
-        );
-      }
-
+      // Buffer first — same path as the admin storage health check; more reliable than streaming on Vercel.
       const blob = await readReceiptBlob(filePath);
       if (blob) {
         return serveBytes(blob.buffer, blob.mimeType || mimeType, disposition);
+      }
+
+      const opened = await openReceiptBlobStream(filePath);
+      if (opened) {
+        try {
+          return serveStream(
+            opened.stream,
+            opened.mimeType || mimeType,
+            disposition,
+          );
+        } catch (streamErr) {
+          console.error("receipt blob stream serve failed", {
+            filePath: filePath.slice(0, 80),
+            streamErr,
+          });
+        }
       }
 
       console.error("receipt blob not found", {

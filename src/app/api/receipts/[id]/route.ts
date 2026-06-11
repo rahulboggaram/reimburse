@@ -37,17 +37,26 @@ export async function GET(
       return Response.json({ error: "Receipt not found" }, { status: 404 });
     }
 
-    let filePath = receipt.filePath;
+    let filePath = receipt.filePath?.trim() ?? "";
+    if (!filePath) {
+      return Response.json(
+        { error: "This receipt has no file on record. Refile with a new photo." },
+        { status: 404 },
+      );
+    }
+
     const resolved = await resolveReceiptBlobPath(
       filePath,
       receipt.reimbursement.id,
     );
-    if (resolved && resolved !== filePath) {
+    if (resolved) {
       filePath = resolved;
-      await prisma.reimbursementReceipt.update({
-        where: { id: receipt.id },
-        data: { filePath: resolved },
-      });
+      if (resolved !== receipt.filePath) {
+        await prisma.reimbursementReceipt.update({
+          where: { id: receipt.id },
+          data: { filePath: resolved },
+        });
+      }
     }
 
     const response = await receiptFileResponse(

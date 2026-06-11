@@ -34,6 +34,7 @@ type ReceiptStorageStatus = {
   probe: { ok: boolean; error?: string } | null;
   latestBlobRead: { ok: boolean; bytes?: number; error?: string } | null;
   latestReceiptViewUrl: string | null;
+  latestReceiptReadError?: string | null;
   recentReceipts: Array<{
     id: string;
     createdAt: string;
@@ -233,6 +234,13 @@ export default function AdminReceiptStoragePage() {
                   open latest saved receipt
                 </a>{" "}
                 (should show a photo, not JSON error text).
+              </p>
+            ) : status.latestReceiptReadError ? (
+              <p className="text-xs text-amber-900">
+                Latest Blob receipt could not be read:{" "}
+                <span className="font-medium">{status.latestReceiptReadError}</span>
+                . Submit a new test claim after redeploying, or reconnect the Blob
+                store.
               </p>
             ) : null}
           </Card>
