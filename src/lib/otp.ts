@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-retry";
 import {
   getOtpDeliveryChannel,
   isSmsConfigured,
@@ -32,12 +33,12 @@ export async function createOtpChallenge(phone: string) {
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-  await prisma.$transaction([
-    prisma.otpChallenge.deleteMany({ where: { phone } }),
-    prisma.otpChallenge.create({
+  await withDbRetry(async () => {
+    await prisma.otpChallenge.deleteMany({ where: { phone } });
+    await prisma.otpChallenge.create({
       data: { phone, code, expiresAt },
-    }),
-  ]);
+    });
+  });
 
   if (isOtpMockMode()) {
     console.log(`[Reimburse OTP] ${phone} → ${code}`);
@@ -64,22 +65,24 @@ export async function createOtpChallenge(phone: string) {
 export async function verifyOtpChallenge(phone: string, code: string) {
   const trimmed = code.trim();
 
-  if (isOtpMockMode() && trimmed === MOCK_OTP_CODE) {
-    await prisma.otpChallenge.deleteMany({ where: { phone } });
+  return withDbRetry(async () => {
+    if (isOtpMockMode() && trimmed === MOCK_OTP_CODE) {
+      await prisma.otpChallenge.deleteMany({ where: { phone } });
+      return true;
+    }
+
+    const challenge = await prisma.otpChallenge.findFirst({
+      where: { phone },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!challenge) return false;
+    if (challenge.expiresAt < new Date()) return false;
+    if (challenge.code !== trimmed) return false;
+
+    await prisma.otpChallenge.delete({ where: { id: challenge.id } });
     return true;
-  }
-
-  const challenge = await prisma.otpChallenge.findFirst({
-    where: { phone },
-    orderBy: { createdAt: "desc" },
   });
-
-  if (!challenge) return false;
-  if (challenge.expiresAt < new Date()) return false;
-  if (challenge.code !== trimmed) return false;
-
-  await prisma.otpChallenge.delete({ where: { id: challenge.id } });
-  return true;
 }
 
 /** SMS body format for Web OTP autofill (Chrome on Android). */

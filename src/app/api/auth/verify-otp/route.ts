@@ -1,6 +1,7 @@
 import { normalizePhone } from "@/lib/phone";
 import { verifyOtpChallenge } from "@/lib/otp";
 import { prisma } from "@/lib/db";
+import { isTransientDbError, withDbRetry } from "@/lib/db-retry";
 import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import {
   redirectPathAfterLogin,
@@ -26,7 +27,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "Incorrect or expired code." }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({ where: { phone } });
+    const user = await withDbRetry(() =>
+      prisma.user.findUnique({ where: { phone } }),
+    );
     if (!user || !user.active) {
       return Response.json({ error: "Account not found." }, { status: 403 });
     }
@@ -57,6 +60,13 @@ export async function POST(request: Request) {
             "Server setup incomplete: SESSION_SECRET missing in Vercel env vars.",
         },
         { status: 500 },
+      );
+    }
+
+    if (isTransientDbError(err)) {
+      return Response.json(
+        { error: "Database is busy. Wait a few seconds and try again." },
+        { status: 503 },
       );
     }
 

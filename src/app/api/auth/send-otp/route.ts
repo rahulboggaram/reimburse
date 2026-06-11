@@ -8,6 +8,7 @@ import {
   SmsDeliveryError,
 } from "@/lib/otp";
 import { prisma } from "@/lib/db";
+import { isTransientDbError, withDbRetry } from "@/lib/db-retry";
 import { sendOtpSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -25,10 +26,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { phone },
-      select: { id: true, active: true },
-    });
+    const user = await withDbRetry(() =>
+      prisma.user.findUnique({
+        where: { phone },
+        select: { id: true, active: true },
+      }),
+    );
     if (!user?.active) {
       return Response.json(
         { error: "This number is not registered. Contact your admin." },
@@ -54,6 +57,13 @@ export async function POST(request: Request) {
     }
     if (err instanceof SmsDeliveryError) {
       return Response.json({ error: err.message }, { status: 502 });
+    }
+
+    if (isTransientDbError(err)) {
+      return Response.json(
+        { error: "Database is busy. Wait a few seconds and try again." },
+        { status: 503 },
+      );
     }
 
     const isDbConfigured =
