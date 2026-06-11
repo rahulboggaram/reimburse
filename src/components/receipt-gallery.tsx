@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { textLinkClassName } from "@/components/text-link";
+import { LoadingDots, LoadingText } from "@/components/ui/loading-dots";
 import { cn } from "@/lib/utils";
 import { isDirectReceiptUrl } from "@/lib/receipt-url";
 
@@ -76,9 +77,26 @@ function ReceiptThumbnailTile(props: { isPdf: boolean }) {
   );
 }
 
+function ReceiptImageLoader(props: { variant: "thumbnail" | "lightbox" }) {
+  if (props.variant === "lightbox") {
+    return (
+      <span className="flex min-h-48 w-full items-center justify-center text-white/90">
+        <LoadingText>Loading</LoadingText>
+      </span>
+    );
+  }
+
+  return (
+    <span className="absolute inset-0 flex items-center justify-center bg-zinc-100 text-zinc-500">
+      <LoadingDots />
+    </span>
+  );
+}
+
 function ReceiptImage(props: {
   receipt: Receipt;
   className: string;
+  loader?: "thumbnail" | "lightbox";
   onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
 }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -162,7 +180,9 @@ function ReceiptImage(props: {
   }
 
   if (!src) {
-    return <span className="absolute inset-0 block animate-pulse bg-zinc-200" />;
+    return (
+      <ReceiptImageLoader variant={props.loader ?? "thumbnail"} />
+    );
   }
 
   return (
@@ -229,10 +249,11 @@ function ReceiptLightbox(props: {
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
         {pending ? (
-          <p className="text-sm text-white/80">Loading receipt…</p>
+          <ReceiptImageLoader variant="lightbox" />
         ) : viewReceipt.mimeType.startsWith("image/") ? (
           <ReceiptImage
             receipt={viewReceipt}
+            loader="lightbox"
             className="max-h-full max-w-full rounded-lg object-contain"
           />
         ) : (
@@ -272,6 +293,7 @@ function ReceiptCompactThumbnail(props: { receipt: Receipt }) {
     <>
       <ReceiptImage
         receipt={props.receipt}
+        loader="thumbnail"
         className="size-full object-cover"
       />
       <span
