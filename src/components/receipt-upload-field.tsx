@@ -250,12 +250,7 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-base font-medium text-zinc-500">
-        Receipt Photos{" "}
-        <span className="font-normal text-zinc-400">
-          (large photos are compressed automatically)
-        </span>
-      </p>
+      <p className="text-base font-medium text-zinc-500">Receipt Photos</p>
 
       <div className="flex flex-col">
         <div className="grid grid-cols-2 gap-3">
