@@ -231,15 +231,15 @@ function buildTimelineSteps(claim: SerializedClaim): TimelineStep[] {
       },
       approverSubmitted
         ? {
-            key: "payment-next",
-            title: "Payment",
-            subtext: "Razorpay payout after admin approval · Up next",
+            key: "finance-next",
+            title: "Awaiting financial approval",
+            subtext: "by Admin",
             visual: "upcoming",
           }
         : {
             key: "finance-next",
-            title: "Financial approval",
-            subtext: `by ${paymentApproverLabel(claim)} · Up next`,
+            title: "Awaiting financial approval",
+            subtext: `by ${paymentApproverLabel(claim)}`,
             visual: "upcoming",
           },
     ];
