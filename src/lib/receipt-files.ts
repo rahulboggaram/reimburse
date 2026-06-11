@@ -5,7 +5,8 @@ import { randomUUID } from "crypto";
 import {
   isReceiptFileTooLarge,
   MAX_RECEIPTS,
-  receiptFileSizeError,
+  receiptPdfSizeError,
+  receiptStillTooLargeError,
 } from "@/lib/receipt-limits";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
@@ -64,7 +65,9 @@ export function validateReceiptFiles(files: File[]): string | null {
       return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
     }
     if (isReceiptFileTooLarge(file.size)) {
-      return receiptFileSizeError();
+      return mimeType === "application/pdf"
+        ? receiptPdfSizeError()
+        : receiptStillTooLargeError();
     }
   }
   return null;
@@ -87,7 +90,9 @@ export function validateReceiptInputs(inputs: ReceiptInput[]): string | null {
       return "Use photos (JPG, PNG, WEBP) or PDF receipts.";
     }
     if (isReceiptFileTooLarge(input.size)) {
-      return receiptFileSizeError();
+      return mimeType === "application/pdf"
+        ? receiptPdfSizeError()
+        : receiptStillTooLargeError();
     }
   }
   return null;

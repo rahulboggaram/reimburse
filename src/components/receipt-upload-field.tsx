@@ -6,7 +6,8 @@ import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import {
   isReceiptFileTooLarge,
   MAX_RECEIPTS,
-  receiptFileSizeError,
+  receiptPdfSizeError,
+  receiptStillTooLargeError,
 } from "@/lib/receipt-limits";
 import { cn } from "@/lib/utils";
 
@@ -184,9 +185,20 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
     );
   }
 
+  function removeFileItem(id: string) {
+    const removed = filesRef.current.find((item) => item.id === id);
+    if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
+    props.onChange(filesRef.current.filter((item) => item.id !== id));
+  }
+
   function compressInBackground(item: ReceiptFileItem) {
     void compressReceiptFile(item.file).then((compressed) => {
       if (!filesRef.current.some((entry) => entry.id === item.id)) return;
+      if (isReceiptFileTooLarge(compressed.size)) {
+        removeFileItem(item.id);
+        setLocalError(receiptStillTooLargeError());
+        return;
+      }
       replaceFileItem(item.id, compressed);
     });
   }
@@ -203,9 +215,12 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
       return;
     }
 
-    const oversized = incoming.find((file) => isReceiptFileTooLarge(file.size));
-    if (oversized) {
-      setLocalError(receiptFileSizeError());
+    const oversizedPdf = incoming.find((file) => {
+      const mimeType = inferReceiptMimeType(file);
+      return mimeType === "application/pdf" && isReceiptFileTooLarge(file.size);
+    });
+    if (oversizedPdf) {
+      setLocalError(receiptPdfSizeError());
       return;
     }
 
@@ -237,7 +252,9 @@ export function ReceiptUploadField(props: ReceiptUploadFieldProps) {
     <div className="space-y-3">
       <p className="text-base font-medium text-zinc-500">
         Receipt Photos{" "}
-        <span className="font-normal text-zinc-400">(max 4 MB each)</span>
+        <span className="font-normal text-zinc-400">
+          (large photos are compressed automatically)
+        </span>
       </p>
 
       <div className="flex flex-col">
