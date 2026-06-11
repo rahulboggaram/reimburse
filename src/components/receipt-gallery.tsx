@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import { loadReceiptPreviewUrl } from "@/lib/compress-receipt-image";
 import { textLinkClassName } from "@/components/text-link";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,10 @@ function ReceiptLightbox(props: {
   receipt: Receipt;
   onClose: () => void;
 }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") props.onClose();
@@ -22,6 +27,33 @@ function ReceiptLightbox(props: {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [props]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    void loadReceiptPreviewUrl(props.receipt).then((result) => {
+      if (cancelled) return;
+      if ("error" in result) {
+        setFailed(true);
+        setLoading(false);
+        return;
+      }
+      if (result.pending) {
+        setFailed(true);
+        setLoading(false);
+        return;
+      }
+      objectUrl = result.url;
+      setPreviewUrl(result.url);
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl?.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+    };
+  }, [props.receipt]);
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
@@ -49,10 +81,27 @@ function ReceiptLightbox(props: {
         </button>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center">
-        {props.receipt.mimeType.startsWith("image/") ? (
-          // eslint-disable-next-line @next/next/no-img-element -- receipt preview
+        {loading ? (
+          <p className="text-sm text-white/80">Loading receipt…</p>
+        ) : failed || !previewUrl ? (
+          <div className="max-w-sm rounded-xl bg-white px-6 py-8 text-center">
+            <p className="text-sm font-medium text-zinc-900">
+              {props.receipt.fileName ?? "Receipt"}
+            </p>
+            <a
+              href={props.receipt.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn("mt-3 inline-block text-sm", textLinkClassName)}
+            >
+              Open receipt
+            </a>
+          </div>
+        ) : props.receipt.mimeType.startsWith("image/") ||
+          previewUrl.startsWith("blob:") ? (
+          // eslint-disable-next-line @next/next/no-img-element -- blob preview
           <img
-            src={props.receipt.url}
+            src={previewUrl}
             alt={props.receipt.fileName ?? "Receipt"}
             className="max-h-full max-w-full rounded-lg object-contain"
           />
@@ -85,35 +134,76 @@ function ReceiptHeading(props: { title: string; count: number; hideCount?: boole
   );
 }
 
-function ReceiptThumbImage(props: {
+function AuthenticatedReceiptImage(props: {
   receipt: Receipt;
   className: string;
-  onBroken: () => void;
+  onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
 }) {
-  const [broken, setBroken] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "pending" | "error">(
+    "loading",
+  );
+  const onStatusChangeRef = useRef(props.onStatusChange);
+  onStatusChangeRef.current = props.onStatusChange;
 
-  function handleError(event: SyntheticEvent<HTMLImageElement>) {
-    setBroken(true);
-    props.onBroken();
-    event.currentTarget.style.display = "none";
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    setStatus("loading");
+    setPreviewUrl(null);
+    onStatusChangeRef.current?.("loading");
+
+    void loadReceiptPreviewUrl(props.receipt).then((result) => {
+      if (cancelled) return;
+
+      if ("error" in result) {
+        setStatus("error");
+        onStatusChangeRef.current?.("error");
+        return;
+      }
+
+      if (result.pending) {
+        setStatus("pending");
+        onStatusChangeRef.current?.("pending");
+        return;
+      }
+
+      objectUrl = result.url;
+      setPreviewUrl(result.url);
+      setStatus("ready");
+      onStatusChangeRef.current?.("ready");
+    });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl?.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+    };
+  }, [props.receipt.id, props.receipt.url]);
+
+  if (status === "loading") {
+    return <span className="block size-full animate-pulse bg-zinc-200" />;
   }
 
-  if (broken) {
+  if (status === "pending") {
     return (
       <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
-        Could not load
+        Uploading…
+      </span>
+    );
+  }
+
+  if (status === "error" || !previewUrl) {
+    return (
+      <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
+        Tap to open
       </span>
     );
   }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={props.receipt.url}
-      alt={props.receipt.fileName ?? "Receipt"}
-      className={props.className}
-      onError={handleError}
-    />
+    <img src={previewUrl} alt={props.receipt.fileName ?? "Receipt"} className={props.className} />
   );
 }
 
@@ -126,16 +216,34 @@ export function ReceiptGallery(props: {
   hideCount?: boolean;
 }) {
   const [expanded, setExpanded] = useState<Receipt | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const count = props.receiptCount ?? props.receipts.length;
+  const [receiptStatuses, setReceiptStatuses] = useState<
+    Record<string, "loading" | "ready" | "pending" | "error">
+  >({});
 
   useEffect(() => {
-    setLoadError(false);
+    setReceiptStatuses({});
   }, [props.receipts]);
+
+  const count = props.receiptCount ?? props.receipts.length;
+  const pendingCount = Object.values(receiptStatuses).filter(
+    (status) => status === "pending" || status === "loading",
+  ).length;
+  const errorCount = Object.values(receiptStatuses).filter(
+    (status) => status === "error",
+  ).length;
 
   if (count === 0 && props.receipts.length === 0) return null;
 
   const heading = props.title ?? "Receipt photos";
+
+  function handleStatusChange(
+    receiptId: string,
+    status: "loading" | "ready" | "pending" | "error",
+  ) {
+    setReceiptStatuses((prev) =>
+      prev[receiptId] === status ? prev : { ...prev, [receiptId]: status },
+    );
+  }
 
   if (props.loading && props.receipts.length === 0 && props.compact) {
     return (
@@ -167,17 +275,16 @@ export function ReceiptGallery(props: {
         <ul className="grid grid-cols-2 gap-2">
           {props.receipts.map((receipt) => (
             <li key={receipt.id}>
-              <a
-                href={receipt.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition-shadow hover:shadow-md"
+              <button
+                type="button"
+                onClick={() => setExpanded(receipt)}
+                className="block w-full overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
-                  <ReceiptThumbImage
+                  <AuthenticatedReceiptImage
                     receipt={receipt}
                     className="aspect-[4/3] w-full object-cover"
-                    onBroken={() => setLoadError(true)}
+                    onStatusChange={(status) => handleStatusChange(receipt.id, status)}
                   />
                 ) : (
                   <div className="flex aspect-[4/3] flex-col items-center justify-center gap-1 px-2 text-center">
@@ -189,7 +296,7 @@ export function ReceiptGallery(props: {
                     </span>
                   </div>
                 )}
-              </a>
+              </button>
             </li>
           ))}
         </ul>
@@ -214,10 +321,10 @@ export function ReceiptGallery(props: {
                 className="group relative size-16 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 transition-shadow hover:shadow-md"
               >
                 {receipt.mimeType.startsWith("image/") ? (
-                  <ReceiptThumbImage
+                  <AuthenticatedReceiptImage
                     receipt={receipt}
                     className="size-full object-cover"
-                    onBroken={() => setLoadError(true)}
+                    onStatusChange={(status) => handleStatusChange(receipt.id, status)}
                   />
                 ) : (
                   <span className="flex size-full items-center justify-center text-lg">
@@ -236,9 +343,16 @@ export function ReceiptGallery(props: {
             </li>
           ))}
         </ul>
-        {loadError ? (
+        {pendingCount > 0 ? (
+          <p className="text-xs text-zinc-600" role="status">
+            Receipts are still uploading — thumbnails will appear shortly.
+          </p>
+        ) : null}
+        {errorCount > 0 ? (
           <p className="text-xs text-amber-800">
-            A receipt could not be loaded. Sign in again or refresh the page.
+            {errorCount === 1
+              ? "One receipt could not be previewed. Tap it to open, or refresh in a moment."
+              : "Some receipts could not be previewed. Tap to open, or refresh in a moment."}
           </p>
         ) : null}
       </div>

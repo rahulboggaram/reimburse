@@ -175,6 +175,44 @@ export function ClaimDetailModal(props: {
     detailClaim?.razorpayPayoutId,
   ]);
 
+  useEffect(() => {
+    if (!props.open || !props.claim) return;
+
+    const current = detailClaim ?? props.claim;
+    const expected = claimReceiptCount(current);
+    const loaded = current.receipts.length;
+    if (expected === 0 || loaded >= expected) return;
+
+    let cancelled = false;
+
+    function refreshClaimDetail() {
+      fetch(`/api/claims/${current.id}`, {
+        cache: "no-store",
+        credentials: "include",
+      })
+        .then((res) => readJson<SerializedClaim>(res))
+        .then((data) => {
+          if (cancelled) return;
+          cacheClaimDetail(data);
+          setDetailClaim(data);
+        })
+        .catch(() => {});
+    }
+
+    refreshClaimDetail();
+    const interval = window.setInterval(refreshClaimDetail, 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [
+    props.open,
+    props.claim,
+    detailClaim?.id,
+    detailClaim?.receipts.length,
+    detailClaim?.receiptCount,
+  ]);
+
   if (!props.claim) return null;
 
   const claim = detailClaim ?? props.claim;

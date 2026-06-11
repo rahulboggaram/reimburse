@@ -152,6 +152,8 @@ function ReceiptGalleryButton(props: {
 }
 
 function receiptNeedsCompression(file: File) {
+  const type = file.type.toLowerCase();
+  if (type === "image/heic" || type === "image/heif") return true;
   return file.type.startsWith("image/") && file.type !== "image/gif";
 }
 
