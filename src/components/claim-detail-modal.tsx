@@ -6,7 +6,6 @@ import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { SerializedClaim } from "@/lib/claim-types";
@@ -374,15 +373,17 @@ export function ClaimDetailModal(props: {
         {user && canDecideReimbursement(user, claim) ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Reason for rejection</Label>
+              <p className="text-xs text-zinc-500">
+                If claim is rejected, add reason for rejection here
+              </p>
               <Textarea
                 id="rejection-reason"
-                rows={3}
+                rows={2}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Explain why this claim is being rejected"
+                aria-label="Reason for rejection"
                 className={cn(
-                  "min-h-textarea resize-none py-3",
+                  "min-h-[var(--min-height-textarea-2)] resize-none py-3",
                   "border-[1.5px] border-zinc-300",
                   "focus-visible:border-accent focus-visible:ring-accent/20",
                 )}
