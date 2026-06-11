@@ -1,5 +1,6 @@
-import { del, get, put } from "@vercel/blob";
+import { del, get, head, list, put } from "@vercel/blob";
 import { randomUUID } from "crypto";
+import { prisma } from "@/lib/db";
 
 const BLOB_PREFIX = "blob:";
 
@@ -36,6 +37,10 @@ function getOptions() {
     useCache: false as const,
     ...blobConnectionOptions(),
   };
+}
+
+function listOptions() {
+  return blobConnectionOptions();
 }
 
 function sanitizeFileName(fileName: string) {
@@ -176,10 +181,117 @@ export async function deleteReceiptBlob(filePath: string) {
   const target = blobGetTarget(filePath);
   if (!target || !receiptBlobStorageEnabled()) return;
   try {
-    await del(target);
+    await del(target, blobConnectionOptions());
   } catch (err) {
     console.error("receipt blob delete failed", { target, err });
   }
+}
+
+async function blobPathOpens(filePath: string): Promise<boolean> {
+  const opened = await openReceiptBlobStream(filePath);
+  return opened !== null;
+}
+
+/** List blobs saved for a claim folder in storage. */
+export async function listReceiptBlobsForClaim(reimbursementId: string) {
+  if (!receiptBlobStorageEnabled()) return [];
+  try {
+    const result = await list({
+      prefix: `receipts/${reimbursementId}/`,
+      limit: 20,
+      ...listOptions(),
+    });
+    return [...result.blobs].sort(
+      (a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime(),
+    );
+  } catch (err) {
+    console.error("list receipt blobs failed", { reimbursementId, err });
+    return [];
+  }
+}
+
+/**
+ * Files can exist in Blob while the DB still points at an old path (or has no row).
+ * Find a readable blob for this claim and return its canonical URL.
+ */
+export async function resolveReceiptBlobPath(
+  filePath: string,
+  reimbursementId: string,
+): Promise<string | null> {
+  if (filePath?.trim() && (await blobPathOpens(filePath))) {
+    return filePath;
+  }
+
+  const blobs = await listReceiptBlobsForClaim(reimbursementId);
+  for (const blob of blobs) {
+    const candidates = [
+      blob.url,
+      `${BLOB_PREFIX}${blob.pathname}`,
+      blob.pathname,
+    ];
+    for (const candidate of candidates) {
+      if (await blobPathOpens(candidate)) {
+        return blob.url;
+      }
+    }
+  }
+
+  return null;
+}
+
+function mimeFromPathname(pathname: string) {
+  const lower = pathname.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".heic")) return "image/heic";
+  return "image/jpeg";
+}
+
+function fileNameFromPathname(pathname: string) {
+  const segment = pathname.split("/").pop() ?? "receipt";
+  const dash = segment.indexOf("-");
+  return dash >= 0 ? segment.slice(dash + 1) : segment;
+}
+
+/** Create DB receipt rows when files exist in Blob but the claim has none linked. */
+export async function syncClaimReceiptsFromBlob(reimbursementId: string) {
+  if (!receiptBlobStorageEnabled()) return 0;
+
+  const existing = await prisma.reimbursementReceipt.count({
+    where: { reimbursementId },
+  });
+  if (existing > 0) return 0;
+
+  const blobs = await listReceiptBlobsForClaim(reimbursementId);
+  if (blobs.length === 0) return 0;
+
+  await prisma.reimbursementReceipt.createMany({
+    data: await Promise.all(
+      blobs.map(async (blob) => {
+        let mimeType = mimeFromPathname(blob.pathname);
+        try {
+          const meta = await head(blob.url, listOptions());
+          if (meta.contentType) mimeType = meta.contentType;
+        } catch {
+          // keep guessed mime
+        }
+        return {
+          reimbursementId,
+          filePath: blob.url,
+          fileName: fileNameFromPathname(blob.pathname),
+          mimeType,
+          sizeBytes: blob.size,
+        };
+      }),
+    ),
+  });
+
+  console.info("linked orphan blob receipts to claim", {
+    reimbursementId,
+    count: blobs.length,
+  });
+  return blobs.length;
 }
 
 export async function probeReceiptBlobStorage(): Promise<{
@@ -196,6 +308,7 @@ export async function probeReceiptBlobStorage(): Promise<{
     const blob = await put(pathname, Buffer.from("ok"), {
       access: "private",
       contentType: "text/plain",
+      ...blobConnectionOptions(),
     });
     const readBack = await readReceiptBlob(`${BLOB_PREFIX}${blob.pathname}`);
     await del(blob.pathname);

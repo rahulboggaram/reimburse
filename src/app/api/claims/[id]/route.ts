@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
+import { syncClaimReceiptsFromBlob } from "@/lib/receipt-blob";
 import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
 import {
   canAccessAdminPortal,
@@ -46,7 +47,21 @@ export async function GET(
     return Response.json({ error: "Claim not found" }, { status: 404 });
   }
 
-  return Response.json(serializeClaim(claim), {
+  if (claim.receipts.length === 0) {
+    await syncClaimReceiptsFromBlob(id).catch((error) => {
+      console.error("sync claim receipts from blob failed", { claimId: id, error });
+    });
+  }
+
+  const fresh =
+    claim.receipts.length === 0
+      ? await prisma.reimbursement.findUnique({
+          where: { id },
+          include: claimInclude,
+        })
+      : claim;
+
+  return Response.json(serializeClaim(fresh ?? claim), {
     headers: { "Cache-Control": "private, max-age=10" },
   });
 }

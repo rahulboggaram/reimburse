@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
+import { resolveReceiptBlobPath } from "@/lib/receipt-blob";
 import { receiptFileResponse } from "@/lib/receipt-content";
 
 export const maxDuration = 30;
@@ -19,6 +20,7 @@ export async function GET(
       include: {
         reimbursement: {
           select: {
+            id: true,
             employeeId: true,
             approverId: true,
             employee: { select: { role: true } },
@@ -35,8 +37,21 @@ export async function GET(
       return Response.json({ error: "Receipt not found" }, { status: 404 });
     }
 
+    let filePath = receipt.filePath;
+    const resolved = await resolveReceiptBlobPath(
+      filePath,
+      receipt.reimbursement.id,
+    );
+    if (resolved && resolved !== filePath) {
+      filePath = resolved;
+      await prisma.reimbursementReceipt.update({
+        where: { id: receipt.id },
+        data: { filePath: resolved },
+      });
+    }
+
     const response = await receiptFileResponse(
-      receipt.filePath,
+      filePath,
       receipt.mimeType,
       receipt.fileName,
     );
