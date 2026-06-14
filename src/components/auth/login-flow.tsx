@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
@@ -14,42 +14,18 @@ import { invalidateClientCache } from "@/lib/client-cache";
 const MOCK_OTP = "123456";
 const showDemoHints = process.env.NEXT_PUBLIC_OTP_MOCK === "true";
 
-type Step = "phone" | "otp";
+type Step = "email" | "otp";
 
 export function LoginFlow() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("phone");
-  const [phoneInput, setPhoneInput] = useState("");
-  const [phoneE164, setPhoneE164] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [emailInput, setEmailInput] = useState("");
+  const [emailNormalized, setEmailNormalized] = useState("");
+  const [otpDestination, setOtpDestination] = useState<string | null>(null);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
-  const [otpChannel, setOtpChannel] = useState<"whatsapp" | "sms" | "email" | null>(
-    null,
-  );
-  const [otpDestination, setOtpDestination] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (step !== "otp" || isMock) return;
-    if (!("OTPCredential" in window)) return;
-
-    const controller = new AbortController();
-    navigator.credentials
-      .get({
-        otp: { transport: ["sms"] },
-        signal: controller.signal,
-      } as CredentialRequestOptions)
-      .then((credential) => {
-        if (credential && "code" in credential) {
-          const code = (credential as { code: string }).code;
-          setOtp(code.replace(/\D/g, "").slice(0, 6));
-        }
-      })
-      .catch(() => {});
-
-    return () => controller.abort();
-  }, [step, isMock]);
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
@@ -59,19 +35,17 @@ export function LoginFlow() {
       const response = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneInput }),
+        body: JSON.stringify({ email: emailInput }),
       });
       const data = await readJson<{
-        phone: string;
+        email: string;
         mock?: boolean;
         mockCode?: string;
-        channel?: "whatsapp" | "sms" | "email";
         destination?: string;
       }>(response);
-      setPhoneE164(data.phone);
+      setEmailNormalized(data.email);
+      setOtpDestination(data.destination ?? data.email);
       setIsMock(Boolean(data.mock));
-      setOtpChannel(data.mock ? null : (data.channel ?? "sms"));
-      setOtpDestination(data.destination ?? null);
       setOtp(data.mock ? MOCK_OTP : "");
       setStep("otp");
     } catch (err) {
@@ -90,7 +64,7 @@ export function LoginFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: phoneE164 || phoneInput,
+          email: emailNormalized || emailInput,
           code: otp.trim(),
         }),
       });
@@ -128,17 +102,16 @@ export function LoginFlow() {
           </p>
         ) : null}
 
-        {step === "phone" ? (
+        {step === "email" ? (
           <form onSubmit={sendOtp} className="space-y-4">
             <FloatingInput
-              id="phone"
-              label="Mobile number"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel"
+              id="email"
+              label="Email address"
+              type="email"
+              autoComplete="email"
               required
-              value={phoneInput}
-              onChange={(e) => setPhoneInput(e.target.value)}
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
             />
             <Button
               type="submit"
@@ -153,15 +126,9 @@ export function LoginFlow() {
         ) : (
           <form onSubmit={verifyOtp} className="space-y-4">
             <p className="text-sm text-zinc-600">
-              {otpChannel === "email"
-                ? "Code sent to "
-                : otpChannel === "whatsapp"
-                  ? "Code sent on WhatsApp to "
-                  : "Code sent to "}
+              Code sent to{" "}
               <span className="font-medium text-zinc-900">
-                {otpChannel === "email" && otpDestination
-                  ? otpDestination
-                  : phoneInput}
+                {otpDestination ?? emailInput}
               </span>
             </p>
             <FloatingInput
@@ -189,15 +156,14 @@ export function LoginFlow() {
             <TextLinkButton
               className="w-full shrink"
               onClick={() => {
-                setStep("phone");
+                setStep("email");
                 setOtp("");
-                setPhoneE164("");
-                setIsMock(false);
-                setOtpChannel(null);
+                setEmailNormalized("");
                 setOtpDestination(null);
+                setIsMock(false);
               }}
             >
-              Change number
+              Change email
             </TextLinkButton>
           </form>
         )}

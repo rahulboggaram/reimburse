@@ -55,6 +55,7 @@ function matchesSearch(employee: EmployeeRecord, query: string) {
   const phoneDigits = employee.phone.replace(/\D/g, "");
 
   if (employee.name?.toLowerCase().includes(q)) return true;
+  if (employee.email?.toLowerCase().includes(q)) return true;
   if (formatPhoneDisplay(employee.phone).toLowerCase().includes(q)) return true;
   if (digits && phoneDigits.includes(digits)) return true;
 

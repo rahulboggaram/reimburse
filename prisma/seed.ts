@@ -2,10 +2,11 @@ import { PrismaClient, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-/** Demo logins (OTP mock): use each phone with any 6-digit code when OTP_MOCK=true */
+/** Demo logins (OTP mock): use each email with code 123456 when OTP_MOCK=true */
 const users = [
   {
     phone: "+919999000001",
+    email: "admin@reimburse.demo",
     name: "Rahul",
     role: UserRole.ADMIN,
     ifscCode: "HDFC0001234",
@@ -13,6 +14,7 @@ const users = [
   },
   {
     phone: "+919999000002",
+    email: "manager@reimburse.demo",
     name: "Sadan",
     role: UserRole.BRANCH_MANAGER,
     ifscCode: "HDFC0001234",
@@ -20,6 +22,7 @@ const users = [
   },
   {
     phone: "+919999000003",
+    email: "approver@reimburse.demo",
     name: "Sudhi",
     role: UserRole.APPROVER,
     ifscCode: "ICIC0005678",
@@ -27,6 +30,7 @@ const users = [
   },
   {
     phone: "+919999000004",
+    email: "employee@reimburse.demo",
     name: "Sandeep",
     role: UserRole.EMPLOYEE,
     ifscCode: "SBIN0001234",
@@ -112,6 +116,7 @@ async function main() {
       where: { phone: user.phone },
       update: {
         name: user.name,
+        email: user.email,
         role: user.role,
         ifscCode: user.ifscCode,
         bankAccountNumber: user.bankAccountNumber,
