@@ -73,7 +73,7 @@ export async function createOtpChallenge(
     await prisma.otpChallenge.deleteMany({ where: { phone } });
     if (isEmailOtpConfigured() && !userEmail) {
       throw new EmailConfigError(
-        "No work email on file for this number. Ask your admin to add your email in People.",
+        "No email on file for this number. Ask your admin to add an email in People.",
       );
     }
     throw new SmsConfigError(

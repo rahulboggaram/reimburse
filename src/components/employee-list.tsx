@@ -155,7 +155,7 @@ export function EmployeeDetailModal(props: {
           {employee.email ? (
             <p className="text-zinc-600">{employee.email}</p>
           ) : (
-            <p className="text-amber-700">No work email — login OTP cannot be emailed</p>
+            <p className="text-amber-700">No email on file — login OTP cannot be emailed</p>
           )}
           {employee.signedUp ? (
             <p className="text-zinc-500">
@@ -172,10 +172,10 @@ export function EmployeeDetailModal(props: {
 
         <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
           <div className="space-y-1.5">
-            <Label htmlFor={`${employee.id}-email`}>Work email (for login OTP)</Label>
+            <Label htmlFor={`${employee.id}-email`}>Email for login OTP</Label>
             <FloatingInput
               id={`${employee.id}-email`}
-              label="Work email"
+              label="Email address"
               type="email"
               autoComplete="email"
               value={email}

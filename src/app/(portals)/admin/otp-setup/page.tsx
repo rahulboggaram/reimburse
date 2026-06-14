@@ -154,7 +154,7 @@ export default function AdminOtpSetupPage() {
                 detail={
                   status.email?.configured
                     ? `From: ${status.email.from}`
-                    : "Add RESEND_API_KEY and OTP_EMAIL_FROM on Vercel. Each person also needs a work email in People."
+                    : "Add RESEND_API_KEY and OTP_EMAIL_FROM on Vercel. Each person also needs an email in People."
                 }
               />
               <StatusRow
@@ -233,7 +233,7 @@ export default function AdminOtpSetupPage() {
               <div className="flex flex-wrap gap-2">
                 <FloatingInput
                   type="email"
-                  label="Work email"
+                  label="Email address"
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
                   className="min-w-[12rem] flex-1"

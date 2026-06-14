@@ -109,7 +109,7 @@ export async function PATCH(
     const parts: string[] = [];
     if (roleChanged) parts.push(`role to ${formatRole(nextRole)}`);
     if (branchChanged) parts.push(`branch assignment`);
-    if (emailChanged) parts.push(`work email`);
+    if (emailChanged) parts.push(`login email`);
 
     await logPlatformActivity({
       type: "PROFILE_UPDATED",

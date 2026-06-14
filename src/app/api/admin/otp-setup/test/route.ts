@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error: emailConfig.configured
-          ? "This person has no work email on file. Add one in People, or configure WhatsApp vars."
+          ? "This person has no email on file. Add one in People, or configure WhatsApp vars."
           : "OTP delivery not configured. Add Resend (RESEND_API_KEY + OTP_EMAIL_FROM) or WhatsApp vars on Vercel, then redeploy.",
       },
       { status: 503 },
