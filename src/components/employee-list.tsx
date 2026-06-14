@@ -3,6 +3,7 @@
 import type { UserRole } from "@prisma/client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { FloatingInput } from "@/components/ui/floating-field";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 export type EmployeeRecord = {
   id: string;
   phone: string;
+  email: string | null;
   name: string | null;
   ifscCode: string | null;
   bankAccountNumber: string | null;
@@ -88,6 +90,7 @@ export function EmployeeDetailModal(props: {
     role: UserRole;
     branchId: string | null;
     active?: boolean;
+    email?: string;
   }) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }) {
@@ -96,11 +99,16 @@ export function EmployeeDetailModal(props: {
   const employee = props.employee;
   const [role, setRole] = useState<UserRole>(employee.role);
   const [branchId, setBranchId] = useState<string>(employee.branchId ?? "");
+  const [email, setEmail] = useState(employee.email ?? "");
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     setRole(employee.role);
     setBranchId(employee.branchId ?? "");
-  }, [employee.id, employee.role, employee.branchId]);
+    setEmail(employee.email ?? "");
+    setEmailError(null);
+  }, [employee.id, employee.role, employee.branchId, employee.email]);
 
   const needsBranch = userRoleRequiresBranch(role);
 
@@ -114,6 +122,27 @@ export function EmployeeDetailModal(props: {
     });
   }
 
+  async function saveEmail() {
+    const trimmed = email.trim();
+    const current = employee.email ?? "";
+    if (trimmed === current) return;
+
+    setEmailSaving(true);
+    setEmailError(null);
+    try {
+      await props.onUpdate({
+        id: employee.id,
+        role: employee.role,
+        branchId: employee.branchId,
+        email: trimmed,
+      });
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Could not save email.");
+    } finally {
+      setEmailSaving(false);
+    }
+  }
+
   return (
     <Modal
       open={props.open}
@@ -123,6 +152,11 @@ export function EmployeeDetailModal(props: {
       <div className="space-y-4">
         <div className="space-y-1 text-sm">
           <p className="text-zinc-600">{formatPhoneDisplay(employee.phone)}</p>
+          {employee.email ? (
+            <p className="text-zinc-600">{employee.email}</p>
+          ) : (
+            <p className="text-amber-700">No work email — login OTP cannot be emailed</p>
+          )}
           {employee.signedUp ? (
             <p className="text-zinc-500">
               {employee.ifscCode} · {employee.bankAccountNumber ?? ""}
@@ -137,6 +171,25 @@ export function EmployeeDetailModal(props: {
         </div>
 
         <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="space-y-1.5">
+            <Label htmlFor={`${employee.id}-email`}>Work email (for login OTP)</Label>
+            <FloatingInput
+              id={`${employee.id}-email`}
+              label="Work email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => void saveEmail()}
+            />
+            {emailSaving ? (
+              <p className="text-xs text-zinc-500">Saving email…</p>
+            ) : null}
+            {emailError ? (
+              <p className="text-xs text-red-700">{emailError}</p>
+            ) : null}
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor={`${employee.id}-role`}>Role</Label>
             <Select

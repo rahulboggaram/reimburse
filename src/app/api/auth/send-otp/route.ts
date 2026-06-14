@@ -1,7 +1,10 @@
 import { normalizePhone } from "@/lib/phone";
+import { maskEmail } from "@/lib/email";
 import {
   createOtpChallenge,
-  getOtpDeliveryChannel,
+  EmailConfigError,
+  EmailDeliveryError,
+  getOtpDeliveryChannelForUser,
   isOtpMockMode,
   otpSmsBody,
   SmsConfigError,
@@ -29,7 +32,7 @@ export async function POST(request: Request) {
     const user = await withDbRetry(() =>
       prisma.user.findUnique({
         where: { phone },
-        select: { id: true, active: true },
+        select: { id: true, active: true, email: true },
       }),
     );
     if (!user?.active) {
@@ -39,23 +42,32 @@ export async function POST(request: Request) {
       );
     }
 
-    const { code } = await createOtpChallenge(phone);
+    const { code, channel } = await createOtpChallenge(phone, {
+      email: user.email,
+    });
+    const deliveryChannel = isOtpMockMode()
+      ? undefined
+      : (channel ?? getOtpDeliveryChannelForUser(user.email));
 
     return Response.json({
       ok: true,
       phone,
       mock: isOtpMockMode(),
       mockCode: isOtpMockMode() ? code : undefined,
-      channel: isOtpMockMode() ? undefined : getOtpDeliveryChannel(),
+      channel: deliveryChannel,
+      destination:
+        deliveryChannel === "email" && user.email
+          ? maskEmail(user.email)
+          : undefined,
       smsPreview: otpSmsBody(code),
     });
   } catch (err) {
     console.error("send-otp failed", err);
 
-    if (err instanceof SmsConfigError) {
+    if (err instanceof EmailConfigError || err instanceof SmsConfigError) {
       return Response.json({ error: err.message }, { status: 503 });
     }
-    if (err instanceof SmsDeliveryError) {
+    if (err instanceof EmailDeliveryError || err instanceof SmsDeliveryError) {
       return Response.json({ error: err.message }, { status: 502 });
     }
 

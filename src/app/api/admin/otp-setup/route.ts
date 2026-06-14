@@ -1,4 +1,6 @@
 import { requireAdminAccess } from "@/lib/auth-api";
+import { getEmailOtpConfig } from "@/lib/email";
+import { isOtpMockMode } from "@/lib/otp";
 import { getWhatsappOtpConfig, getWhatsappSetupStatus } from "@/lib/whatsapp-otp";
 
 export async function GET() {
@@ -7,9 +9,17 @@ export async function GET() {
 
   const config = getWhatsappOtpConfig();
   const status = await getWhatsappSetupStatus();
+  const email = getEmailOtpConfig();
+  const mockMode = isOtpMockMode();
 
-  const vercelVars =
-    status.provider === "aisensy" && status.aisensy
+  const vercelVars = email.configured
+    ? {
+        OTP_MOCK: "false",
+        NEXT_PUBLIC_OTP_MOCK: "false",
+        RESEND_API_KEY: "(from resend.com → API Keys)",
+        OTP_EMAIL_FROM: email.from || "Reimburse <otp@yourdomain.com>",
+      }
+    : status.provider === "aisensy" && status.aisensy
       ? {
           OTP_MOCK: "false",
           NEXT_PUBLIC_OTP_MOCK: "false",
@@ -34,6 +44,16 @@ export async function GET() {
 
   return Response.json({
     ...status,
+    email: {
+      configured: email.configured,
+      from: email.from || null,
+    },
+    ready: mockMode || email.configured || status.ready,
+    channel: mockMode
+      ? null
+      : email.configured
+        ? "email"
+        : status.channel,
     vercelVars,
   });
 }

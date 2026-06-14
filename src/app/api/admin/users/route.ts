@@ -15,6 +15,7 @@ export async function GET() {
     select: {
       id: true,
       phone: true,
+      email: true,
       name: true,
       ifscCode: true,
       bankAccountNumber: true,
@@ -31,6 +32,7 @@ export async function GET() {
     employees.map((user) => ({
       id: user.id,
       phone: user.phone,
+      email: user.email,
       name: user.name,
       ifscCode: user.ifscCode,
       bankAccountNumber: user.bankAccountNumber,

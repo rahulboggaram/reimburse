@@ -5,6 +5,7 @@ import { displayName, logPlatformActivity } from "@/lib/activity-log";
 import { formatRole } from "@/lib/access-roles";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { normalizeEmail } from "@/lib/email";
 import { adminUpdateEmployeeSchema } from "@/lib/validators";
 
 export async function PATCH(
@@ -61,11 +62,32 @@ export async function PATCH(
 
   const reactivating = body.data.active === true && !target.active;
 
+  let nextEmail = target.email;
+  if (body.data.email !== undefined) {
+    if (body.data.email === "") {
+      nextEmail = null;
+    } else {
+      const normalized = normalizeEmail(body.data.email);
+      if (!normalized) {
+        return Response.json({ error: "Enter a valid email address." }, { status: 400 });
+      }
+      const taken = await prisma.user.findUnique({ where: { email: normalized } });
+      if (taken && taken.id !== id) {
+        return Response.json(
+          { error: "This email is already used by someone else." },
+          { status: 409 },
+        );
+      }
+      nextEmail = normalized;
+    }
+  }
+
   const user = await prisma.user.update({
     where: { id },
     data: {
       role: nextRole,
       branchId: nextBranchId,
+      email: nextEmail,
       ...(body.data.active === true ? { active: true } : {}),
     },
   });
@@ -74,6 +96,7 @@ export async function PATCH(
   const targetLabel = displayName(target.name, target.phone);
   const roleChanged = target.role !== nextRole;
   const branchChanged = target.branchId !== nextBranchId;
+  const emailChanged = target.email !== nextEmail;
 
   if (reactivating) {
     await logPlatformActivity({
@@ -82,10 +105,11 @@ export async function PATCH(
       targetUserId: user.id,
       summary: `${actorLabel} restored ${formatPhoneDisplay(target.phone)}`,
     });
-  } else if (roleChanged || branchChanged) {
+  } else if (roleChanged || branchChanged || emailChanged) {
     const parts: string[] = [];
     if (roleChanged) parts.push(`role to ${formatRole(nextRole)}`);
     if (branchChanged) parts.push(`branch assignment`);
+    if (emailChanged) parts.push(`work email`);
 
     await logPlatformActivity({
       type: "PROFILE_UPDATED",

@@ -25,7 +25,10 @@ export function LoginFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
-  const [otpChannel, setOtpChannel] = useState<"whatsapp" | "sms" | null>(null);
+  const [otpChannel, setOtpChannel] = useState<"whatsapp" | "sms" | "email" | null>(
+    null,
+  );
+  const [otpDestination, setOtpDestination] = useState<string | null>(null);
 
   useEffect(() => {
     if (step !== "otp" || isMock) return;
@@ -62,11 +65,13 @@ export function LoginFlow() {
         phone: string;
         mock?: boolean;
         mockCode?: string;
-        channel?: "whatsapp" | "sms";
+        channel?: "whatsapp" | "sms" | "email";
+        destination?: string;
       }>(response);
       setPhoneE164(data.phone);
       setIsMock(Boolean(data.mock));
       setOtpChannel(data.mock ? null : (data.channel ?? "sms"));
+      setOtpDestination(data.destination ?? null);
       setOtp(data.mock ? MOCK_OTP : "");
       setStep("otp");
     } catch (err) {
@@ -148,10 +153,16 @@ export function LoginFlow() {
         ) : (
           <form onSubmit={verifyOtp} className="space-y-4">
             <p className="text-sm text-zinc-600">
-              {otpChannel === "whatsapp"
-                ? "Code sent on WhatsApp to "
-                : "Code sent to "}
-              <span className="font-medium text-zinc-900">{phoneInput}</span>
+              {otpChannel === "email"
+                ? "Code sent to "
+                : otpChannel === "whatsapp"
+                  ? "Code sent on WhatsApp to "
+                  : "Code sent to "}
+              <span className="font-medium text-zinc-900">
+                {otpChannel === "email" && otpDestination
+                  ? otpDestination
+                  : phoneInput}
+              </span>
             </p>
             <FloatingInput
               id="otp"
@@ -183,6 +194,7 @@ export function LoginFlow() {
                 setPhoneE164("");
                 setIsMock(false);
                 setOtpChannel(null);
+                setOtpDestination(null);
               }}
             >
               Change number

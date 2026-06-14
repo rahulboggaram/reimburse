@@ -65,12 +65,16 @@ export const adminUpdateEmployeeSchema = z
     role: z.enum(ASSIGNABLE_ROLES).optional(),
     branchId: z.string().min(1).nullable().optional(),
     active: z.literal(true).optional(),
+    email: z
+      .union([z.string().trim().email("Enter a valid email address."), z.literal("")])
+      .optional(),
   })
   .refine(
     (data) =>
       data.role !== undefined ||
       data.branchId !== undefined ||
-      data.active === true,
+      data.active === true ||
+      data.email !== undefined,
     { message: "No updates provided" },
   );
 

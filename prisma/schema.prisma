@@ -27,6 +27,7 @@ enum ReimbursementStatus {
 model User {
   id                String   @id @default(cuid())
   phone             String   @unique
+  email             String?  @unique
   name              String?
   ifscCode              String?
   bankAccountNumber     String?

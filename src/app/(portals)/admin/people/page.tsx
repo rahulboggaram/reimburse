@@ -235,14 +235,16 @@ export default function AdminPeoplePage() {
     role: UserRole;
     branchId: string | null;
     active?: boolean;
+    email?: string;
   }) {
     const response = await fetch(`/api/admin/users/${update.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        role: update.role,
-        branchId: update.branchId,
+        ...(update.role !== undefined ? { role: update.role } : {}),
+        ...(update.branchId !== undefined ? { branchId: update.branchId } : {}),
         ...(update.active ? { active: true } : {}),
+        ...(update.email !== undefined ? { email: update.email } : {}),
       }),
     });
     await readJson(response);

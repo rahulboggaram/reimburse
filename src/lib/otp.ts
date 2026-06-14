@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/db";
 import { withDbRetry } from "@/lib/db-retry";
 import {
+  EmailConfigError,
+  EmailDeliveryError,
+  isEmailOtpConfigured,
+  sendOtpEmail,
+} from "@/lib/email";
+import {
   getOtpDeliveryChannel,
   isSmsConfigured,
   sendOtpSms,
@@ -12,7 +18,7 @@ import {
 export type { OtpDeliveryChannel };
 export { getOtpDeliveryChannel };
 
-export { SmsConfigError, SmsDeliveryError };
+export { SmsConfigError, SmsDeliveryError, EmailConfigError, EmailDeliveryError };
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 export const MOCK_OTP_CODE = "123456";
@@ -29,9 +35,25 @@ function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-export async function createOtpChallenge(phone: string) {
+function resolveLiveDeliveryChannel(email?: string | null): OtpDeliveryChannel | null {
+  if (isEmailOtpConfigured() && email) {
+    return "email";
+  }
+  return getOtpDeliveryChannel();
+}
+
+export function getOtpDeliveryChannelForUser(email?: string | null): OtpDeliveryChannel | null {
+  if (isOtpMockMode()) return null;
+  return resolveLiveDeliveryChannel(email);
+}
+
+export async function createOtpChallenge(
+  phone: string,
+  options?: { email?: string | null },
+) {
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+  const userEmail = options?.email?.trim().toLowerCase() || null;
 
   await withDbRetry(async () => {
     await prisma.otpChallenge.deleteMany({ where: { phone } });
@@ -42,24 +64,35 @@ export async function createOtpChallenge(phone: string) {
 
   if (isOtpMockMode()) {
     console.log(`[Reimburse OTP] ${phone} → ${code}`);
-    return { code, expiresAt };
+    return { code, expiresAt, channel: null as OtpDeliveryChannel | null };
   }
 
-  if (!isSmsConfigured()) {
+  const channel = resolveLiveDeliveryChannel(userEmail);
+
+  if (!channel) {
     await prisma.otpChallenge.deleteMany({ where: { phone } });
+    if (isEmailOtpConfigured() && !userEmail) {
+      throw new EmailConfigError(
+        "No work email on file for this number. Ask your admin to add your email in People.",
+      );
+    }
     throw new SmsConfigError(
-      "Live OTP is on but delivery is not configured. Add AiSensy, WhatsApp, MSG91, or Twilio keys on Vercel, or set OTP_MOCK=true.",
+      "Live OTP is on but delivery is not configured. Add Resend email keys, WhatsApp, MSG91, or Twilio on Vercel, or set OTP_MOCK=true.",
     );
   }
 
   try {
-    await sendOtpSms(phone, code, otpSmsBody(code));
+    if (channel === "email" && userEmail) {
+      await sendOtpEmail(userEmail, code);
+    } else {
+      await sendOtpSms(phone, code, otpSmsBody(code));
+    }
   } catch (error) {
     await prisma.otpChallenge.deleteMany({ where: { phone } });
     throw error;
   }
 
-  return { code, expiresAt };
+  return { code, expiresAt, channel };
 }
 
 export async function verifyOtpChallenge(phone: string, code: string) {
