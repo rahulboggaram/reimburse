@@ -305,9 +305,6 @@ export function EmployeeProfileForm(props: {
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                 />
-                <p className="text-sm text-zinc-600">
-                  Used to sign in and receive your login code.
-                </p>
                 <div className="flex items-center justify-end gap-4">
                   <TextLinkButton onClick={() => cancelEdit("email")}>
                     Cancel
