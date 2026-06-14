@@ -100,6 +100,7 @@ export function EmployeeDetailModal(props: {
   const [role, setRole] = useState<UserRole>(employee.role);
   const [branchId, setBranchId] = useState<string>(employee.branchId ?? "");
   const [email, setEmail] = useState(employee.email ?? "");
+  const [emailDirty, setEmailDirty] = useState(false);
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
 
@@ -107,6 +108,7 @@ export function EmployeeDetailModal(props: {
     setRole(employee.role);
     setBranchId(employee.branchId ?? "");
     setEmail(employee.email ?? "");
+    setEmailDirty(false);
     setEmailError(null);
   }, [employee.id, employee.role, employee.branchId, employee.email]);
 
@@ -124,8 +126,10 @@ export function EmployeeDetailModal(props: {
 
   async function saveEmail() {
     const trimmed = email.trim();
-    const current = employee.email ?? "";
-    if (trimmed === current) return;
+    if (trimmed === (employee.email ?? "")) {
+      setEmailDirty(false);
+      return;
+    }
 
     setEmailSaving(true);
     setEmailError(null);
@@ -136,6 +140,7 @@ export function EmployeeDetailModal(props: {
         branchId: employee.branchId,
         email: trimmed,
       });
+      setEmailDirty(false);
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : "Could not save email.");
     } finally {
@@ -179,12 +184,36 @@ export function EmployeeDetailModal(props: {
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => void saveEmail()}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailDirty(true);
+              }}
             />
-            {emailSaving ? (
-              <p className="text-xs text-zinc-500">Saving email…</p>
-            ) : null}
+            <div className="flex items-center justify-end gap-3">
+              {emailDirty ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={emailSaving}
+                  onClick={() => {
+                    setEmail(employee.email ?? "");
+                    setEmailDirty(false);
+                    setEmailError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                disabled={emailSaving || !emailDirty || !email.trim()}
+                onClick={() => void saveEmail()}
+              >
+                {emailSaving ? "Saving…" : "Save"}
+              </Button>
+            </div>
             {emailError ? (
               <p className="text-xs text-red-700">{emailError}</p>
             ) : null}

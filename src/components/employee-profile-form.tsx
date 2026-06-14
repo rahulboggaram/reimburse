@@ -19,7 +19,7 @@ import { ProfileTag, RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
 
-type EditingSection = "name" | "bank" | null;
+type EditingSection = "name" | "email" | "bank" | null;
 
 function CardActionLink(props: {
   children: React.ReactNode;
@@ -75,6 +75,7 @@ export function EmployeeProfileForm(props: {
   const isOnboarding = props.variant === "onboarding";
 
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [ifscCode, setIfscCode] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
@@ -82,6 +83,7 @@ export function EmployeeProfileForm(props: {
   const [branchName, setBranchName] = useState<string | null>(null);
 
   const [savedName, setSavedName] = useState("");
+  const [savedEmail, setSavedEmail] = useState("");
   const [savedIfscCode, setSavedIfscCode] = useState("");
   const [savedBankAccountNumber, setSavedBankAccountNumber] = useState("");
 
@@ -95,6 +97,7 @@ export function EmployeeProfileForm(props: {
       const res = await fetch("/api/profile");
       return readJson<{
         name: string | null;
+        email: string | null;
         phone: string;
         ifscCode: string | null;
         bankAccountNumber: string | null;
@@ -108,6 +111,7 @@ export function EmployeeProfileForm(props: {
         const loadedAccount = data.bankAccountNumber ?? "";
 
         setName(loadedName);
+        setEmail(data.email ?? "");
         setPhone(data.phone);
         setIfscCode(loadedIfsc);
         setBankAccountNumber(loadedAccount);
@@ -115,6 +119,7 @@ export function EmployeeProfileForm(props: {
         setBranchName(data.branchName);
 
         setSavedName(loadedName);
+        setSavedEmail(data.email ?? "");
         setSavedIfscCode(loadedIfsc);
         setSavedBankAccountNumber(loadedAccount);
 
@@ -126,6 +131,28 @@ export function EmployeeProfileForm(props: {
       .catch(() => setError("Could not load your profile."))
       .finally(() => setLoading(false));
   }, [isOnboarding]);
+
+  async function saveEmail() {
+    setError(null);
+    setSaving(true);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      await readJson(response);
+      setSavedEmail(email.trim().toLowerCase());
+      setEmail(email.trim().toLowerCase());
+      setEditingSection(null);
+      invalidateClientCache("profile");
+      await refreshMe();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save email.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function saveProfile(options?: { redirect?: boolean }) {
     setError(null);
@@ -169,6 +196,7 @@ export function EmployeeProfileForm(props: {
 
   function cancelEdit(section: EditingSection) {
     if (section === "name") setName(savedName);
+    if (section === "email") setEmail(savedEmail);
     if (section === "bank") {
       setIfscCode(savedIfscCode);
       setBankAccountNumber(savedBankAccountNumber);
@@ -204,6 +232,7 @@ export function EmployeeProfileForm(props: {
   }
 
   const nameEditing = isOnboarding || editingSection === "name";
+  const emailEditing = !isOnboarding && editingSection === "email";
   const bankEditing = isOnboarding || editingSection === "bank";
 
   const content = (
@@ -262,6 +291,59 @@ export function EmployeeProfileForm(props: {
             </ProfileFieldRow>
           )}
         </ProfileCardBlock>
+
+        {!isOnboarding ? (
+          <ProfileCardBlock>
+            {emailEditing ? (
+              <div className="space-y-4">
+                <FloatingInput
+                  id="login-email"
+                  label="Email address"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+                <p className="text-sm text-zinc-600">
+                  Used to sign in and receive your login code.
+                </p>
+                <div className="flex items-center justify-end gap-4">
+                  <TextLinkButton onClick={() => cancelEdit("email")}>
+                    Cancel
+                  </TextLinkButton>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={saving || !email.trim()}
+                    onClick={() => void saveEmail()}
+                  >
+                    {saving ? <LoadingText>Saving</LoadingText> : "Save"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <ProfileFieldRow
+                action={
+                  <CardActionLink onClick={() => setEditingSection("email")}>
+                    {savedEmail ? "Edit" : "Add"}
+                  </CardActionLink>
+                }
+              >
+                <div>
+                  <ProfileFieldLabel>Email for login</ProfileFieldLabel>
+                  <ProfileFieldValue>
+                    {savedEmail || (
+                      <span className="font-normal text-zinc-500">
+                        Not added yet
+                      </span>
+                    )}
+                  </ProfileFieldValue>
+                </div>
+              </ProfileFieldRow>
+            )}
+          </ProfileCardBlock>
+        ) : null}
 
         {phone && !isOnboarding ? (
           <ProfileCardBlock>

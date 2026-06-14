@@ -36,6 +36,15 @@ export const employeeProfileSchema = z.object({
     .regex(/^\d{9,18}$/, "Enter a valid bank account number (9–18 digits)"),
 });
 
+export const profileEmailSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+});
+
+export const updateProfileSchema = z.union([
+  employeeProfileSchema,
+  profileEmailSchema,
+]);
+
 export const adminCreateEmployeeSchema = z.object({
   phone: z.string().min(10).max(20),
   role: z.enum(ASSIGNABLE_ROLES),
