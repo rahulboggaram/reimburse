@@ -330,16 +330,13 @@ export function EmployeeProfileForm(props: {
                   </CardActionLink>
                 }
               >
-                <div>
-                  <ProfileFieldLabel>Email for login</ProfileFieldLabel>
-                  <ProfileFieldValue>
-                    {savedEmail || (
-                      <span className="font-normal text-zinc-500">
-                        Not added yet
-                      </span>
-                    )}
-                  </ProfileFieldValue>
-                </div>
+                <ProfileFieldValue className="mt-0">
+                  {savedEmail || (
+                    <span className="font-normal text-zinc-500">
+                      Not added yet
+                    </span>
+                  )}
+                </ProfileFieldValue>
               </ProfileFieldRow>
             )}
           </ProfileCardBlock>
