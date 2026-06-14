@@ -23,6 +23,11 @@ export const changePhoneSchema = z.object({
   code: z.string().trim().length(6),
 });
 
+export const changeEmailSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+  code: z.string().trim().length(6),
+});
+
 export const employeeProfileSchema = z.object({
   name: z.string().trim().min(2).max(120),
   ifscCode: z
@@ -36,14 +41,7 @@ export const employeeProfileSchema = z.object({
     .regex(/^\d{9,18}$/, "Enter a valid bank account number (9–18 digits)"),
 });
 
-export const profileEmailSchema = z.object({
-  email: z.string().trim().email("Enter a valid email address."),
-});
-
-export const updateProfileSchema = z.union([
-  employeeProfileSchema,
-  profileEmailSchema,
-]);
+export const updateProfileSchema = employeeProfileSchema;
 
 export const adminCreateEmployeeSchema = z.object({
   phone: z.string().min(10).max(20),

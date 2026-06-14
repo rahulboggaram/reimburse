@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingText } from "@/components/ui/loading-dots";
 import { Card } from "@/components/ui/card";
 import { FloatingInput } from "@/components/ui/floating-field";
+import { ChangeEmailSection } from "@/components/change-email-section";
 import { ChangePhoneSection } from "@/components/change-phone-section";
 import { readJson } from "@/lib/api";
 import { useMe } from "@/components/me-provider";
@@ -19,7 +20,7 @@ import { ProfileTag, RoleBadge } from "@/components/role-badge";
 import { toTitleCase } from "@/lib/user-profile";
 import { cn } from "@/lib/utils";
 
-type EditingSection = "name" | "email" | "bank" | null;
+type EditingSection = "name" | "bank" | null;
 
 function CardActionLink(props: {
   children: React.ReactNode;
@@ -75,7 +76,6 @@ export function EmployeeProfileForm(props: {
   const isOnboarding = props.variant === "onboarding";
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [ifscCode, setIfscCode] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
@@ -111,7 +111,6 @@ export function EmployeeProfileForm(props: {
         const loadedAccount = data.bankAccountNumber ?? "";
 
         setName(loadedName);
-        setEmail(data.email ?? "");
         setPhone(data.phone);
         setIfscCode(loadedIfsc);
         setBankAccountNumber(loadedAccount);
@@ -131,28 +130,6 @@ export function EmployeeProfileForm(props: {
       .catch(() => setError("Could not load your profile."))
       .finally(() => setLoading(false));
   }, [isOnboarding]);
-
-  async function saveEmail() {
-    setError(null);
-    setSaving(true);
-    try {
-      const response = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      await readJson(response);
-      setSavedEmail(email.trim().toLowerCase());
-      setEmail(email.trim().toLowerCase());
-      setEditingSection(null);
-      invalidateClientCache("profile");
-      await refreshMe();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save email.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function saveProfile(options?: { redirect?: boolean }) {
     setError(null);
@@ -196,7 +173,6 @@ export function EmployeeProfileForm(props: {
 
   function cancelEdit(section: EditingSection) {
     if (section === "name") setName(savedName);
-    if (section === "email") setEmail(savedEmail);
     if (section === "bank") {
       setIfscCode(savedIfscCode);
       setBankAccountNumber(savedBankAccountNumber);
@@ -232,7 +208,6 @@ export function EmployeeProfileForm(props: {
   }
 
   const nameEditing = isOnboarding || editingSection === "name";
-  const emailEditing = !isOnboarding && editingSection === "email";
   const bankEditing = isOnboarding || editingSection === "bank";
 
   const content = (
@@ -294,48 +269,14 @@ export function EmployeeProfileForm(props: {
 
         {!isOnboarding ? (
           <ProfileCardBlock>
-            {emailEditing ? (
-              <div className="space-y-4">
-                <FloatingInput
-                  id="login-email"
-                  label="Email address"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-                <div className="flex items-center justify-end gap-4">
-                  <TextLinkButton onClick={() => cancelEdit("email")}>
-                    Cancel
-                  </TextLinkButton>
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={saving || !email.trim()}
-                    onClick={() => void saveEmail()}
-                  >
-                    {saving ? <LoadingText>Saving</LoadingText> : "Save"}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <ProfileFieldRow
-                action={
-                  <CardActionLink onClick={() => setEditingSection("email")}>
-                    {savedEmail ? "Edit" : "Add"}
-                  </CardActionLink>
-                }
-              >
-                <ProfileFieldValue className="mt-0">
-                  {savedEmail || (
-                    <span className="font-normal text-zinc-500">
-                      Not added yet
-                    </span>
-                  )}
-                </ProfileFieldValue>
-              </ProfileFieldRow>
-            )}
+            <ChangeEmailSection
+              currentEmail={savedEmail || null}
+              onEmailChanged={(nextEmail) => {
+                setSavedEmail(nextEmail);
+                invalidateClientCache("profile");
+                void refreshMe();
+              }}
+            />
           </ProfileCardBlock>
         ) : null}
 
