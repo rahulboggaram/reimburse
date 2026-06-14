@@ -242,8 +242,8 @@ export default function AdminPeoplePage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...(update.role !== undefined ? { role: update.role } : {}),
-        ...(update.branchId !== undefined ? { branchId: update.branchId } : {}),
+        role: update.role,
+        branchId: update.branchId,
         ...(update.active ? { active: true } : {}),
         ...(update.email !== undefined ? { email: update.email } : {}),
       }),

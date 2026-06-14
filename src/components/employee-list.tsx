@@ -1,12 +1,14 @@
 "use client";
 
 import type { UserRole } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingText } from "@/components/ui/loading-dots";
 import { FloatingInput } from "@/components/ui/floating-field";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { TextLinkButton } from "@/components/text-link";
 import { ASSIGNABLE_ROLES, formatRole } from "@/lib/access-roles";
 import { userRoleRequiresBranch } from "@/lib/user-branch";
 import { formatPhoneDisplay } from "@/lib/phone";
@@ -100,51 +102,46 @@ export function EmployeeDetailModal(props: {
   const [role, setRole] = useState<UserRole>(employee.role);
   const [branchId, setBranchId] = useState<string>(employee.branchId ?? "");
   const [email, setEmail] = useState(employee.email ?? "");
-  const [emailDirty, setEmailDirty] = useState(false);
-  const [emailSaving, setEmailSaving] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setRole(employee.role);
     setBranchId(employee.branchId ?? "");
     setEmail(employee.email ?? "");
-    setEmailDirty(false);
-    setEmailError(null);
+    setError(null);
   }, [employee.id, employee.role, employee.branchId, employee.email]);
 
   const needsBranch = userRoleRequiresBranch(role);
 
-  function commitUpdate(nextRole: UserRole, nextBranchId: string | null) {
-    const nextNeedsBranch = userRoleRequiresBranch(nextRole);
-    if (nextNeedsBranch && !nextBranchId) return;
-    void props.onUpdate({
-      id: employee.id,
-      role: nextRole,
-      branchId: nextNeedsBranch ? nextBranchId : null,
-    });
-  }
+  const isDirty = useMemo(() => {
+    const savedBranch = employee.branchId ?? "";
+    const savedEmail = employee.email ?? "";
+    return (
+      role !== employee.role ||
+      branchId !== savedBranch ||
+      email.trim() !== savedEmail
+    );
+  }, [role, branchId, email, employee.role, employee.branchId, employee.email]);
 
-  async function saveEmail() {
-    const trimmed = email.trim();
-    if (trimmed === (employee.email ?? "")) {
-      setEmailDirty(false);
-      return;
-    }
+  const canSave = isDirty && (!needsBranch || Boolean(branchId));
 
-    setEmailSaving(true);
-    setEmailError(null);
+  async function saveChanges() {
+    if (!canSave) return;
+
+    setSaving(true);
+    setError(null);
     try {
       await props.onUpdate({
         id: employee.id,
-        role: employee.role,
-        branchId: employee.branchId,
-        email: trimmed,
+        role,
+        branchId: needsBranch ? branchId : null,
+        email: email.trim(),
       });
-      setEmailDirty(false);
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : "Could not save email.");
+      setError(err instanceof Error ? err.message : "Could not save changes.");
     } finally {
-      setEmailSaving(false);
+      setSaving(false);
     }
   }
 
@@ -157,11 +154,6 @@ export function EmployeeDetailModal(props: {
       <div className="space-y-4">
         <div className="space-y-1 text-sm">
           <p className="text-zinc-600">{formatPhoneDisplay(employee.phone)}</p>
-          {employee.email ? (
-            <p className="text-zinc-600">{employee.email}</p>
-          ) : (
-            <p className="text-amber-700">No email — this person cannot log in</p>
-          )}
           {employee.signedUp ? (
             <p className="text-zinc-500">
               {employee.ifscCode} · {employee.bankAccountNumber ?? ""}
@@ -184,39 +176,8 @@ export function EmployeeDetailModal(props: {
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setEmailDirty(true);
-              }}
+              onChange={(e) => setEmail(e.target.value)}
             />
-            <div className="flex items-center justify-end gap-3">
-              {emailDirty ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={emailSaving}
-                  onClick={() => {
-                    setEmail(employee.email ?? "");
-                    setEmailDirty(false);
-                    setEmailError(null);
-                  }}
-                >
-                  Cancel
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                disabled={emailSaving || !emailDirty || !email.trim()}
-                onClick={() => void saveEmail()}
-              >
-                {emailSaving ? "Saving…" : "Save"}
-              </Button>
-            </div>
-            {emailError ? (
-              <p className="text-xs text-red-700">{emailError}</p>
-            ) : null}
           </div>
 
           <div className="space-y-1.5">
@@ -227,18 +188,14 @@ export function EmployeeDetailModal(props: {
               onChange={(e) => {
                 const nextRole = e.target.value as UserRole;
                 setRole(nextRole);
-
-                const nextNeedsBranch = userRoleRequiresBranch(nextRole);
-                if (!nextNeedsBranch) setBranchId("");
-                commitUpdate(
-                  nextRole,
-                  nextNeedsBranch ? branchId || null : null,
-                );
+                if (!userRoleRequiresBranch(nextRole)) {
+                  setBranchId("");
+                }
               }}
             >
-              {ASSIGNABLE_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {formatRole(role)}
+              {ASSIGNABLE_ROLES.map((roleOption) => (
+                <option key={roleOption} value={roleOption}>
+                  {formatRole(roleOption)}
                 </option>
               ))}
             </Select>
@@ -250,12 +207,7 @@ export function EmployeeDetailModal(props: {
               <Select
                 id={`${employee.id}-branch`}
                 value={branchId}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  if (!next) return;
-                  setBranchId(next);
-                  commitUpdate(role, next);
-                }}
+                onChange={(e) => setBranchId(e.target.value)}
               >
                 <option value="" disabled>
                   Select branch
@@ -271,11 +223,17 @@ export function EmployeeDetailModal(props: {
           ) : null}
         </div>
 
+        {error ? (
+          <p className="text-sm text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
+
         {!employee.active ? (
           <>
             <p className="text-sm text-zinc-600">
-              This person is inactive. Confirm their role and branch, then restore
-              access.
+              This person is inactive. Save any updates, then restore access when
+              ready.
             </p>
             {needsBranch && !branchId ? (
               <p className="text-sm text-amber-800">
@@ -285,39 +243,69 @@ export function EmployeeDetailModal(props: {
             <Button
               type="button"
               className="w-full"
-              disabled={needsBranch && !branchId}
+              disabled={!canSave || saving}
+              onClick={() => void saveChanges()}
+            >
+              {saving ? <LoadingText>Saving</LoadingText> : "Save changes"}
+            </Button>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={saving || (needsBranch && !branchId)}
               onClick={async () => {
-                await props.onUpdate({
-                  id: employee.id,
-                  role,
-                  branchId: needsBranch ? branchId : null,
-                  active: true,
-                });
-                props.onClose();
+                setSaving(true);
+                setError(null);
+                try {
+                  await props.onUpdate({
+                    id: employee.id,
+                    role,
+                    branchId: needsBranch ? branchId : null,
+                    email: email.trim(),
+                    active: true,
+                  });
+                  props.onClose();
+                } catch (err) {
+                  setError(
+                    err instanceof Error ? err.message : "Could not restore access.",
+                  );
+                } finally {
+                  setSaving(false);
+                }
               }}
             >
               Restore access
             </Button>
           </>
         ) : (
-          <Button
-            variant="outline"
-            type="button"
-            className="w-full border-red-200 text-red-700"
-            onClick={async () => {
-              if (
-                !confirm(
-                  "Disable this person's access? Their past reimbursements stay in the system.",
-                )
-              ) {
-                return;
-              }
-              await props.onRemove(employee.id);
-              props.onClose();
-            }}
-          >
-            Disable access
-          </Button>
+          <>
+            <Button
+              type="button"
+              className="w-full"
+              disabled={!canSave || saving}
+              onClick={() => void saveChanges()}
+            >
+              {saving ? <LoadingText>Saving</LoadingText> : "Save changes"}
+            </Button>
+            <div className="flex justify-center pt-1">
+              <TextLinkButton
+                className="text-red-700 hover:text-red-800"
+                disabled={saving}
+                onClick={async () => {
+                  if (
+                    !confirm(
+                      "Disable this person's access? Their past reimbursements stay in the system.",
+                    )
+                  ) {
+                    return;
+                  }
+                  await props.onRemove(employee.id);
+                  props.onClose();
+                }}
+              >
+                Disable access
+              </TextLinkButton>
+            </div>
+          </>
         )}
       </div>
     </Modal>
