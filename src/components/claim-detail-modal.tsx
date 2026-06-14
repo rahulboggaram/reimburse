@@ -350,6 +350,13 @@ export function ClaimDetailModal(props: {
     !payoutInProgress(claim.payoutStatus);
 
   const receiptsTotal = claimReceiptCount(claim);
+  const receiptsStillLoading =
+    loadingDetail ||
+    (receiptsTotal > 0 &&
+      galleryReceipts.some(
+        (receipt) =>
+          receipt.id.startsWith("placeholder-") || !receipt.url,
+      ));
   const employeeRole = claim.employee?.role
     ? formatRole(claim.employee.role)
     : null;
@@ -430,7 +437,7 @@ export function ClaimDetailModal(props: {
           title="Receipts"
           compact
           hideCount
-          loading={loadingDetail && receiptsTotal === 0}
+          loading={receiptsStillLoading}
         />
 
         {props.variant === "employee" && claim.submitError ? (
