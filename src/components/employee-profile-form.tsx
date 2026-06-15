@@ -65,6 +65,15 @@ function ProfileCardBlock(props: { children: React.ReactNode }) {
   return <div className="px-5 py-4">{props.children}</div>;
 }
 
+/** Inset divider aligned with profile row text and Edit actions. */
+function ProfileCardDivider() {
+  return (
+    <div className="px-5" role="separator" aria-hidden>
+      <div className="border-t border-zinc-200" />
+    </div>
+  );
+}
+
 export function EmployeeProfileForm(props: {
   title: string;
   description?: string;
@@ -188,13 +197,15 @@ export function EmployeeProfileForm(props: {
           <div className="h-8 w-36 animate-pulse rounded-lg bg-zinc-200" />
           <div className="h-9 w-28 shrink-0 animate-pulse rounded-full bg-zinc-200" />
         </div>
-        <Card className="divide-y divide-zinc-200 p-0">
+        <Card className="p-0">
           <ProfileCardBlock>
             <div className="h-5 w-32 animate-pulse rounded bg-zinc-200" />
           </ProfileCardBlock>
+          <ProfileCardDivider />
           <ProfileCardBlock>
             <div className="h-5 w-36 animate-pulse rounded bg-zinc-100" />
           </ProfileCardBlock>
+          <ProfileCardDivider />
           <ProfileCardBlock>
             <div className="h-6 w-20 animate-pulse rounded-full bg-zinc-100" />
           </ProfileCardBlock>
@@ -220,7 +231,7 @@ export function EmployeeProfileForm(props: {
         </p>
       ) : null}
 
-      <Card className="divide-y divide-zinc-200 p-0">
+      <Card className="p-0">
         <ProfileCardBlock>
           {nameEditing ? (
             <div className="space-y-4">
@@ -268,8 +279,10 @@ export function EmployeeProfileForm(props: {
         </ProfileCardBlock>
 
         {!isOnboarding ? (
-          <ProfileCardBlock>
-            <ChangeEmailSection
+          <>
+            <ProfileCardDivider />
+            <ProfileCardBlock>
+              <ChangeEmailSection
               currentEmail={savedEmail || null}
               onEmailChanged={(nextEmail) => {
                 setSavedEmail(nextEmail);
@@ -277,28 +290,35 @@ export function EmployeeProfileForm(props: {
                 void refreshMe();
               }}
             />
-          </ProfileCardBlock>
+            </ProfileCardBlock>
+          </>
         ) : null}
 
         {phone && !isOnboarding ? (
-          <ProfileCardBlock>
-            <ChangePhoneSection
+          <>
+            <ProfileCardDivider />
+            <ProfileCardBlock>
+              <ChangePhoneSection
               currentPhone={phone}
               onPhoneChanged={(nextPhone) => {
                 setPhone(nextPhone);
                 invalidateClientCache("profile");
               }}
             />
-          </ProfileCardBlock>
+            </ProfileCardBlock>
+          </>
         ) : null}
 
         {!isOnboarding ? (
-          <ProfileCardBlock>
-            <div className="flex flex-wrap items-center gap-2">
+          <>
+            <ProfileCardDivider />
+            <ProfileCardBlock>
+              <div className="flex flex-wrap items-center gap-2">
               <RoleBadge role={accessRole || "Employee"} />
               {branchName ? <ProfileTag>{branchName}</ProfileTag> : null}
             </div>
-          </ProfileCardBlock>
+            </ProfileCardBlock>
+          </>
         ) : null}
       </Card>
 
