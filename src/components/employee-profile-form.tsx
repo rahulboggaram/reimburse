@@ -322,79 +322,91 @@ export function EmployeeProfileForm(props: {
         ) : null}
       </Card>
 
-      <Card className="p-5">
+      <Card className="p-0">
         {isOnboarding ? (
-          <p className="mb-4 text-sm text-zinc-600">
-            Bank details are required for every team member so payouts can reach
-            the right account.
-          </p>
+          <ProfileCardBlock>
+            <p className="text-sm text-zinc-600">
+              Bank details are required for every team member so payouts can reach
+              the right account.
+            </p>
+          </ProfileCardBlock>
         ) : null}
         {bankEditing ? (
-          <div className="space-y-4">
-            <FloatingInput
-              id="account"
-              label="Bank account number"
-              required
-              inputMode="numeric"
-              value={bankAccountNumber}
-              onChange={(e) =>
-                setBankAccountNumber(e.target.value.replace(/\D/g, ""))
-              }
-              autoComplete="off"
-            />
-            <FloatingInput
-              id="ifsc"
-              label="IFSC code"
-              required
-              value={ifscCode}
-              onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-              maxLength={11}
-              autoComplete="off"
-            />
-            {!isOnboarding ? (
-              <div className="flex items-center justify-end gap-4">
-                <TextLinkButton onClick={() => cancelEdit("bank")}>
-                  Cancel
-                </TextLinkButton>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={saving}
-                  onClick={() => saveProfile({ redirect: false })}
-                >
-                  {saving ? <LoadingText>Saving</LoadingText> : "Save"}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1 divide-y divide-zinc-200">
-              <div className="pb-4">
-                <ProfileFieldLabel>Account number</ProfileFieldLabel>
-                <ProfileFieldValue className="break-all font-tabular-nums">
-                  {savedBankAccountNumber || (
-                    <span className="font-normal text-zinc-500">Not added yet</span>
-                  )}
-                </ProfileFieldValue>
-              </div>
-              <div className="pt-4">
-                <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
-                <ProfileFieldValue className="break-all font-tabular-nums uppercase">
-                  {savedIfscCode || (
-                    <span className="font-normal text-zinc-500 normal-case">
-                      Not added yet
-                    </span>
-                  )}
-                </ProfileFieldValue>
-              </div>
+          <ProfileCardBlock>
+            <div className="space-y-4">
+              <FloatingInput
+                id="account"
+                label="Bank account number"
+                required
+                inputMode="numeric"
+                value={bankAccountNumber}
+                onChange={(e) =>
+                  setBankAccountNumber(e.target.value.replace(/\D/g, ""))
+                }
+                autoComplete="off"
+              />
+              <FloatingInput
+                id="ifsc"
+                label="IFSC code"
+                required
+                value={ifscCode}
+                onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                maxLength={11}
+                autoComplete="off"
+              />
+              {!isOnboarding ? (
+                <div className="flex items-center justify-end gap-4">
+                  <TextLinkButton onClick={() => cancelEdit("bank")}>
+                    Cancel
+                  </TextLinkButton>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={saving}
+                    onClick={() => saveProfile({ redirect: false })}
+                  >
+                    {saving ? <LoadingText>Saving</LoadingText> : "Save"}
+                  </Button>
+                </div>
+              ) : null}
             </div>
-            {!isOnboarding ? (
-              <CardActionLink onClick={() => setEditingSection("bank")}>
-                Edit
-              </CardActionLink>
-            ) : null}
-          </div>
+          </ProfileCardBlock>
+        ) : (
+          <>
+            <ProfileCardBlock>
+              <ProfileFieldRow
+                action={
+                  !isOnboarding ? (
+                    <CardActionLink onClick={() => setEditingSection("bank")}>
+                      Edit
+                    </CardActionLink>
+                  ) : undefined
+                }
+              >
+                <div>
+                  <ProfileFieldLabel>Account number</ProfileFieldLabel>
+                  <ProfileFieldValue className="break-all font-tabular-nums">
+                    {savedBankAccountNumber || (
+                      <span className="font-normal text-zinc-500">
+                        Not added yet
+                      </span>
+                    )}
+                  </ProfileFieldValue>
+                </div>
+              </ProfileFieldRow>
+            </ProfileCardBlock>
+            <ProfileCardDivider />
+            <ProfileCardBlock>
+              <ProfileFieldLabel>IFSC code</ProfileFieldLabel>
+              <ProfileFieldValue className="break-all font-tabular-nums uppercase">
+                {savedIfscCode || (
+                  <span className="font-normal text-zinc-500 normal-case">
+                    Not added yet
+                  </span>
+                )}
+              </ProfileFieldValue>
+            </ProfileCardBlock>
+          </>
         )}
       </Card>
 
