@@ -12,7 +12,22 @@ import { getAppHomePathForRole } from "@/lib/home-path";
 
 const COOKIE_NAME = "reimburse_session";
 
-const publicPaths = ["/login", "/api/auth/send-otp", "/api/auth/verify-otp"];
+const marketingPaths = [
+  "/",
+  "/about",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/blog",
+];
+
+const publicPaths = [
+  "/login",
+  "/api/gold-price",
+  "/api/auth/send-otp",
+  "/api/auth/verify-otp",
+  ...marketingPaths,
+];
 
 function secret() {
   return new TextEncoder().encode(
@@ -91,12 +106,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/" || pathname === "/login") {
-    if (!claims.role) {
-      return pathname === "/"
-        ? NextResponse.redirect(new URL("/login", request.url))
-        : NextResponse.next();
-    }
+  if (marketingPaths.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (pathname === "/login") {
+    if (!claims.role) return NextResponse.next();
     return NextResponse.redirect(new URL(homeForClaims(claims), request.url));
   }
 
