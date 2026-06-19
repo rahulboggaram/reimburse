@@ -55,7 +55,7 @@ export async function createLoginOtpChallenge(email: string) {
   if (!isEmailOtpConfigured()) {
     await prisma.otpChallenge.deleteMany({ where: { phone: normalized } });
     throw new EmailConfigError(
-      "Live OTP is on but email is not configured. Add RESEND_API_KEY and OTP_EMAIL_FROM on Vercel, or set OTP_MOCK=true.",
+      "Live OTP is on but email is not configured. Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel, or set OTP_MOCK=true.",
     );
   }
 

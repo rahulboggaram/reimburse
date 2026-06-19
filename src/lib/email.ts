@@ -1,4 +1,4 @@
-/** Login OTP delivery via Resend (https://resend.com). */
+/** Login OTP delivery via Postmark (https://postmarkapp.com). */
 
 export class EmailConfigError extends Error {
   constructor(message: string) {
@@ -33,12 +33,12 @@ export function maskEmail(email: string): string {
 }
 
 export function getEmailOtpConfig() {
-  const apiKey = process.env.RESEND_API_KEY?.trim() ?? "";
+  const serverToken = process.env.POSTMARK_SERVER_TOKEN?.trim() ?? "";
   const from = process.env.OTP_EMAIL_FROM?.trim() ?? "";
   return {
-    apiKey,
+    serverToken,
     from,
-    configured: Boolean(apiKey && from),
+    configured: Boolean(serverToken && from),
   };
 }
 
@@ -50,33 +50,35 @@ export async function sendOtpEmail(to: string, code: string) {
   const config = getEmailOtpConfig();
   if (!config.configured) {
     throw new EmailConfigError(
-      "Email OTP is not configured. Add RESEND_API_KEY and OTP_EMAIL_FROM on Vercel.",
+      "Email OTP is not configured. Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel.",
     );
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
+  const response = await fetch("https://api.postmarkapp.com/email", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${config.apiKey}`,
+      Accept: "application/json",
       "Content-Type": "application/json",
+      "X-Postmark-Server-Token": config.serverToken,
     },
     body: JSON.stringify({
-      from: config.from,
-      to: [to],
-      subject: `${code} is your Reimburse login code`,
-      html: otpEmailHtml(code),
-      text: otpEmailText(code),
+      From: config.from,
+      To: to,
+      Subject: `${code} is your Reimburse login code`,
+      HtmlBody: otpEmailHtml(code),
+      TextBody: otpEmailText(code),
+      MessageStream: "outbound",
     }),
   });
 
   const payload = (await response.json().catch(() => null)) as {
-    message?: string;
-    name?: string;
+    Message?: string;
+    ErrorCode?: number;
   } | null;
 
-  if (!response.ok) {
+  if (!response.ok || (payload?.ErrorCode ?? 0) !== 0) {
     throw new EmailDeliveryError(
-      payload?.message ?? `Resend error (${response.status})`,
+      payload?.Message ?? `Postmark error (${response.status})`,
     );
   }
 }

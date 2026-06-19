@@ -16,7 +16,7 @@ export async function GET() {
     ? {
         OTP_MOCK: "false",
         NEXT_PUBLIC_OTP_MOCK: "false",
-        RESEND_API_KEY: "(from resend.com → API Keys)",
+        POSTMARK_SERVER_TOKEN: "(from Postmark → Server → API tokens)",
         OTP_EMAIL_FROM: email.from || "Reimburse <otp@yourdomain.com>",
       }
     : status.provider === "aisensy" && status.aisensy

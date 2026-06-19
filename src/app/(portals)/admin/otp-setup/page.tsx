@@ -111,7 +111,7 @@ export default function AdminOtpSetupPage() {
     <div className="space-y-6">
       <PageHeading
         title="Login OTP"
-        description="Email (Resend) or WhatsApp for reimburse-jade.vercel.app"
+        description="Email (Postmark) or WhatsApp for reimburse-jade.vercel.app"
       />
 
       {error ? (
@@ -150,11 +150,11 @@ export default function AdminOtpSetupPage() {
               />
               <StatusRow
                 ok={Boolean(status.email?.configured)}
-                label="Email OTP via Resend (recommended)"
+                label="Email OTP via Postmark (recommended)"
                 detail={
                   status.email?.configured
                     ? `From: ${status.email.from}`
-                    : "Add RESEND_API_KEY and OTP_EMAIL_FROM on Vercel. Each person also needs an email in People."
+                    : "Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel. Each person also needs an email in People."
                 }
               />
               <StatusRow
