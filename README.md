@@ -1,6 +1,6 @@
 # Reimburse
 
-Expense reimbursements with mobile OTP login.
+Expense reimbursements with email OTP login.
 
 ## Setup
 
@@ -13,13 +13,12 @@ npm run dev
 
 ## Demo logins (OTP: `123456`)
 
-| Phone | Role |
+| Email | Role |
 |-------|------|
-| `9999000001` | Admin — manage employees & approvers |
-| `9999000002` | Employee only (Nikhil) |
-| `9999000003` | Employee + approver (Ananya) |
-| `9999000004` | Employee — **first login** asks for name & bank details |
-| `9999000005` | Employee + **approver** (Sindhu) — test approvals |
+| `admin@reimburse.demo` | Admin — manage employees & approvers |
+| `manager@reimburse.demo` | Branch manager (Sadan) |
+| `approver@reimburse.demo` | Employee + approver (Sudhi) |
+| `employee@reimburse.demo` | Employee — **first login** asks for name & bank details |
 
 ## What’s new
 
@@ -30,117 +29,31 @@ npm run dev
 - **Admin**: list employees, assign **Approver** toggle (only after they complete profile)
 - **RazorpayX payouts**: pay approved claims from Admin → All claims
 
-## Live OTP — WhatsApp (from scratch)
+## Live OTP — Postmark email
 
-Reimburse sends login codes with the **WhatsApp Cloud API** and template **`reimburse_login_otp`** (Authentication + Copy code). Do **not** set `MSG91_*` or `TWILIO_*` unless you add SMS later.
+Reimburse sends login codes by **email** via [Postmark](https://postmarkapp.com). Each employee needs an email in Admin → People.
 
-**While you set up Meta**, keep on Vercel: `OTP_MOCK=true` and `NEXT_PUBLIC_OTP_MOCK=true` so the app still accepts demo OTP **`123456`**.
+**While you set up Postmark**, keep on Vercel: `OTP_MOCK=true` and `NEXT_PUBLIC_OTP_MOCK=true` so the app still accepts demo OTP **`123456`**.
 
-### What you need at the end
-
-| Piece | Example / note |
-|-------|----------------|
-| Meta Developer app | **Yellow Metal** (developers.facebook.com — not the Reimburse website name) |
-| Sender number | **+91 80903 80909** on that WhatsApp account (not the US “Test number”) |
-| Phone number ID | From API Setup when Yellow Metal is selected |
-| Access token | System user token with `whatsapp_business_messaging` |
-| Template | `reimburse_login_otp`, language `en` or `en_US` |
-
-### Step 1 — Template (you likely already have this)
-
-1. [WhatsApp Manager](https://business.facebook.com/wa/manage/message-templates/) → template **`reimburse_login_otp`**
-2. Category **Authentication**, **Copy code** button, status **Active**
-
-### Step 2 — Developer app
-
-1. [developers.facebook.com/apps](https://developers.facebook.com/apps/) → open **Yellow Metal**
-2. Left: **Use cases** → **Connect with customers through WhatsApp** → **Customize**
-3. Open **Configuration** → connect **WhatsApp Business account** = Yellow Metal Loans → **Save**
-4. Open **API Setup**
-
-### Step 3 — Sender number (ignore US test number)
-
-1. **From** → select **Yellow Metal — +91 80903 80909** (not “Test number”)
-2. Copy **Phone number ID** for this line only
-3. If status is **Pending**, register once (Step 4)
-
-### Step 4 — Register +91 for API (Pending → ready)
-
-You need the **6-digit two-step verification PIN** for that WhatsApp Business number (you set it; Meta does not SMS it). Max **10** register attempts per 72 hours.
-
-```bash
-export WA_TOKEN="EAA...paste token"
-export WA_PHONE_ID="paste Phone number ID for Yellow Metal"
-export WA_PIN="123456"
-
-curl -X POST "https://graph.facebook.com/v25.0/${WA_PHONE_ID}/register" \
-  -H "Authorization: Bearer ${WA_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"${WA_PIN}\"}"
-```
-
-Success: `{"success":true}`. Doc: [Register a business phone number](https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration/).
-
-Check status:
-
-```bash
-curl -s "https://graph.facebook.com/v25.0/${WA_PHONE_ID}?fields=display_phone_number,status,code_verification_status" \
-  -H "Authorization: Bearer ${WA_TOKEN}"
-```
-
-### Step 5 — Permanent token (fixes “does not exist / permissions”)
-
-Temporary API Setup tokens often fail on the real +91 line.
-
-1. [business.facebook.com/settings](https://business.facebook.com/settings) → **System users** → Add
-2. **Assign assets** → **WhatsApp accounts** → Yellow Metal → full access
-3. **Generate token** → app **Yellow Metal** → permissions **`whatsapp_business_messaging`** + **`whatsapp_business_management`**
-4. Copy token → use for Meta test + Vercel
-
-### Step 6 — Test on Meta before Vercel
-
-On **API Setup** (Yellow Metal selected):
-
-1. **To** → add test mobiles as `91XXXXXXXXXX` (no `+`)
-2. Send Meta’s test message to your phone
-3. If that works, configure Vercel
-
-### Step 7 — Vercel Production env
+### Vercel Production env
 
 ```env
 OTP_MOCK=false
 NEXT_PUBLIC_OTP_MOCK=false
-NEXT_PUBLIC_OTP_DOMAIN=reimburse-jade.vercel.app
 
-WHATSAPP_ACCESS_TOKEN=EAA...system user token
-WHATSAPP_PHONE_NUMBER_ID=Phone number ID for Yellow Metal only
-WHATSAPP_OTP_TEMPLATE_NAME=reimburse_login_otp
-WHATSAPP_OTP_TEMPLATE_LANGUAGE=en
-WHATSAPP_OTP_TEMPLATE_HAS_BUTTON=true
-WHATSAPP_API_VERSION=v25.0
+POSTMARK_SERVER_TOKEN=your-server-api-token
+OTP_EMAIL_FROM=Reimburse <otp@reimburse.yellowmetal.co>
 ```
 
-Leave **`RAZORPAYX_MOCK=true`** until login works. **Redeploy** after saving.
+The **From** address must use a domain verified in Postmark. **Redeploy** after saving.
 
-### Step 8 — Test Reimburse
+### Test
 
 1. https://reimburse-jade.vercel.app/login
-2. Phone must exist in Reimburse **and** (if app is In development) Meta **test recipient** list
-3. UI: **“Code sent on WhatsApp”** + message from Yellow Metal
+2. Enter an email registered in Admin → People
+3. Check inbox for the 6-digit code
 
-### Common mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Used US **Test number** ID | Use Yellow Metal **Phone number ID** only |
-| `YOUR_PHONE_NUMBER_ID` in curl | Paste real IDs and token |
-| `cexport` / empty `$WA_TOKEN` | Use `export WA_TOKEN="EAA..."` |
-| Number **Pending** | Run **register** with correct PIN |
-| Token error 190 / object missing | System user token + link WABA in Configuration |
-
-### Alternatives
-
-MSG91 or Twilio SMS — see `.env.example`.
+Admin → **Login OTP** shows Postmark status and lets you send a test email.
 
 ## RazorpayX setup (real payouts)
 

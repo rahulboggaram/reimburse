@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage() {
     <>
       <PageHeading
         title="Insights"
-        info="Metrics since Razorpay payouts went live (10 Jun 2026). Pre-launch test data is excluded. Logins count WhatsApp sign-ins."
+        info="Metrics since Razorpay payouts went live (10 Jun 2026). Pre-launch test data is excluded. Logins count email sign-ins."
         className="mb-4"
       />
 

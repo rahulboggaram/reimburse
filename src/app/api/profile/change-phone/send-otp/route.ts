@@ -1,9 +1,10 @@
 import { requireEmployeePortalAccess } from "@/lib/auth-api";
+import { maskEmail } from "@/lib/email";
 import {
   createOtpChallenge,
+  EmailConfigError,
+  EmailDeliveryError,
   isOtpMockMode,
-  SmsConfigError,
-  SmsDeliveryError,
 } from "@/lib/otp";
 import { normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/db";
@@ -41,21 +42,34 @@ export async function POST(request: Request) {
     );
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.id },
+    select: { email: true },
+  });
+
+  if (!user?.email) {
+    return Response.json(
+      { error: "Add an email address to your profile before changing your mobile number." },
+      { status: 400 },
+    );
+  }
+
   try {
-    const { code } = await createOtpChallenge(phone);
+    const { code } = await createOtpChallenge(phone, user.email);
 
     return Response.json({
       ok: true,
       phone,
+      destination: maskEmail(user.email),
       mock: isOtpMockMode(),
       mockCode: isOtpMockMode() ? code : undefined,
     });
   } catch (err) {
     console.error("change-phone send-otp failed", err);
-    if (err instanceof SmsConfigError) {
+    if (err instanceof EmailConfigError) {
       return Response.json({ error: err.message }, { status: 503 });
     }
-    if (err instanceof SmsDeliveryError) {
+    if (err instanceof EmailDeliveryError) {
       return Response.json(
         { error: "Could not send OTP. Try again in a moment." },
         { status: 502 },

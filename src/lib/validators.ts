@@ -4,6 +4,15 @@ export const sendOtpSchema = z.object({
   phone: z.string().min(10).max(20),
 });
 
+export const loginSendOtpSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+});
+
+export const loginVerifyOtpSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+  code: z.string().trim().length(6),
+});
+
 export const verifyOtpSchema = z.object({
   phone: z.string().min(10).max(20),
   code: z.string().trim().length(6),

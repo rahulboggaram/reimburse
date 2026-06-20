@@ -1,62 +1,61 @@
-import { normalizePhone } from "@/lib/phone";
+import { normalizeEmail, maskEmail } from "@/lib/email";
 import {
-  createOtpChallenge,
-  getOtpDeliveryChannel,
+  createLoginOtpChallenge,
+  EmailConfigError,
+  EmailDeliveryError,
   isOtpMockMode,
-  otpSmsBody,
-  SmsConfigError,
-  SmsDeliveryError,
 } from "@/lib/otp";
 import { prisma } from "@/lib/db";
 import { isTransientDbError, withDbRetry } from "@/lib/db-retry";
-import { sendOtpSchema } from "@/lib/validators";
+import { loginSendOtpSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
   try {
-    const body = sendOtpSchema.safeParse(await request.json());
+    const body = loginSendOtpSchema.safeParse(await request.json());
     if (!body.success) {
-      return Response.json({ error: "Enter a valid mobile number." }, { status: 400 });
+      return Response.json(
+        { error: body.error.issues[0]?.message ?? "Enter a valid email address." },
+        { status: 400 },
+      );
     }
 
-    const phone = normalizePhone(body.data.phone);
-    if (!phone) {
+    const email = normalizeEmail(body.data.email);
+    if (!email) {
       return Response.json(
-        { error: "Enter a valid 10-digit mobile number." },
+        { error: "Enter a valid email address." },
         { status: 400 },
       );
     }
 
     const user = await withDbRetry(() =>
       prisma.user.findUnique({
-        where: { phone },
+        where: { email },
         select: { id: true, active: true },
       }),
     );
     if (!user?.active) {
       return Response.json(
-        { error: "This number is not registered. Contact your admin." },
+        { error: "This email is not registered. Contact your admin." },
         { status: 403 },
       );
     }
 
-    const { code, channel } = await createOtpChallenge(phone);
-    const deliveryChannel = isOtpMockMode() ? undefined : (channel ?? getOtpDeliveryChannel());
+    const { code } = await createLoginOtpChallenge(email);
 
     return Response.json({
       ok: true,
-      phone,
+      email,
       mock: isOtpMockMode(),
       mockCode: isOtpMockMode() ? code : undefined,
-      channel: deliveryChannel,
-      smsPreview: otpSmsBody(code),
+      destination: maskEmail(email),
     });
   } catch (err) {
     console.error("send-otp failed", err);
 
-    if (err instanceof SmsConfigError) {
+    if (err instanceof EmailConfigError) {
       return Response.json({ error: err.message }, { status: 503 });
     }
-    if (err instanceof SmsDeliveryError) {
+    if (err instanceof EmailDeliveryError) {
       return Response.json({ error: err.message }, { status: 502 });
     }
 

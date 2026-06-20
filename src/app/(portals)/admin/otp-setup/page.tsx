@@ -9,29 +9,11 @@ import { readJson } from "@/lib/api";
 
 type SetupStatus = {
   ready: boolean;
-  channel: string | null;
-  config: {
-    mockMode: boolean;
+  mockMode: boolean;
+  email: {
     configured: boolean;
-    hasToken: boolean;
-    hasPhoneNumberId: boolean;
-    templateName: string | null;
-    languageCode: string;
-    apiVersion: string;
+    from: string | null;
   };
-  sender: {
-    ok: boolean;
-    displayPhoneNumber?: string;
-    status?: string;
-    codeVerificationStatus?: string;
-    error?: string;
-  } | null;
-  provider: "aisensy" | "meta" | null;
-  aisensy: {
-    configured: boolean;
-    campaignName: string | null;
-    templateParamCount: number;
-  } | null;
   vercelVars: Record<string, string>;
 };
 
@@ -58,7 +40,7 @@ export default function AdminOtpSetupPage() {
   const [status, setStatus] = useState<SetupStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [testPhone, setTestPhone] = useState("");
+  const [testEmail, setTestEmail] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
 
@@ -82,7 +64,7 @@ export default function AdminOtpSetupPage() {
       const response = await fetch("/api/admin/otp-setup/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: testPhone }),
+        body: JSON.stringify({ email: testEmail }),
       });
       const data = (await response.json()) as { ok?: boolean; message?: string; error?: string };
       if (!response.ok) {
@@ -102,7 +84,7 @@ export default function AdminOtpSetupPage() {
     <div className="space-y-6">
       <PageHeading
         title="Login OTP"
-        description="WhatsApp OTP for reimburse-jade.vercel.app"
+        description="Email OTP via Postmark for reimburse-jade.vercel.app"
       />
 
       {error ? (
@@ -124,55 +106,26 @@ export default function AdminOtpSetupPage() {
               }
             >
               {status.ready
-                ? "Ready — live WhatsApp OTP should work on login."
+                ? "Ready — live email OTP should work on login."
                 : "Not ready yet — finish the steps below."}
             </p>
             <ul className="mt-4 space-y-3">
               <StatusRow
-                ok={!status.config.mockMode}
+                ok={!status.mockMode}
                 label="Demo OTP turned off"
                 detail={
-                  status.config.mockMode
+                  status.mockMode
                     ? "Set OTP_MOCK=false and NEXT_PUBLIC_OTP_MOCK=false on Vercel, then redeploy."
                     : "Vercel is set for live OTP."
                 }
               />
               <StatusRow
-                ok={
-                  status.provider === "aisensy"
-                    ? Boolean(status.aisensy?.configured)
-                    : status.config.configured
-                }
-                label={
-                  status.provider === "aisensy"
-                    ? "AiSensy API configured"
-                    : "WhatsApp env vars present"
-                }
+                ok={status.email.configured}
+                label="Postmark email OTP"
                 detail={
-                  status.provider === "aisensy"
-                    ? `Campaign: ${status.aisensy?.campaignName ?? "—"}`
-                    : status.config.configured
-                      ? `Template: ${status.config.templateName} · language: ${status.config.languageCode}`
-                      : "Add AiSensy keys or Meta token, phone number ID, and template name on Vercel."
-                }
-              />
-              <StatusRow
-                ok={status.sender?.ok === true}
-                label={
-                  status.provider === "aisensy"
-                    ? "AiSensy sender ready"
-                    : "Meta accepts your sender number"
-                }
-                detail={
-                  status.sender?.ok
-                    ? [
-                        status.sender.displayPhoneNumber,
-                        status.sender.status,
-                        status.sender.codeVerificationStatus,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : status.sender?.error ?? "Probe not run or failed."
+                  status.email.configured
+                    ? `From: ${status.email.from}`
+                    : "Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel. Each person also needs an email in People."
                 }
               />
             </ul>
@@ -206,23 +159,22 @@ export default function AdminOtpSetupPage() {
               Send test OTP
             </h2>
             <p className="text-sm text-zinc-600">
-              Works even while demo OTP is on. Use a registered mobile number.
+              Works even while demo OTP is on. Use any inbox you can check.
             </p>
             <div className="flex flex-wrap gap-2">
               <FloatingInput
-                type="tel"
-                inputMode="numeric"
-                label="10-digit mobile"
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
+                type="email"
+                label="Email address"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
                 className="min-w-[12rem] flex-1"
               />
               <Button
                 type="button"
-                disabled={testSending || testPhone.replace(/\D/g, "").length < 10}
+                disabled={testSending || !testEmail.includes("@")}
                 onClick={() => void sendTestOtp()}
               >
-                {testSending ? "Sending…" : "Send test on WhatsApp"}
+                {testSending ? "Sending…" : "Send test email"}
               </Button>
             </div>
             {testResult ? (
@@ -240,114 +192,36 @@ export default function AdminOtpSetupPage() {
           </Card>
 
           <Card className="space-y-2 p-5 text-sm text-zinc-600">
-            <h2 className="font-semibold text-zinc-900">
-              {status.provider === "aisensy" ? "AiSensy setup" : "Open in Meta"}
-            </h2>
-            {status.provider === "aisensy" ? (
-              <ul className="list-inside list-disc space-y-1">
-                <li>
-                  <a
-                    href="https://app.aisensy.com/"
-                    className="font-medium text-zinc-900 underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    app.aisensy.com
-                  </a>{" "}
-                  → create an Authentication template → API Campaign → set live
-                </li>
-                <li>Manage → copy API Key → paste as AISENSY_API_KEY on Vercel</li>
-                <li>
-                  Campaign name must match AISENSY_CAMPAIGN_NAME exactly (case
-                  sensitive)
-                </li>
-                <li>
-                  If test send fails, open Test Campaign in AiSensy and check how
-                  many values templateParams needs — set AISENSY_TEMPLATE_PARAM_COUNT
-                  to 1 or 2
-                </li>
-              </ul>
-            ) : null}
-            {status.provider !== "aisensy" ? (
-            <ul className="space-y-1">
-              <li>
-                <a
-                  href="https://developers.facebook.com/apps/"
-                  className="font-medium text-zinc-900 underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Meta Developer apps
-                </a>{" "}
-                → Yellow Metal → WhatsApp → API Setup
-              </li>
-              <li>
-                <a
-                  href="https://business.facebook.com/settings/system-users"
-                  className="font-medium text-zinc-900 underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  System users &amp; permanent token
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://business.facebook.com/wa/manage/message-templates/"
-                  className="font-medium text-zinc-900 underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Message templates
-                </a>{" "}
-                (reimburse_login_otp)
-              </li>
-            </ul>
-            ) : null}
-          </Card>
-
-          {status.provider !== "aisensy" ? (
-          <Card className="space-y-2 p-5 text-sm text-zinc-600">
-            <h2 className="font-semibold text-zinc-900">Meta checklist</h2>
+            <h2 className="font-semibold text-zinc-900">Postmark setup</h2>
             <ol className="list-decimal space-y-2 pl-5">
               <li>
-                Yellow Metal Developer app → WhatsApp → Configuration → your
-                WhatsApp Business account linked (same business portfolio).
-              </li>
-              <li>
-                API Setup → <strong>From</strong> = Yellow Metal +91 (not US test
-                number).
-              </li>
-              <li>
-                If status is Pending, register the number with your 6-digit
-                WhatsApp two-step PIN.
-              </li>
-              <li>
-                Use a <strong>system user token</strong> (Business settings) with{" "}
-                <code className="text-xs">whatsapp_business_messaging</code>.
-              </li>
-              <li>
-                App in Development? Add each tester phone under API Setup → To.
-              </li>
-              <li>
-                Test login at{" "}
+                Create a server at{" "}
                 <a
-                  href="https://reimburse-jade.vercel.app/login"
+                  href="https://postmarkapp.com"
                   className="font-medium text-zinc-900 underline"
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  reimburse-jade.vercel.app/login
+                  postmarkapp.com
                 </a>
                 .
               </li>
+              <li>Verify your sending domain (e.g. reimburse.yellowmetal.co).</li>
+              <li>
+                Copy the <strong>Server API token</strong> →{" "}
+                <code className="text-xs">POSTMARK_SERVER_TOKEN</code> on Vercel.
+              </li>
+              <li>
+                Set <code className="text-xs">OTP_EMAIL_FROM</code> to a verified
+                sender, e.g.{" "}
+                <code className="text-xs">Reimburse &lt;otp@reimburse.yellowmetal.co&gt;</code>.
+              </li>
+              <li>
+                Add each employee&apos;s email in Admin → People — login codes go
+                to that address.
+              </li>
             </ol>
-            <p>
-              If login fails, the error on the login screen now shows Meta’s
-              message (e.g. wrong language code — try{" "}
-              <code className="text-xs">en_US</code> instead of{" "}
-              <code className="text-xs">en</code>).
-            </p>
           </Card>
-          ) : null}
         </>
       ) : null}
     </div>

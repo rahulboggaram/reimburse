@@ -24,6 +24,7 @@ export function ChangePhoneSection(props: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
+  const [otpDestination, setOtpDestination] = useState<string | null>(null);
 
   function resetFlow() {
     setStep("idle");
@@ -32,6 +33,7 @@ export function ChangePhoneSection(props: {
     setOtp("");
     setError(null);
     setIsMock(false);
+    setOtpDestination(null);
   }
 
   function close() {
@@ -53,8 +55,10 @@ export function ChangePhoneSection(props: {
         phone: string;
         mock?: boolean;
         mockCode?: string;
+        destination?: string;
       }>(response);
       setPhoneE164(data.phone);
+      setOtpDestination(data.destination ?? null);
       setIsMock(Boolean(data.mock));
       setOtp(data.mock ? MOCK_OTP : "");
       setStep("otp");
@@ -143,7 +147,7 @@ export function ChangePhoneSection(props: {
               <p className="text-sm text-zinc-600">
                 Code sent to{" "}
                 <span className="font-medium text-zinc-900">
-                  {formatPhoneDisplay(phoneE164)}
+                  {otpDestination ?? "your email"}
                 </span>
               </p>
               <FloatingInput

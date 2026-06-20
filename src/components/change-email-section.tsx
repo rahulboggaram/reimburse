@@ -24,9 +24,6 @@ export function ChangeEmailSection(props: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
-  const [otpChannel, setOtpChannel] = useState<"whatsapp" | "sms" | null>(
-    null,
-  );
 
   function resetFlow() {
     setStep("idle");
@@ -35,7 +32,6 @@ export function ChangeEmailSection(props: {
     setOtp("");
     setError(null);
     setIsMock(false);
-    setOtpChannel(null);
   }
 
   function close() {
@@ -57,11 +53,9 @@ export function ChangeEmailSection(props: {
         email: string;
         mock?: boolean;
         mockCode?: string;
-        channel?: "whatsapp" | "sms";
       }>(response);
       setEmailNormalized(data.email);
       setIsMock(Boolean(data.mock));
-      setOtpChannel(data.mock ? null : (data.channel ?? null));
       setOtp(data.mock ? MOCK_OTP : "");
       setStep("otp");
     } catch (err) {
@@ -146,10 +140,7 @@ export function ChangeEmailSection(props: {
           ) : (
             <form onSubmit={confirmChange} className="space-y-3">
               <p className="text-sm text-zinc-600">
-                {otpChannel === "whatsapp"
-                  ? "Code sent on WhatsApp to your registered mobile number"
-                  : "Code sent to your registered mobile number"}
-                {" — confirming "}
+                Code sent to{" "}
                 <span className="font-medium text-zinc-900">
                   {maskEmail(emailNormalized)}
                 </span>

@@ -1,17 +1,13 @@
 import { prisma } from "@/lib/db";
 import { withDbRetry } from "@/lib/db-retry";
 import {
-  getOtpDeliveryChannel,
-  sendOtpSms,
-  SmsConfigError,
-  SmsDeliveryError,
-  type OtpDeliveryChannel,
-} from "@/lib/sms";
+  EmailConfigError,
+  EmailDeliveryError,
+  isEmailOtpConfigured,
+  sendOtpEmail,
+} from "@/lib/email";
 
-export type { OtpDeliveryChannel };
-export { getOtpDeliveryChannel };
-
-export { SmsConfigError, SmsDeliveryError };
+export { EmailConfigError, EmailDeliveryError };
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 export const MOCK_OTP_CODE = "123456";
@@ -28,10 +24,49 @@ function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-/** Login, phone change, and email change OTP — keyed by phone, delivered via WhatsApp or SMS. */
-export async function createOtpChallenge(phone: string) {
+async function deliverOtpEmail(to: string, code: string, challengeKey: string) {
+  if (!isEmailOtpConfigured()) {
+    await prisma.otpChallenge.deleteMany({ where: { phone: challengeKey } });
+    throw new EmailConfigError(
+      "Live OTP is on but email is not configured. Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel, or set OTP_MOCK=true.",
+    );
+  }
+
+  try {
+    await sendOtpEmail(to, code);
+  } catch (error) {
+    await prisma.otpChallenge.deleteMany({ where: { phone: challengeKey } });
+    throw error;
+  }
+}
+
+/** Login and email-change OTP — keyed by normalized email, delivered to that inbox. */
+export async function createLoginOtpChallenge(email: string) {
+  const normalized = email.trim().toLowerCase();
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+
+  await withDbRetry(async () => {
+    await prisma.otpChallenge.deleteMany({ where: { phone: normalized } });
+    await prisma.otpChallenge.create({
+      data: { phone: normalized, code, expiresAt },
+    });
+  });
+
+  if (isOtpMockMode()) {
+    console.log(`[Reimburse OTP] ${normalized} → ${code}`);
+    return { code, expiresAt };
+  }
+
+  await deliverOtpEmail(normalized, code, normalized);
+  return { code, expiresAt };
+}
+
+/** Phone-change OTP — keyed by new phone, delivered to the user's email on file. */
+export async function createOtpChallenge(phone: string, deliveryEmail: string) {
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+  const email = deliveryEmail.trim().toLowerCase();
 
   await withDbRetry(async () => {
     await prisma.otpChallenge.deleteMany({ where: { phone } });
@@ -41,27 +76,12 @@ export async function createOtpChallenge(phone: string) {
   });
 
   if (isOtpMockMode()) {
-    console.log(`[Reimburse OTP] ${phone} → ${code}`);
-    return { code, expiresAt, channel: null as OtpDeliveryChannel | null };
+    console.log(`[Reimburse OTP] ${phone} → ${code} (email: ${email})`);
+    return { code, expiresAt };
   }
 
-  const channel = getOtpDeliveryChannel();
-
-  if (!channel) {
-    await prisma.otpChallenge.deleteMany({ where: { phone } });
-    throw new SmsConfigError(
-      "OTP delivery is not configured. Add WhatsApp, MSG91, or Twilio on Vercel, or set OTP_MOCK=true.",
-    );
-  }
-
-  try {
-    await sendOtpSms(phone, code, otpSmsBody(code));
-  } catch (error) {
-    await prisma.otpChallenge.deleteMany({ where: { phone } });
-    throw error;
-  }
-
-  return { code, expiresAt, channel };
+  await deliverOtpEmail(email, code, phone);
+  return { code, expiresAt };
 }
 
 export async function verifyOtpChallenge(phone: string, code: string) {
@@ -85,10 +105,4 @@ export async function verifyOtpChallenge(phone: string, code: string) {
     await prisma.otpChallenge.delete({ where: { id: challenge.id } });
     return true;
   });
-}
-
-/** SMS body format for Web OTP autofill (Chrome on Android). */
-export function otpSmsBody(code: string): string {
-  const domain = process.env.NEXT_PUBLIC_OTP_DOMAIN ?? "reimburse.local";
-  return `Your Reimburse code is ${code}\n\n@${domain} #${code}`;
 }
