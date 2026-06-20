@@ -10,10 +10,6 @@ import { readJson } from "@/lib/api";
 type SetupStatus = {
   ready: boolean;
   channel: string | null;
-  email?: {
-    configured: boolean;
-    from: string | null;
-  };
   config: {
     mockMode: boolean;
     configured: boolean;
@@ -63,7 +59,6 @@ export default function AdminOtpSetupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [testPhone, setTestPhone] = useState("");
-  const [testEmail, setTestEmail] = useState("");
   const [testSending, setTestSending] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
 
@@ -80,18 +75,14 @@ export default function AdminOtpSetupPage() {
     loadStatus();
   }, []);
 
-  async function sendTestOtp(mode: "phone" | "email") {
+  async function sendTestOtp() {
     setTestSending(true);
     setTestResult(null);
     try {
       const response = await fetch("/api/admin/otp-setup/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          mode === "email"
-            ? { email: testEmail }
-            : { phone: testPhone },
-        ),
+        body: JSON.stringify({ phone: testPhone }),
       });
       const data = (await response.json()) as { ok?: boolean; message?: string; error?: string };
       if (!response.ok) {
@@ -111,7 +102,7 @@ export default function AdminOtpSetupPage() {
     <div className="space-y-6">
       <PageHeading
         title="Login OTP"
-        description="Email (Postmark) or WhatsApp for reimburse-jade.vercel.app"
+        description="WhatsApp OTP for reimburse-jade.vercel.app"
       />
 
       {error ? (
@@ -133,9 +124,7 @@ export default function AdminOtpSetupPage() {
               }
             >
               {status.ready
-                ? status.email?.configured
-                  ? "Ready — live email OTP should work on login."
-                  : "Ready — live WhatsApp OTP should work on login."
+                ? "Ready — live WhatsApp OTP should work on login."
                 : "Not ready yet — finish the steps below."}
             </p>
             <ul className="mt-4 space-y-3">
@@ -146,15 +135,6 @@ export default function AdminOtpSetupPage() {
                   status.config.mockMode
                     ? "Set OTP_MOCK=false and NEXT_PUBLIC_OTP_MOCK=false on Vercel, then redeploy."
                     : "Vercel is set for live OTP."
-                }
-              />
-              <StatusRow
-                ok={Boolean(status.email?.configured)}
-                label="Email OTP via Postmark (recommended)"
-                detail={
-                  status.email?.configured
-                    ? `From: ${status.email.from}`
-                    : "Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel. Each person also needs an email in People."
                 }
               />
               <StatusRow
@@ -226,27 +206,8 @@ export default function AdminOtpSetupPage() {
               Send test OTP
             </h2>
             <p className="text-sm text-zinc-600">
-              Works even while demo OTP is on. For email, use any inbox you can
-              check. For WhatsApp, use a registered mobile number.
+              Works even while demo OTP is on. Use a registered mobile number.
             </p>
-            {status.email?.configured ? (
-              <div className="flex flex-wrap gap-2">
-                <FloatingInput
-                  type="email"
-                  label="Email address"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="min-w-[12rem] flex-1"
-                />
-                <Button
-                  type="button"
-                  disabled={testSending || !testEmail.includes("@")}
-                  onClick={() => void sendTestOtp("email")}
-                >
-                  {testSending ? "Sending…" : "Send test email"}
-                </Button>
-              </div>
-            ) : null}
             <div className="flex flex-wrap gap-2">
               <FloatingInput
                 type="tel"
@@ -259,9 +220,9 @@ export default function AdminOtpSetupPage() {
               <Button
                 type="button"
                 disabled={testSending || testPhone.replace(/\D/g, "").length < 10}
-                onClick={() => void sendTestOtp("phone")}
+                onClick={() => void sendTestOtp()}
               >
-                {testSending ? "Sending…" : status.email?.configured ? "Send test (email if on file)" : "Send test on WhatsApp"}
+                {testSending ? "Sending…" : "Send test on WhatsApp"}
               </Button>
             </div>
             {testResult ? (

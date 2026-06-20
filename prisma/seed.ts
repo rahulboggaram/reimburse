@@ -2,7 +2,7 @@ import { PrismaClient, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-/** Demo logins (OTP mock): use each email with code 123456 when OTP_MOCK=true */
+/** Demo logins (OTP mock): use each phone with code 123456 when OTP_MOCK=true */
 const users = [
   {
     phone: "+919999000001",

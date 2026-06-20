@@ -26,19 +26,26 @@ export async function POST(request: Request) {
     );
   }
 
-  const current = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { email: true },
+    select: { phone: true, email: true },
   });
 
-  if (email === current?.email?.toLowerCase()) {
+  if (!user?.phone) {
+    return Response.json(
+      { error: "Your account has no phone number on file." },
+      { status: 400 },
+    );
+  }
+
+  if (email === user.email?.toLowerCase()) {
     return Response.json(
       { error: "That is already your email address." },
       { status: 400 },
     );
   }
 
-  const valid = await verifyOtpChallenge(email, body.data.code);
+  const valid = await verifyOtpChallenge(user.phone, body.data.code);
   if (!valid) {
     return Response.json(
       { error: "Incorrect or expired code. Request a new OTP." },
@@ -54,25 +61,25 @@ export async function POST(request: Request) {
     );
   }
 
-  const previousEmail = current?.email ?? null;
-  const user = await prisma.user.update({
+  const previousEmail = user.email ?? null;
+  const updated = await prisma.user.update({
     where: { id: session.id },
     data: { email },
   });
 
-  const sessionUser = userToSession(user);
+  const sessionUser = userToSession(updated);
   await setSessionCookie(sessionUser);
 
   await logPlatformActivity({
     type: "PROFILE_UPDATED",
-    actorId: user.id,
-    targetUserId: user.id,
-    summary: `${displayName(user.name, user.phone)} changed login email from ${previousEmail ?? "none"} to ${email}`,
+    actorId: updated.id,
+    targetUserId: updated.id,
+    summary: `${displayName(updated.name, updated.phone)} changed login email from ${previousEmail ?? "none"} to ${email}`,
   });
 
   return Response.json({
     ok: true,
-    email: user.email,
+    email: updated.email,
     user: sessionUser,
   });
 }

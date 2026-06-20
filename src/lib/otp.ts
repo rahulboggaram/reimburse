@@ -1,12 +1,6 @@
 import { prisma } from "@/lib/db";
 import { withDbRetry } from "@/lib/db-retry";
 import {
-  EmailConfigError,
-  EmailDeliveryError,
-  isEmailOtpConfigured,
-  sendOtpEmail,
-} from "@/lib/email";
-import {
   getOtpDeliveryChannel,
   sendOtpSms,
   SmsConfigError,
@@ -17,7 +11,7 @@ import {
 export type { OtpDeliveryChannel };
 export { getOtpDeliveryChannel };
 
-export { SmsConfigError, SmsDeliveryError, EmailConfigError, EmailDeliveryError };
+export { SmsConfigError, SmsDeliveryError };
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 export const MOCK_OTP_CODE = "123456";
@@ -34,42 +28,7 @@ function generateCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-/** Login OTP — keyed by normalized email, always delivered by email (or mock). */
-export async function createLoginOtpChallenge(email: string) {
-  const normalized = email.trim().toLowerCase();
-  const code = generateCode();
-  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
-
-  await withDbRetry(async () => {
-    await prisma.otpChallenge.deleteMany({ where: { phone: normalized } });
-    await prisma.otpChallenge.create({
-      data: { phone: normalized, code, expiresAt },
-    });
-  });
-
-  if (isOtpMockMode()) {
-    console.log(`[Reimburse OTP] ${normalized} → ${code}`);
-    return { code, expiresAt };
-  }
-
-  if (!isEmailOtpConfigured()) {
-    await prisma.otpChallenge.deleteMany({ where: { phone: normalized } });
-    throw new EmailConfigError(
-      "Live OTP is on but email is not configured. Add POSTMARK_SERVER_TOKEN and OTP_EMAIL_FROM on Vercel, or set OTP_MOCK=true.",
-    );
-  }
-
-  try {
-    await sendOtpEmail(normalized, code);
-  } catch (error) {
-    await prisma.otpChallenge.deleteMany({ where: { phone: normalized } });
-    throw error;
-  }
-
-  return { code, expiresAt };
-}
-
-/** Phone change OTP — keyed by phone, delivered via SMS or WhatsApp. */
+/** Login, phone change, and email change OTP — keyed by phone, delivered via WhatsApp or SMS. */
 export async function createOtpChallenge(phone: string) {
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);

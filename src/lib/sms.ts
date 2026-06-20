@@ -2,7 +2,7 @@
 
 import { sendAisensyOtp, getAisensyOtpConfig } from "@/lib/aisensy-otp";
 
-export type OtpDeliveryChannel = "whatsapp" | "sms" | "email";
+export type OtpDeliveryChannel = "whatsapp" | "sms";
 
 export class SmsConfigError extends Error {
   constructor(message: string) {

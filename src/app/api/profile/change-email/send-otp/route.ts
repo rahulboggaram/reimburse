@@ -1,19 +1,23 @@
 import { requireEmployeePortalAccess } from "@/lib/auth-api";
 import { normalizeEmail } from "@/lib/email";
 import {
-  createLoginOtpChallenge,
-  EmailConfigError,
-  EmailDeliveryError,
+  createOtpChallenge,
   isOtpMockMode,
+  SmsConfigError,
+  SmsDeliveryError,
 } from "@/lib/otp";
 import { prisma } from "@/lib/db";
-import { loginSendOtpSchema } from "@/lib/validators";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+});
 
 export async function POST(request: Request) {
   const session = await requireEmployeePortalAccess();
   if (session instanceof Response) return session;
 
-  const body = loginSendOtpSchema.safeParse(await request.json());
+  const body = bodySchema.safeParse(await request.json());
   if (!body.success) {
     return Response.json(
       { error: body.error.issues[0]?.message ?? "Enter a valid email address." },
@@ -31,10 +35,17 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.id },
-    select: { email: true },
+    select: { email: true, phone: true },
   });
 
-  if (email === user?.email?.toLowerCase()) {
+  if (!user?.phone) {
+    return Response.json(
+      { error: "Your account has no phone number on file." },
+      { status: 400 },
+    );
+  }
+
+  if (email === user.email?.toLowerCase()) {
     return Response.json(
       { error: "That is already your email address." },
       { status: 400 },
@@ -50,20 +61,21 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { code } = await createLoginOtpChallenge(email);
+    const { code, channel } = await createOtpChallenge(user.phone);
 
     return Response.json({
       ok: true,
       email,
+      channel,
       mock: isOtpMockMode(),
       mockCode: isOtpMockMode() ? code : undefined,
     });
   } catch (err) {
     console.error("change-email send-otp failed", err);
-    if (err instanceof EmailConfigError) {
+    if (err instanceof SmsConfigError) {
       return Response.json({ error: err.message }, { status: 503 });
     }
-    if (err instanceof EmailDeliveryError) {
+    if (err instanceof SmsDeliveryError) {
       return Response.json(
         { error: "Could not send OTP. Try again in a moment." },
         { status: 502 },
