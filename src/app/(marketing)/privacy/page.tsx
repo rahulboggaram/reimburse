@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         <h2>Your rights</h2>
         <p>
           You may request access to or correction of your personal data by
-          contacting us at hello@yellowmetal.com.
+          visiting your nearest Yellow Metal branch.
         </p>
       </div>
     </div>

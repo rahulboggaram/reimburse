@@ -3,7 +3,6 @@ import Link from "next/link";
 const FOOTER_LINKS = [
   { href: "/about", label: "About us" },
   { href: "/blog", label: "Blog" },
-  { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy policy" },
   { href: "/terms", label: "Terms & conditions" },
 ];
@@ -19,7 +18,6 @@ export function SiteHeader() {
         <nav className="ym-nav">
           <a href="#rates">Rates</a>
           <a href="#features">Features</a>
-          <Link href="/contact">Contact</Link>
         </nav>
       </div>
     </header>

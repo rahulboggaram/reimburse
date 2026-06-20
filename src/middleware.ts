@@ -15,7 +15,6 @@ const COOKIE_NAME = "reimburse_session";
 const marketingPaths = [
   "/",
   "/about",
-  "/contact",
   "/privacy",
   "/terms",
   "/blog",

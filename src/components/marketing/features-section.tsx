@@ -69,12 +69,12 @@ export function FeaturesSection() {
           <div>
             <p className="ym-cta-banner-title">Ready to get started?</p>
             <p className="ym-cta-banner-text">
-              Visit your nearest Yellow Metal branch or call us — we&apos;ll walk
-              you through every step.
+              Visit your nearest Yellow Metal branch — we&apos;ll walk you through
+              every step.
             </p>
           </div>
-          <a href="/contact" className="ym-btn ym-btn--primary">
-            Contact us
+          <a href="#rates" className="ym-btn ym-btn--primary">
+            Check today&apos;s rate
           </a>
         </div>
       </div>
