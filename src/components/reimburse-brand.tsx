@@ -11,7 +11,6 @@ import { MeContext, type MeUser } from "@/components/me-provider";
 const wordmarkClass =
   "font-brand font-brand-wordmark text-[3.06rem] leading-none";
 const taglineClass = "text-lg leading-normal";
-const licenseClass = "text-xs leading-normal text-zinc-500";
 
 function isHomePath(pathname: string | null) {
   return pathname === "/login" || pathname === "/employee";
@@ -71,7 +70,6 @@ export function ReimburseBrand() {
         <span className={cn(taglineClass, "text-zinc-600")}>
           by Yellow Metal
         </span>
-        <span className={licenseClass}>RBI Licensed NBFC</span>
 
         {showShine ? (
           <>
