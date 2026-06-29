@@ -7,6 +7,7 @@ import { receiptFileResponse } from "@/lib/receipt-content";
 import { withDbRetry } from "@/lib/db-retry";
 
 export const maxDuration = 30;
+export const runtime = "nodejs";
 
 export async function GET(
   _request: Request,

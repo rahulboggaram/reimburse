@@ -1,5 +1,3 @@
-import sharp from "sharp";
-
 import { isHeicMime, isReceiptImageMime } from "@/lib/receipt-mime";
 
 const MAX_DIMENSION = 1600;
@@ -17,6 +15,35 @@ const PASSTHROUGH_MIME = new Set([
   "image/webp",
 ]);
 
+type SharpFactory = (input: Buffer, options?: { failOn?: string }) => {
+  rotate: () => {
+    resize: (
+      width: number,
+      height: number,
+      options: { fit: string; withoutEnlargement: boolean },
+    ) => {
+      jpeg: (options?: { quality?: number }) => {
+        toBuffer: () => Promise<Buffer>;
+      };
+    };
+  };
+};
+
+let sharpFactory: SharpFactory | null | undefined;
+
+async function loadSharp(): Promise<SharpFactory | null> {
+  if (sharpFactory !== undefined) return sharpFactory;
+  try {
+    const mod = await import("sharp");
+    const factory = (mod as { default?: SharpFactory }).default;
+    sharpFactory = typeof factory === "function" ? factory : null;
+  } catch (err) {
+    console.error("sharp module unavailable", err);
+    sharpFactory = null;
+  }
+  return sharpFactory;
+}
+
 function normalizePassthroughMime(mimeType: string) {
   const type = mimeType.toLowerCase();
   return type === "image/jpg" ? "image/jpeg" : type;
@@ -32,48 +59,6 @@ function canPassthroughImage(
     return false;
   }
   return buffer.length > 0 && buffer.length <= maxStoredBytes;
-}
-
-async function resizeToJpeg(
-  buffer: Buffer,
-  maxDimension: number,
-  quality: number,
-) {
-  return sharp(buffer, { failOn: "none" })
-    .rotate()
-    .resize(maxDimension, maxDimension, {
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .jpeg({ quality })
-    .toBuffer();
-}
-
-async function encodeJpeg(buffer: Buffer, maxStoredBytes: number) {
-  let quality = JPEG_QUALITY;
-  let output = await resizeToJpeg(buffer, MAX_DIMENSION, quality);
-
-  while (output.length > maxStoredBytes && quality > 40) {
-    quality -= 10;
-    output = await resizeToJpeg(buffer, MAX_DIMENSION, quality);
-  }
-
-  if (output.length > maxStoredBytes) {
-    output = await resizeToJpeg(buffer, FALLBACK_DIMENSION, 68);
-  }
-
-  while (output.length > maxStoredBytes && quality > 36) {
-    quality -= 8;
-    output = await resizeToJpeg(buffer, FALLBACK_DIMENSION, quality);
-  }
-
-  if (output.length > maxStoredBytes) {
-    throw new Error(
-      "Photo is too large after compression. Try a smaller image.",
-    );
-  }
-
-  return output;
 }
 
 function passthroughOrThrow(
@@ -93,6 +78,54 @@ function passthroughOrThrow(
   );
 }
 
+async function resizeToJpeg(
+  sharp: SharpFactory,
+  buffer: Buffer,
+  maxDimension: number,
+  quality: number,
+) {
+  return sharp(buffer, { failOn: "none" })
+    .rotate()
+    .resize(maxDimension, maxDimension, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .jpeg({ quality })
+    .toBuffer();
+}
+
+async function encodeJpeg(buffer: Buffer, maxStoredBytes: number) {
+  const sharp = await loadSharp();
+  if (!sharp) {
+    throw new Error("sharp unavailable");
+  }
+
+  let quality = JPEG_QUALITY;
+  let output = await resizeToJpeg(sharp, buffer, MAX_DIMENSION, quality);
+
+  while (output.length > maxStoredBytes && quality > 40) {
+    quality -= 10;
+    output = await resizeToJpeg(sharp, buffer, MAX_DIMENSION, quality);
+  }
+
+  if (output.length > maxStoredBytes) {
+    output = await resizeToJpeg(sharp, buffer, FALLBACK_DIMENSION, 68);
+  }
+
+  while (output.length > maxStoredBytes && quality > 36) {
+    quality -= 8;
+    output = await resizeToJpeg(sharp, buffer, FALLBACK_DIMENSION, quality);
+  }
+
+  if (output.length > maxStoredBytes) {
+    throw new Error(
+      "Photo is too large after compression. Try a smaller image.",
+    );
+  }
+
+  return output;
+}
+
 /** Convert phone photos (incl. HEIC) to JPEG when saving new receipts. */
 export async function normalizeReceiptImageBuffer(
   buffer: Buffer,
@@ -106,6 +139,16 @@ export async function normalizeReceiptImageBuffer(
   const maxStoredBytes = options?.objectStorage
     ? MAX_STORED_BYTES_OBJECT
     : MAX_STORED_BYTES_DATABASE;
+
+  if (
+    options?.forStorage &&
+    canPassthroughImage(buffer, mimeType, maxStoredBytes)
+  ) {
+    return {
+      buffer,
+      mimeType: normalizePassthroughMime(mimeType),
+    };
+  }
 
   try {
     const output = await encodeJpeg(buffer, maxStoredBytes);
@@ -129,6 +172,13 @@ export async function prepareReceiptImageForServe(
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   if (!isReceiptImageMime(mimeType) && !isHeicMime(mimeType)) {
     return { buffer, mimeType };
+  }
+
+  if (canPassthroughImage(buffer, mimeType, MAX_STORED_BYTES_OBJECT)) {
+    return {
+      buffer,
+      mimeType: normalizePassthroughMime(mimeType),
+    };
   }
 
   try {

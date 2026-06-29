@@ -17,6 +17,7 @@ import {
 } from "@/lib/receipt-files";
 
 export const maxDuration = 60;
+export const runtime = "nodejs";
 
 function serializeSavedReceipts(
   receipts: Array<{ id: string; fileName: string | null; mimeType: string }>,

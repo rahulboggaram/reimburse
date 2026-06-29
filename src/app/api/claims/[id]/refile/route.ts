@@ -16,6 +16,7 @@ import {
 } from "@/lib/receipt-files";
 
 export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export async function PATCH(
   request: Request,
