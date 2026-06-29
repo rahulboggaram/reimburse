@@ -68,20 +68,6 @@ function getInstantPreviewSrc(receipt: Receipt): string | null {
   return null;
 }
 
-function thumbnailInitialSrc(receipt: Receipt) {
-  return getInstantPreviewSrc(receipt) ?? receiptApiPath(receipt);
-}
-
-function fullQualityInitialSrc(receipt: Receipt) {
-  return receiptApiPath(receipt) ?? getInstantPreviewSrc(receipt);
-}
-
-function initialReceiptSrc(receipt: Receipt, quality: "thumbnail" | "full") {
-  return quality === "full"
-    ? fullQualityInitialSrc(receipt)
-    : thumbnailInitialSrc(receipt);
-}
-
 const receiptPreviewCache = new Map<string, string>();
 const receiptLoadPromises = new Map<
   string,
@@ -93,7 +79,21 @@ async function loadReceiptSrc(
 ): Promise<{ url: string | null; error?: string }> {
   const apiPath = receiptApiPath(receipt);
   if (apiPath) {
-    return { url: apiPath };
+    const cached = receiptPreviewCache.get(receipt.id);
+    if (cached) return { url: cached };
+
+    const result = await loadReceiptPreviewUrl(
+      { url: apiPath, mimeType: receipt.mimeType },
+      { maxAttempts: 4 },
+    );
+    if ("error" in result) {
+      return { url: null, error: result.message };
+    }
+    if (!result.url) {
+      return { url: null };
+    }
+    receiptPreviewCache.set(receipt.id, result.url);
+    return { url: result.url };
   }
 
   const cached = receiptPreviewCache.get(receipt.id);
@@ -139,14 +139,13 @@ function prefetchReceipts(receipts: Receipt[]) {
   for (const receipt of receipts) {
     if (!receipt.mimeType.startsWith("image/")) continue;
     if (isPlaceholderReceipt(receipt) && !receipt.previewFallbackUrl) continue;
-    const apiPath = receiptApiPath(receipt);
-    if (apiPath) {
-      const img = new Image();
-      img.src = apiPath;
-      continue;
-    }
+    if (receiptPreviewCache.has(receipt.id)) continue;
     void loadReceiptSrc(receipt);
   }
+}
+
+function imageElementReady(img: HTMLImageElement | null) {
+  return Boolean(img?.complete && img.naturalWidth > 0);
 }
 
 function ReceiptThumbnailTile(props: { isPdf: boolean; loading?: boolean }) {
@@ -249,16 +248,10 @@ function ReceiptImage(props: {
   onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
 }) {
   const quality = props.quality ?? "thumbnail";
-  const [src, setSrc] = useState<string | null>(() =>
-    initialReceiptSrc(props.receipt, quality),
-  );
+  const [src, setSrc] = useState<string | null>(null);
   const [decoded, setDecoded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
-
-  useEffect(() => {
-    setDecoded(false);
-  }, [src]);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,51 +259,77 @@ function ReceiptImage(props: {
     setFailed(false);
     setErrorMessage(undefined);
     setDecoded(false);
+    setSrc(null);
     props.onStatusChange?.("loading");
 
-    const startSrc = initialReceiptSrc(props.receipt, quality);
-    setSrc(startSrc);
+    const instantThumb =
+      quality === "thumbnail" ? getInstantPreviewSrc(props.receipt) : null;
 
-    if (!startSrc && !props.receipt.url && !props.receipt.previewFallbackUrl) {
-      props.onStatusChange?.("pending");
-      return;
-    }
+    async function resolve() {
+      if (instantThumb && !cancelled) {
+        setSrc(instantThumb);
+      }
 
-    if (startSrc) {
-      return () => {
-        cancelled = true;
-      };
-    }
+      const resolved = await loadReceiptSrc(props.receipt);
+      if (cancelled) return;
 
-    void loadReceiptSrc(props.receipt)
-      .then((resolved) => {
-        if (cancelled) return;
-        if (resolved.error) {
-          setErrorMessage(resolved.error);
-        }
-        if (!resolved.url) {
-          setFailed(true);
-          props.onStatusChange?.("error");
-          return;
-        }
+      if (resolved.error) {
+        setErrorMessage(resolved.error);
+      }
+
+      if (resolved.url) {
         setSrc(resolved.url);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setFailed(true);
-        props.onStatusChange?.("error");
-      });
+        return;
+      }
+
+      if (instantThumb) {
+        return;
+      }
+
+      if (!props.receipt.url && !props.receipt.previewFallbackUrl) {
+        props.onStatusChange?.("pending");
+        return;
+      }
+
+      setFailed(true);
+      props.onStatusChange?.("error");
+    }
+
+    void resolve();
 
     return () => {
       cancelled = true;
     };
   }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl, quality]);
 
+  useEffect(() => {
+    setDecoded(false);
+  }, [src]);
+
+  useEffect(() => {
+    if (!src || decoded || failed) return;
+
+    const timeout = window.setTimeout(() => {
+      const fallback = getInstantPreviewSrc(props.receipt);
+      if (fallback && src !== fallback) {
+        setSrc(fallback);
+        return;
+      }
+      setFailed(true);
+      setErrorMessage("Photo took too long to load. Try again.");
+      props.onStatusChange?.("error");
+    }, 20_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [src, decoded, failed, props.receipt]);
+
+  function markReady() {
+    setDecoded(true);
+    props.onStatusChange?.("ready");
+  }
+
   function handleImageError() {
-    const fallback =
-      quality === "full"
-        ? getInstantPreviewSrc(props.receipt)
-        : receiptApiPath(props.receipt) ?? getInstantPreviewSrc(props.receipt);
+    const fallback = getInstantPreviewSrc(props.receipt);
     if (fallback && src !== fallback) {
       setDecoded(false);
       setSrc(fallback);
@@ -341,14 +360,16 @@ function ReceiptImage(props: {
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          ref={(img) => {
+            if (imageElementReady(img)) {
+              markReady();
+            }
+          }}
           src={src}
           alt={props.receipt.fileName ?? "Receipt"}
           decoding="async"
           className={cn(props.className, !decoded && "opacity-0")}
-          onLoad={() => {
-            setDecoded(true);
-            props.onStatusChange?.("ready");
-          }}
+          onLoad={markReady}
           onError={handleImageError}
         />
       ) : null}
