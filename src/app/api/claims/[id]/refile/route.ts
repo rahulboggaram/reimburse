@@ -7,6 +7,7 @@ import { resolveClaimRouting } from "@/lib/claim-routing";
 import { replaceClaimReceiptsFromInputs } from "@/lib/attach-receipts";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { readReceiptInputs } from "@/lib/receipt-input";
+import { receiptClientUrl } from "@/lib/receipt-url";
 import {
   receiptFilesFromFormData,
   validateReceiptFiles,
@@ -108,7 +109,21 @@ export async function PATCH(
       });
     }
 
-    return Response.json({ id });
+    const savedReceipts = await prisma.reimbursementReceipt.findMany({
+      where: { reimbursementId: id },
+      select: { id: true, fileName: true, mimeType: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return Response.json({
+      id,
+      receipts: savedReceipts.map((receipt) => ({
+        id: receipt.id,
+        fileName: receipt.fileName,
+        mimeType: receipt.mimeType,
+        url: receiptClientUrl(receipt),
+      })),
+    });
   } catch (err) {
     console.error("refile-claim failed", err);
     const message =

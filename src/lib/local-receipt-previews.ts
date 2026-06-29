@@ -1,3 +1,10 @@
+import { compressReceiptFile } from "@/lib/compress-receipt-image";
+import {
+  migrateIndexedReceiptPreviews,
+  readIndexedReceiptPreviews,
+  writeIndexedReceiptPreviews,
+} from "@/lib/local-receipt-indexed-db";
+
 export type LocalReceiptPreview = {
   url: string;
   mimeType: string;
@@ -5,7 +12,7 @@ export type LocalReceiptPreview = {
 };
 
 const KEY_PREFIX = "reimburse-local-receipt-previews:";
-const TTL_MS = 30 * 60 * 1000;
+const TTL_MS = 24 * 60 * 60 * 1000;
 
 type StoredRow = LocalReceiptPreview & { savedAt: number };
 
@@ -13,44 +20,89 @@ function storageKey(claimId: string) {
   return `${KEY_PREFIX}${claimId}`;
 }
 
-function fileToDataUrl(file: File): Promise<string> {
+async function fileToCompactPreviewDataUrl(file: File): Promise<string> {
+  const prepared =
+    file.type.startsWith("image/") && file.type !== "image/gif"
+      ? await compressReceiptFile(file)
+      : file;
+
+  if (!prepared.type.startsWith("image/")) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(prepared);
+    });
+  }
+
+  const bitmap = await createImageBitmap(prepared);
+  const maxEdge = 960;
+  const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("Could not prepare receipt preview");
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", 0.78);
+  });
+  if (!blob) {
+    throw new Error("Could not prepare receipt preview");
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   });
 }
 
-/** Keep a copy of picked photos as data URLs (blob: URLs die when the form unmounts). */
+/** Keep copies of picked photos so previews work before and right after submit. */
 export async function stashLocalReceiptPreviews(
   claimId: string,
   items: { previewUrl: string; file: File }[],
 ) {
   if (typeof window === "undefined" || items.length === 0) return;
-  try {
-    const rows: StoredRow[] = await Promise.all(
-      items.map(async (item) => {
-        let url = item.previewUrl;
-        if (item.file.type.startsWith("image/")) {
-          try {
-            url = await fileToDataUrl(item.file);
-          } catch {
-            // keep previewUrl if conversion fails
-          }
+
+  const rows: StoredRow[] = await Promise.all(
+    items.map(async (item) => {
+      let url = item.previewUrl;
+      let mimeType = item.file.type || "image/jpeg";
+
+      if (item.file.type.startsWith("image/")) {
+        try {
+          url = await fileToCompactPreviewDataUrl(item.file);
+          mimeType = "image/jpeg";
+        } catch {
+          // keep blob previewUrl if conversion fails
         }
-        return {
-          url,
-          mimeType: item.file.type || "image/jpeg",
-          fileName: item.file.name || null,
-          savedAt: Date.now(),
-        };
-      }),
-    );
+      }
+
+      return {
+        url,
+        mimeType,
+        fileName: item.file.name || null,
+        savedAt: Date.now(),
+      };
+    }),
+  );
+
+  try {
     sessionStorage.setItem(storageKey(claimId), JSON.stringify(rows));
   } catch {
-    // ignore quota errors
+    // fall through to IndexedDB
   }
+
+  void writeIndexedReceiptPreviews(claimId, rows);
 }
 
 export function readLocalReceiptPreviews(
@@ -77,6 +129,15 @@ export function readLocalReceiptPreviews(
   }
 }
 
+/** Session storage first, then IndexedDB (larger screenshots). */
+export async function readLocalReceiptPreviewsAsync(
+  claimId: string,
+): Promise<LocalReceiptPreview[] | null> {
+  const session = readLocalReceiptPreviews(claimId);
+  if (session?.length) return session;
+  return readIndexedReceiptPreviews(claimId);
+}
+
 export function clearLocalReceiptPreviews(claimId: string) {
   if (typeof window === "undefined") return;
   try {
@@ -86,15 +147,16 @@ export function clearLocalReceiptPreviews(claimId: string) {
   }
 }
 
-/** Move stashed previews from a pending temp id to the real claim id after submit. */
 export function migrateLocalReceiptPreviews(fromClaimId: string, toClaimId: string) {
   if (typeof window === "undefined" || fromClaimId === toClaimId) return;
   try {
     const raw = sessionStorage.getItem(storageKey(fromClaimId));
-    if (!raw) return;
-    sessionStorage.setItem(storageKey(toClaimId), raw);
-    sessionStorage.removeItem(storageKey(fromClaimId));
+    if (raw) {
+      sessionStorage.setItem(storageKey(toClaimId), raw);
+      sessionStorage.removeItem(storageKey(fromClaimId));
+    }
   } catch {
     // ignore
   }
+  void migrateIndexedReceiptPreviews(fromClaimId, toClaimId);
 }

@@ -25,7 +25,11 @@ import {
 } from "@/lib/payout-sync-client";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { canDecideReimbursement } from "@/lib/claim-decide-access";
-import { readLocalReceiptPreviews } from "@/lib/local-receipt-previews";
+import {
+  readLocalReceiptPreviews,
+  readLocalReceiptPreviewsAsync,
+  type LocalReceiptPreview,
+} from "@/lib/local-receipt-previews";
 
 function payoutFailed(status: string | null) {
   return (
@@ -265,13 +269,31 @@ export function ClaimDetailModal(props: {
 
   const resolvedClaim = detailClaim ?? props.claim;
 
-  const localReceiptPreviews = useMemo(
-    () =>
-      resolvedClaim && props.open
-        ? readLocalReceiptPreviews(resolvedClaim.id) ?? []
-        : [],
-    [resolvedClaim?.id, props.open],
-  );
+  const [localReceiptPreviews, setLocalReceiptPreviews] = useState<
+    LocalReceiptPreview[]
+  >([]);
+
+  useEffect(() => {
+    if (!resolvedClaim || !props.open) {
+      setLocalReceiptPreviews([]);
+      return;
+    }
+
+    const sync = readLocalReceiptPreviews(resolvedClaim.id);
+    if (sync?.length) {
+      setLocalReceiptPreviews(sync);
+    }
+
+    let cancelled = false;
+    void readLocalReceiptPreviewsAsync(resolvedClaim.id).then((rows) => {
+      if (cancelled || !rows?.length) return;
+      setLocalReceiptPreviews(rows);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedClaim?.id, props.open]);
 
   const galleryReceipts = useMemo(() => {
     if (!resolvedClaim) return [];

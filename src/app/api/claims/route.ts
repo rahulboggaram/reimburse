@@ -7,6 +7,7 @@ import { resolveClaimRouting } from "@/lib/claim-routing";
 import { replaceClaimReceiptsFromInputs } from "@/lib/attach-receipts";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { readReceiptInputs } from "@/lib/receipt-input";
+import { receiptClientUrl } from "@/lib/receipt-url";
 import {
   receiptFilesFromFormData,
   validateReceiptFiles,
@@ -96,7 +97,24 @@ export async function POST(request: Request) {
       });
     }
 
-    return Response.json({ id: claim.id }, { status: 201 });
+    const savedReceipts = await prisma.reimbursementReceipt.findMany({
+      where: { reimbursementId: claim.id },
+      select: { id: true, fileName: true, mimeType: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return Response.json(
+      {
+        id: claim.id,
+        receipts: savedReceipts.map((receipt) => ({
+          id: receipt.id,
+          fileName: receipt.fileName,
+          mimeType: receipt.mimeType,
+          url: receiptClientUrl(receipt),
+        })),
+      },
+      { status: 201 },
+    );
   } catch (err) {
     console.error("create-claim failed", err);
     const message =
