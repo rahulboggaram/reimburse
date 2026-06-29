@@ -50,7 +50,10 @@ function resolveReceiptForView(
 }
 
 const receiptPreviewCache = new Map<string, string>();
-const receiptLoadPromises = new Map<string, Promise<string | null>>();
+const receiptLoadPromises = new Map<
+  string,
+  Promise<{ url: string | null; error?: string }>
+>();
 
 function getInstantPreviewSrc(receipt: Receipt): string | null {
   const cached = receiptPreviewCache.get(receipt.id);
@@ -74,18 +77,20 @@ function needsApiFetch(receipt: Receipt) {
   return Boolean(receipt.url) && !isDirectReceiptUrl(receipt.url);
 }
 
-async function loadReceiptSrc(receipt: Receipt): Promise<string | null> {
+async function loadReceiptSrc(
+  receipt: Receipt,
+): Promise<{ url: string | null; error?: string }> {
   const cached = receiptPreviewCache.get(receipt.id);
-  if (cached) return cached;
+  if (cached) return { url: cached };
 
   const instant = getInstantPreviewSrc(receipt);
   if (instant && !needsApiFetch(receipt)) {
     receiptPreviewCache.set(receipt.id, instant);
-    return instant;
+    return { url: instant };
   }
 
   if (!receipt.url) {
-    return instant;
+    return { url: instant };
   }
 
   const inFlight = receiptLoadPromises.get(receipt.id);
@@ -97,15 +102,15 @@ async function loadReceiptSrc(receipt: Receipt): Promise<string | null> {
   )
     .then((result) => {
       if ("error" in result) {
-        return instant ?? null;
+        return { url: instant ?? null, error: result.message };
       }
       if (!result.url) {
-        return instant ?? null;
+        return { url: instant ?? null };
       }
       receiptPreviewCache.set(receipt.id, result.url);
-      return result.url;
+      return { url: result.url };
     })
-    .catch(() => instant ?? null)
+    .catch(() => ({ url: instant ?? null }))
     .finally(() => {
       receiptLoadPromises.delete(receipt.id);
     });
@@ -179,6 +184,7 @@ function ReceiptImageLoader(props: { variant: "thumbnail" | "lightbox" }) {
 function ReceiptImageError(props: {
   receipt: Receipt;
   compact?: boolean;
+  message?: string;
 }) {
   return (
     <span className="flex size-full flex-col items-center justify-center gap-1 px-1 text-center">
@@ -188,7 +194,7 @@ function ReceiptImageError(props: {
           props.compact ? "text-[10px]" : "text-xs",
         )}
       >
-        Couldn&apos;t preview
+        {props.message ?? "Couldn\u2019t preview"}
       </span>
       {props.receipt.url ? (
         <button
@@ -226,6 +232,7 @@ function ReceiptImage(props: {
     () => Boolean(initialPreview && needsApiFetch(props.receipt)),
   );
   const [failed, setFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
   useEffect(() => {
     setDecoded(false);
@@ -235,6 +242,7 @@ function ReceiptImage(props: {
     let cancelled = false;
 
     setFailed(false);
+    setErrorMessage(undefined);
     setDecoded(false);
     props.onStatusChange?.("loading");
 
@@ -250,16 +258,19 @@ function ReceiptImage(props: {
     void loadReceiptSrc(props.receipt)
       .then((resolved) => {
         if (cancelled) return;
-        if (!resolved) {
+        if (resolved.error) {
+          setErrorMessage(resolved.error);
+        }
+        if (!resolved.url) {
           if (!instant) {
             setFailed(true);
             props.onStatusChange?.("error");
           }
           return;
         }
-        if (resolved !== instant) {
+        if (resolved.url !== instant) {
           setIsPreview(false);
-          setSrc(resolved);
+          setSrc(resolved.url);
         }
       })
       .catch(() => {
@@ -280,6 +291,7 @@ function ReceiptImage(props: {
       <ReceiptImageError
         receipt={props.receipt}
         compact={props.loader === "thumbnail"}
+        message={errorMessage}
       />
     );
   }

@@ -88,6 +88,14 @@ async function blobToJpegObjectUrl(blob: Blob): Promise<string | null> {
   }
 }
 
+async function blobToDisplayObjectUrl(blob: Blob, mimeType: string): Promise<string | null> {
+  if (!mimeType.startsWith("image/")) {
+    return URL.createObjectURL(blob);
+  }
+  const converted = await blobToJpegObjectUrl(blob);
+  return converted ?? URL.createObjectURL(blob);
+}
+
 function previewMimeType(blob: Blob, fallback: string) {
   if (blob.type && blob.type !== "application/octet-stream") return blob.type;
   if (fallback.startsWith("image/")) return fallback;
@@ -161,15 +169,12 @@ export async function loadReceiptPreviewUrl(
     }
 
     const mimeType = previewMimeType(blob, receipt.mimeType);
-
-    if (isHeicMime(mimeType)) {
-      const converted = await blobToJpegObjectUrl(blob);
-      if (converted) return { url: converted, pending: false };
+    const displayUrl = await blobToDisplayObjectUrl(blob, mimeType);
+    if (displayUrl) {
+      return { url: displayUrl, pending: false };
     }
 
-    const displayBlob =
-      blob.type === mimeType ? blob : new Blob([blob], { type: mimeType });
-    return { url: URL.createObjectURL(displayBlob), pending: false };
+    return { error: true, message: "This photo format could not be displayed." };
   }
 
   return { url: "", pending: true };

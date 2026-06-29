@@ -442,6 +442,24 @@ export function ClaimDetailModal(props: {
           loading={receiptsStillLoading}
         />
 
+        {!receiptsStillLoading &&
+        receiptsTotal > 0 &&
+        galleryReceipts.length > 0 &&
+        galleryReceipts.every(
+          (receipt) =>
+            receipt.id.startsWith("placeholder-") ||
+            (!receipt.url &&
+              !("previewFallbackUrl" in receipt && receipt.previewFallbackUrl)),
+        ) ? (
+          <p
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            role="status"
+          >
+            Receipt photos for this claim could not be loaded. If this keeps
+            happening, edit and refile the claim with your receipt photos again.
+          </p>
+        ) : null}
+
         {props.variant === "employee" && claim.submitError ? (
           <div
             role="alert"

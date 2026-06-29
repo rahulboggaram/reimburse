@@ -11,6 +11,7 @@ import {
 import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
+import { assertValidStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
 import { bufferToDataUrl } from "@/lib/receipt-store";
 
 /** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
@@ -121,6 +122,7 @@ async function normalizeReceiptInput(input: ReceiptInput) {
   const normalized = await normalizeReceiptImageBuffer(
     input.buffer,
     declaredMime,
+    { forStorage: true },
   );
   const buffer =
     normalized.buffer.length > 0 ? normalized.buffer : input.buffer;
@@ -150,6 +152,7 @@ export async function saveReceiptInputs(
           );
         }
         const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
+        assertValidStoredReceiptDataUrl(filePath, normalized.buffer.length);
         return {
           filePath,
           fileName: normalized.fileName,
@@ -177,8 +180,12 @@ export async function saveReceiptInputs(
       const storedName = `${randomUUID()}${ext}`;
       const absolutePath = path.join(dir, storedName);
       await writeFile(absolutePath, normalized.buffer);
+      const filePath = `/uploads/receipts/${reimbursementId}/${storedName}`;
+      if (process.env.VERCEL) {
+        throw new Error("Unexpected local receipt path on Vercel.");
+      }
       return {
-        filePath: `/uploads/receipts/${reimbursementId}/${storedName}`,
+        filePath,
         fileName: normalized.fileName,
         mimeType: normalized.mimeType,
         sizeBytes: normalized.buffer.length,

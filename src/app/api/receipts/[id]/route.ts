@@ -66,7 +66,7 @@ export async function GET(
       );
     }
 
-    return receiptFileResponse(row.filePath, row.mimeType, row.fileName);
+    return receiptFileResponse(row.filePath, row.mimeType, row.fileName, row.sizeBytes);
   } catch (err) {
     return apiDbErrorResponse(
       "receipts/[id]",
