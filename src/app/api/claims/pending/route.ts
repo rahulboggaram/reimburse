@@ -60,14 +60,9 @@ function queueOrderBy(
   session: { role: string },
   tab: QueueTab,
 ): Prisma.ReimbursementOrderByWithRelationInput[] {
-  if (
-    tab === "approved" &&
-    (session.role === "APPROVER" || session.role === "ADMIN")
-  ) {
-    return [{ payoutInitiatedAt: "desc" }, { updatedAt: "desc" }];
-  }
   if (tab === "approved") {
-    return [{ decidedAt: "desc" }, { updatedAt: "desc" }];
+    // Match the Date column (expense date) so rows never look out of order.
+    return [{ expenseDate: "desc" }, { createdAt: "desc" }];
   }
   if (session.role === "APPROVER") {
     return [{ decidedAt: "desc" }, { createdAt: "desc" }];
