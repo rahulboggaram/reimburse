@@ -145,15 +145,23 @@ export async function loadReceiptPhotoBytes(
   throw new Error("This receipt photo is unavailable. Refile with a new image.");
 }
 
+/** Fetch/Response headers only allow Latin-1 (ByteString). */
+function asciiHeaderValue(value: string, fallback: string) {
+  const cleaned = value.replace(/[^\x20-\x7E]/g, "_").replace(/"/g, "'").trim();
+  return cleaned || fallback;
+}
+
 export function serveReceiptImage(
   buffer: Buffer,
   mimeType: string,
   fileName: string | null,
 ) {
-  const name = (fileName ?? "receipt").replace(/"/g, "'");
+  const type = asciiHeaderValue(mimeType || "application/octet-stream", "image/jpeg");
+  const ext = type.includes("pdf") ? ".pdf" : type.includes("png") ? ".png" : ".jpg";
+  const name = asciiHeaderValue(fileName ?? `receipt${ext}`, `receipt${ext}`);
   return new Response(new Uint8Array(buffer), {
     headers: {
-      "Content-Type": mimeType || "application/octet-stream",
+      "Content-Type": type,
       "Content-Disposition": `inline; filename="${name}"`,
       "Cache-Control": "private, max-age=3600",
     },

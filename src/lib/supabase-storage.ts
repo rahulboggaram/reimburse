@@ -4,19 +4,23 @@ export const RECEIPTS_BUCKET = "receipts";
 
 let adminClient: SupabaseClient | null = null;
 
+/** HTTP headers must be ByteString — strip invisible / Unicode from pasted env values. */
+function cleanEnv(value: string | undefined) {
+  if (!value) return "";
+  return value.replace(/[^\x20-\x7E]/g, "").trim();
+}
+
 function supabaseUrl() {
   return (
-    process.env.SUPABASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-    ""
+    cleanEnv(process.env.SUPABASE_URL) ||
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL)
   );
 }
 
 function serviceRoleKey() {
   return (
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    process.env.SUPABASE_SECRET_KEY?.trim() ||
-    ""
+    cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
+    cleanEnv(process.env.SUPABASE_SECRET_KEY)
   );
 }
 
