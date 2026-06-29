@@ -16,6 +16,7 @@ import {
   type ReceiptFileItem,
 } from "@/components/receipt-upload-field";
 import { PageHeading } from "@/components/page-heading";
+import { SubmitConfirmationScreen } from "@/components/submit-confirmation-screen";
 import { useMe } from "@/components/me-provider";
 import { readJson } from "@/lib/api";
 import { MIN_REIMBURSEMENT_AMOUNT } from "@/lib/validators";
@@ -77,6 +78,8 @@ type FieldErrors = {
   receipts?: string;
 };
 
+const SUBMIT_CONFIRMATION_MS = 2200;
+
 export function ReimbursementForm(props: {
   title: string;
   titleClassName?: string;
@@ -111,6 +114,7 @@ export function ReimbursementForm(props: {
   const { user: meUser } = useMe();
   const [adminConfirmOpen, setAdminConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
 
   function applyBootstrap(data: FormBootstrap) {
     setCategories(data.categories);
@@ -203,6 +207,34 @@ export function ReimbursementForm(props: {
     });
   }
 
+  useEffect(() => {
+    if (!showSubmitConfirmation) return;
+    const timer = window.setTimeout(() => {
+      navigateAfterSubmit();
+    }, SUBMIT_CONFIRMATION_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate once per confirmation
+  }, [showSubmitConfirmation]);
+
+  function confirmationCopy() {
+    if (props.claimId) {
+      return {
+        title: "Claim resubmitted",
+        subtitle: "Your updated claim is back in the approval queue.",
+      };
+    }
+    if (meUser?.role === "ADMIN") {
+      return {
+        title: "Claim submitted",
+        subtitle: "Payment to your bank account is processing in the background.",
+      };
+    }
+    return {
+      title: "Claim submitted",
+      subtitle: "Taking you to My Claims…",
+    };
+  }
+
   function submitClaimInstantly() {
     const parsedAmount = Number.parseFloat(amount);
     const formData = buildClaimFormData({
@@ -248,7 +280,7 @@ export function ReimbursementForm(props: {
     }
 
     setIsSubmitting(true);
-    navigateAfterSubmit();
+    setShowSubmitConfirmation(true);
 
     void (async () => {
       try {
@@ -295,6 +327,7 @@ export function ReimbursementForm(props: {
 
   const missingBranch = !loadingOptions && !userBranch;
   const blockedFromSubmit = Boolean(submitBlockReason);
+  const confirmation = confirmationCopy();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -326,7 +359,19 @@ export function ReimbursementForm(props: {
 
   return (
     <>
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    {showSubmitConfirmation ? (
+      <SubmitConfirmationScreen
+        title={confirmation.title}
+        subtitle={confirmation.subtitle}
+      />
+    ) : null}
+
+    <form
+      onSubmit={handleSubmit}
+      className={showSubmitConfirmation ? "hidden" : "flex flex-col gap-6"}
+      noValidate
+      aria-hidden={showSubmitConfirmation}
+    >
       <PageHeading title={props.title} titleClassName={props.titleClassName} />
 
       <Card className="space-y-5">
