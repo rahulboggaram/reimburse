@@ -297,11 +297,11 @@ export function ReimbursementForm(props: {
           void stashLocalReceiptPreviews(created.id, receipts);
         }
 
+        if (meUser?.id) {
+          await fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+        }
         if (tempId && meUser?.id) {
           resolvePendingClaimSubmit(meUser.id, tempId);
-        }
-        if (meUser?.id) {
-          void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
         }
       } catch (err) {
         if (tempId && meUser?.id) {

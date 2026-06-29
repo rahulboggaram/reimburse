@@ -7,6 +7,10 @@ import {
   readClientCache,
   writeClientCache,
 } from "@/lib/client-cache";
+import {
+  mergeClaimsWithPending,
+  readPendingClaimSubmits,
+} from "@/lib/pending-claim-submit";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -53,6 +57,14 @@ export function readMyClaimsCache(ownerId: string): SerializedClaim[] | null {
 
 export function readMyRejectedClaimsCache(ownerId: string): SerializedClaim[] | null {
   return readValidatedCache(claimsRejectedCacheKey(ownerId), ownerId);
+}
+
+/** Cached claims plus any in-flight submits — use for instant list paint. */
+export function readClaimsViewForUser(ownerId: string): SerializedClaim[] {
+  return mergeClaimsWithPending(
+    readMyClaimsCache(ownerId) ?? [],
+    readPendingClaimSubmits(ownerId),
+  );
 }
 
 export async function fetchMyClaims(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
-import { fetchMyClaims, readMyClaimsCache } from "@/lib/fetch-own-claims";
+import { fetchMyClaims, readClaimsViewForUser, readMyClaimsCache } from "@/lib/fetch-own-claims";
 import {
   clearFailedClaimSubmit,
   mergeClaimsWithPending,
@@ -92,20 +92,20 @@ export default function MyClaimsPage() {
     [user, syncClaimsView],
   );
 
+  useLayoutEffect(() => {
+    if (meLoading || !user?.id || !canViewOwnReimbursements(user)) return;
+
+    const view = readClaimsViewForUser(user.id);
+    setClaims(view);
+    setLoading(view.length === 0 && !readMyClaimsCache(user.id));
+    setHydrated(true);
+  }, [meLoading, user?.id, user?.role, user?.profileComplete]);
+
   useEffect(() => {
     if (meLoading || !user || !canViewOwnReimbursements(user)) return;
 
     const ownerId = user.id;
-    const cached = readMyClaimsCache(ownerId);
     let cancelled = false;
-
-    if (cached) {
-      syncClaimsView(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-    setHydrated(true);
 
     fetchMyClaims(ownerId)
       .then((rows) => {
@@ -116,7 +116,8 @@ export default function MyClaimsPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          if (!cached) setClaims([]);
+          const cached = readMyClaimsCache(ownerId);
+          if (!cached) setClaims(readClaimsViewForUser(ownerId));
           setLoadError(
             err instanceof Error
               ? err.message
@@ -173,13 +174,14 @@ export default function MyClaimsPage() {
   }
 
   const activeClaims = claims.filter((claim) => claim.status !== "REJECTED");
-  const waitingForClaims = hydrated && loading && claims.length === 0;
+  const showClaimsLoading = !hydrated || (loading && claims.length === 0);
+  const showEmptyState = hydrated && !loading && claims.length === 0;
 
   return (
     <>
       <PageHeading
         title="My Claims"
-        className={waitingForClaims || claims.length === 0 ? "mb-5" : "mb-4"}
+        className={showClaimsLoading || showEmptyState ? "mb-5" : "mb-4"}
       />
       <RejectedClaimsSection onChanged={() => loadClaims(true)} />
 
@@ -189,9 +191,9 @@ export default function MyClaimsPage() {
         </p>
       ) : null}
 
-      {waitingForClaims ? (
+      {showClaimsLoading ? (
         <MyClaimsLoadingSkeleton />
-      ) : claims.length === 0 ? (
+      ) : showEmptyState ? (
         <EmployeeEmptyState
           title="No reimbursements yet"
           description="Submit your first reimbursement and track approval and payment here."
