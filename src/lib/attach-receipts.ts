@@ -12,8 +12,24 @@ import {
 
 function receiptSaveErrorMessage(err: unknown) {
   if (err instanceof Error) {
-    if (err.message.includes("too large")) return err.message;
-    if (err.message.includes("empty")) return err.message;
+    const message = err.message.trim();
+    if (!message) {
+      return "Could not save receipt photos. Try smaller images and submit again.";
+    }
+    if (
+      message.includes("too large") ||
+      message.includes("empty") ||
+      message.includes("process this photo") ||
+      message.includes("upload receipt")
+    ) {
+      return message;
+    }
+    if (message.toLowerCase().includes("bucket not found")) {
+      return "Receipt cloud storage is not set up yet. Your admin needs to create the receipts bucket in Supabase.";
+    }
+    if (message.length <= 160) {
+      return message;
+    }
   }
   return "Could not save receipt photos. Try smaller images and submit again.";
 }

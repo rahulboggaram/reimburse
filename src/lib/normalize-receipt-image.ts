@@ -1,9 +1,12 @@
 import { isHeicMime, isReceiptImageMime } from "@/lib/receipt-mime";
 
 const MAX_DIMENSION = 1600;
+const FALLBACK_DIMENSION = 1024;
 const JPEG_QUALITY = 82;
-/** Keep DB rows small enough for Vercel request limits and fast loads. */
-const MAX_STORED_BYTES = 750_000;
+/** Keep DB data URLs small enough for Vercel request limits. */
+const MAX_STORED_BYTES_DATABASE = 900_000;
+/** Object storage can hold larger compressed screenshots. */
+const MAX_STORED_BYTES_OBJECT = 2_500_000;
 
 let sharpLoadFailed = false;
 
@@ -24,30 +27,45 @@ async function loadSharp() {
   }
 }
 
-async function encodeJpeg(sharp: typeof import("sharp").default, buffer: Buffer) {
-  let quality = JPEG_QUALITY;
-  let output = await sharp(buffer, { failOn: "none" })
+async function resizeToJpeg(
+  sharp: typeof import("sharp").default,
+  buffer: Buffer,
+  maxDimension: number,
+  quality: number,
+) {
+  return sharp(buffer, { failOn: "none" })
     .rotate()
-    .resize(MAX_DIMENSION, MAX_DIMENSION, {
+    .resize(maxDimension, maxDimension, {
       fit: "inside",
       withoutEnlargement: true,
     })
     .jpeg({ quality })
     .toBuffer();
+}
 
-  while (output.length > MAX_STORED_BYTES && quality > 48) {
-    quality -= 12;
-    output = await sharp(buffer, { failOn: "none" })
-      .rotate()
-      .resize(MAX_DIMENSION, MAX_DIMENSION, {
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality })
-      .toBuffer();
+async function encodeJpeg(
+  sharp: typeof import("sharp").default,
+  buffer: Buffer,
+  maxStoredBytes: number,
+) {
+  let quality = JPEG_QUALITY;
+  let output = await resizeToJpeg(sharp, buffer, MAX_DIMENSION, quality);
+
+  while (output.length > maxStoredBytes && quality > 40) {
+    quality -= 10;
+    output = await resizeToJpeg(sharp, buffer, MAX_DIMENSION, quality);
   }
 
-  if (output.length > MAX_STORED_BYTES) {
+  if (output.length > maxStoredBytes) {
+    output = await resizeToJpeg(sharp, buffer, FALLBACK_DIMENSION, 68);
+  }
+
+  while (output.length > maxStoredBytes && quality > 36) {
+    quality -= 8;
+    output = await resizeToJpeg(sharp, buffer, FALLBACK_DIMENSION, quality);
+  }
+
+  if (output.length > maxStoredBytes) {
     throw new Error(
       "Photo is too large after compression. Try a smaller image.",
     );
@@ -60,11 +78,15 @@ async function encodeJpeg(sharp: typeof import("sharp").default, buffer: Buffer)
 export async function normalizeReceiptImageBuffer(
   buffer: Buffer,
   mimeType: string,
-  options?: { forStorage?: boolean },
+  options?: { forStorage?: boolean; objectStorage?: boolean },
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   if (!isReceiptImageMime(mimeType)) {
     return { buffer, mimeType };
   }
+
+  const maxStoredBytes = options?.objectStorage
+    ? MAX_STORED_BYTES_OBJECT
+    : MAX_STORED_BYTES_DATABASE;
 
   const sharp = await loadSharp();
   if (!sharp) {
@@ -77,11 +99,14 @@ export async function normalizeReceiptImageBuffer(
   }
 
   try {
-    const output = await encodeJpeg(sharp, buffer);
+    const output = await encodeJpeg(sharp, buffer, maxStoredBytes);
     return { buffer: output, mimeType: "image/jpeg" };
   } catch (err) {
     console.error("receipt image normalize failed", { mimeType, err });
     if (options?.forStorage) {
+      if (err instanceof Error && err.message.includes("too large")) {
+        throw err;
+      }
       throw new Error(
         "Could not process this photo. Try a JPG, PNG, or screenshot.",
       );
@@ -105,7 +130,7 @@ export async function prepareReceiptImageForServe(
   }
 
   try {
-    const output = await encodeJpeg(sharp, buffer);
+    const output = await encodeJpeg(sharp, buffer, MAX_STORED_BYTES_OBJECT);
     return { buffer: output, mimeType: "image/jpeg" };
   } catch (err) {
     console.error("receipt serve normalize failed", { mimeType, err });

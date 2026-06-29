@@ -121,14 +121,17 @@ export async function saveReceiptFiles(
   return saveReceiptInputs(reimbursementId, inputs);
 }
 
-async function normalizeReceiptInput(input: ReceiptInput) {
+async function normalizeReceiptInput(
+  input: ReceiptInput,
+  options?: { objectStorage?: boolean },
+) {
   const declaredMime =
     inferReceiptMimeType({ type: input.type, name: input.name }) ||
     "application/octet-stream";
   const normalized = await normalizeReceiptImageBuffer(
     input.buffer,
     declaredMime,
-    { forStorage: true },
+    { forStorage: true, objectStorage: options?.objectStorage },
   );
   const buffer =
     normalized.buffer.length > 0 ? normalized.buffer : input.buffer;
@@ -150,7 +153,9 @@ async function saveToSupabaseStorage(
 ): Promise<SavedReceipt[]> {
   return Promise.all(
     inputs.map(async (input) => {
-      const normalized = await normalizeReceiptInput(input);
+      const normalized = await normalizeReceiptInput(input, {
+        objectStorage: true,
+      });
       if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
         throw new Error(
           "Photo is too large after compression. Try a smaller image.",
@@ -206,7 +211,18 @@ export async function saveReceiptInputs(
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
   if (isSupabaseStorageEnabled()) {
-    return saveToSupabaseStorage(reimbursementId, inputs);
+    try {
+      return await saveToSupabaseStorage(reimbursementId, inputs);
+    } catch (err) {
+      console.error("supabase storage upload failed; falling back to database", {
+        reimbursementId,
+        err,
+      });
+      if (process.env.VERCEL) {
+        return saveToDatabaseDataUrls(inputs);
+      }
+      throw err;
+    }
   }
 
   if (process.env.VERCEL) {

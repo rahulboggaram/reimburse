@@ -9,6 +9,7 @@ VALUES (
   52428800,
   ARRAY[
     'image/jpeg',
+    'image/jpg',
     'image/png',
     'image/webp',
     'image/heic',
