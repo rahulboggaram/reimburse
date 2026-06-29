@@ -1,5 +1,6 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { prisma } from "@/lib/db";
+import { receiptPrisma } from "@/lib/receipt-db";
 import { getReceiptStorageStats, isInlineReceiptPath } from "@/lib/receipt-store";
 import { receiptFileResponse } from "@/lib/receipt-content";
 
@@ -9,7 +10,7 @@ export async function GET() {
 
   const stats = await getReceiptStorageStats();
 
-  const recentReceipts = await prisma.reimbursementReceipt.findMany({
+  const recentReceipts = await receiptPrisma.reimbursementReceipt.findMany({
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {

@@ -9,6 +9,7 @@ import {
   isSupabaseReceiptPath,
 } from "@/lib/receipt-store";
 import { downloadReceiptObject } from "@/lib/supabase-storage";
+import { receiptPrisma } from "@/lib/receipt-db";
 import { withDbRetry } from "@/lib/db-retry";
 
 export const runtime = "nodejs";
@@ -34,7 +35,7 @@ export async function GET(
     if (session instanceof Response) return session;
 
     const receipt = await withDbRetry(() =>
-      prisma.reimbursementReceipt.findUnique({
+      receiptPrisma.reimbursementReceipt.findUnique({
         where: { id },
         include: {
           reimbursement: {

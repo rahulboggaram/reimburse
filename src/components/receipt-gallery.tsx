@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { textLinkClassName } from "@/components/text-link";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,74 @@ function isWaitingForReceipt(receipt: Receipt) {
 }
 
 function ReceiptImage(props: { receipt: Receipt; className: string; compact?: boolean }) {
+  const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    setSrc(null);
+    setFailed(false);
+    setErrorMessage(null);
+
+    if (isWaitingForReceipt(props.receipt)) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response = await fetch(props.receipt.url, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const contentType = response.headers.get("content-type") ?? "";
+
+        if (!response.ok || contentType.includes("application/json")) {
+          const body = contentType.includes("application/json")
+            ? ((await response.json().catch(() => null)) as { error?: string } | null)
+            : null;
+          if (!cancelled) {
+            setErrorMessage(
+              body?.error ??
+                (response.status === 401
+                  ? "Please sign in again."
+                  : `Could not load photo (${response.status}).`),
+            );
+            setFailed(true);
+          }
+          return;
+        }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+          if (!cancelled) {
+            setErrorMessage("Photo file is empty on the server. Refile this claim.");
+            setFailed(true);
+          }
+          return;
+        }
+
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) {
+          setSrc(objectUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setErrorMessage("Could not load photo. Check your connection and try again.");
+          setFailed(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [props.receipt.id, props.receipt.url]);
 
   if (isWaitingForReceipt(props.receipt)) {
     return (
@@ -36,7 +103,7 @@ function ReceiptImage(props: { receipt: Receipt; className: string; compact?: bo
             props.compact ? "text-[10px]" : "text-xs",
           )}
         >
-          Photo missing — refile this claim
+          {errorMessage ?? "Photo missing — refile this claim"}
         </span>
         <a
           href={props.receipt.url}
@@ -54,13 +121,20 @@ function ReceiptImage(props: { receipt: Receipt; className: string; compact?: bo
     );
   }
 
+  if (!src) {
+    return (
+      <span className="flex size-full items-center justify-center bg-zinc-100 text-zinc-500">
+        <LoadingDots />
+      </span>
+    );
+  }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={props.receipt.url}
+      src={src}
       alt={props.receipt.fileName ?? "Receipt"}
       className={props.className}
-      onError={() => setFailed(true)}
     />
   );
 }
@@ -69,6 +143,14 @@ function ReceiptLightbox(props: {
   receipt: Receipt;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") props.onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [props]);
+
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/90 p-4">
       <div className="flex items-center justify-end">
@@ -153,9 +235,7 @@ export function ReceiptGallery(props: {
     );
   }
 
-  const tileClass = props.compact
-    ? "size-16"
-    : "aspect-[4/3] w-full";
+  const tileClass = props.compact ? "size-16" : "aspect-[4/3] w-full";
 
   return (
     <>

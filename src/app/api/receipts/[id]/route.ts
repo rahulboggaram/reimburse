@@ -1,8 +1,8 @@
-import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
 import { receiptFileResponse } from "@/lib/receipt-content";
+import { receiptPrisma } from "@/lib/receipt-db";
 import { withDbRetry } from "@/lib/db-retry";
 
 export const maxDuration = 30;
@@ -18,7 +18,7 @@ export async function GET(
     if (session instanceof Response) return session;
 
     const receipt = await withDbRetry(() =>
-      prisma.reimbursementReceipt.findUnique({
+      receiptPrisma.reimbursementReceipt.findUnique({
         where: { id },
         include: {
           reimbursement: {

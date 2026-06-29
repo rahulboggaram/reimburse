@@ -22,6 +22,13 @@ import {
   isSupabaseStorageEnabled,
 } from "@/lib/supabase-storage";
 
+const PASSTHROUGH_MIME = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]);
 /** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
 const MAX_TOTAL_UPLOAD_BYTES = 3_500_000;
 
@@ -128,6 +135,22 @@ async function normalizeReceiptInput(input: ReceiptInput) {
   const declaredMime =
     inferReceiptMimeType({ type: input.type, name: input.name }) ||
     "application/octet-stream";
+
+  if (
+    process.env.VERCEL &&
+    PASSTHROUGH_MIME.has(declaredMime) &&
+    input.buffer.length > 0 &&
+    input.buffer.length <= MAX_TOTAL_UPLOAD_BYTES
+  ) {
+    const mimeType =
+      declaredMime === "image/jpg" ? "image/jpeg" : declaredMime;
+    return {
+      fileName: input.name || `receipt-${randomUUID()}`,
+      buffer: input.buffer,
+      mimeType,
+    };
+  }
+
   const normalized = await normalizeReceiptImageBuffer(input.buffer, declaredMime, {
     forStorage: true,
   });
