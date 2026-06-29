@@ -63,33 +63,45 @@ export default function MyClaimsPage() {
 
   const syncClaimsView = useCallback(
     (rows: SerializedClaim[]) => {
-      if (!user) return;
+      if (!user?.id) return;
       const pending = readPendingClaimSubmits(user.id);
       setClaims(mergeClaimsWithPending(rows, pending));
     },
-    [user],
+    [user?.id],
   );
 
-  const loadClaims = useCallback(
-    async (fresh = false) => {
-      if (!user || !canViewOwnReimbursements(user)) return;
+  const refreshClaimsFromServer = useCallback(
+    async (options?: { fresh?: boolean }) => {
+      if (!user?.id || !canViewOwnReimbursements(user)) return;
 
       const ownerId = user.id;
       try {
-        const rows = await fetchMyClaims(ownerId, { fresh });
+        const rows = await fetchMyClaims(ownerId, { fresh: options?.fresh });
         if (user.id !== ownerId) return;
         syncClaimsView(rows);
         setLoadError(null);
       } catch (err) {
         if (user.id !== ownerId) return;
+        const view = readClaimsViewForUser(ownerId);
+        if (view.length > 0) {
+          setClaims(view);
+          return;
+        }
         setLoadError(
           err instanceof Error
             ? err.message
             : "Could not load your claims. Please try again.",
         );
+      } finally {
+        setLoading(false);
       }
     },
     [user, syncClaimsView],
+  );
+
+  const refreshClaimsQuietly = useCallback(
+    () => refreshClaimsFromServer({ fresh: true }),
+    [refreshClaimsFromServer],
   );
 
   useLayoutEffect(() => {
@@ -102,7 +114,7 @@ export default function MyClaimsPage() {
   }, [meLoading, user?.id, user?.role, user?.profileComplete]);
 
   useEffect(() => {
-    if (meLoading || !user || !canViewOwnReimbursements(user)) return;
+    if (meLoading || !user?.id || !canViewOwnReimbursements(user)) return;
 
     const ownerId = user.id;
     let cancelled = false;
@@ -116,8 +128,11 @@ export default function MyClaimsPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          const cached = readMyClaimsCache(ownerId);
-          if (!cached) setClaims(readClaimsViewForUser(ownerId));
+          const view = readClaimsViewForUser(ownerId);
+          if (view.length > 0) {
+            setClaims(view);
+            return;
+          }
           setLoadError(
             err instanceof Error
               ? err.message
@@ -148,7 +163,7 @@ export default function MyClaimsPage() {
 
   usePayoutWatchPolling({
     claimIds: payoutRefreshIds,
-    onTick: () => loadClaims(true),
+    onTick: refreshClaimsQuietly,
     intervalMs: 20_000,
   });
 
@@ -183,9 +198,9 @@ export default function MyClaimsPage() {
         title="My Claims"
         className={showClaimsLoading || showEmptyState ? "mb-5" : "mb-4"}
       />
-      <RejectedClaimsSection onChanged={() => loadClaims(true)} />
+      <RejectedClaimsSection onChanged={() => refreshClaimsFromServer({ fresh: true })} />
 
-      {loadError ? (
+      {loadError && claims.length === 0 ? (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">
           {loadError}
         </p>
@@ -230,7 +245,7 @@ export default function MyClaimsPage() {
             open={selected !== null}
             onClose={handleCloseDetail}
             variant="employee"
-            onUpdated={() => loadClaims(true)}
+            onUpdated={refreshClaimsQuietly}
           />
         </>
       )}

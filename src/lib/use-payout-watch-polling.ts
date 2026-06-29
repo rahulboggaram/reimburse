@@ -23,20 +23,21 @@ export function usePayoutWatchPolling(options: {
 
     const hasUnsettledClaims = claimIds.length > 0;
     let cancelled = false;
+    const tick = onTick;
 
-    async function tick() {
+    async function runTick() {
       if (cancelled) return;
       if (!hasActivePayoutWatches() && !hasUnsettledClaims) return;
       await refreshActivePayoutWatches();
-      if (!cancelled) await onTick();
+      if (!cancelled) await tick();
     }
 
-    void tick();
+    void runTick();
     const interval = window.setInterval(
-      () => void tick(),
+      () => void runTick(),
       intervalMs ?? DEFAULT_INTERVAL_MS,
     );
-    const unsubscribe = subscribePayoutWatches(() => void tick());
+    const unsubscribe = subscribePayoutWatches(() => void runTick());
 
     return () => {
       cancelled = true;

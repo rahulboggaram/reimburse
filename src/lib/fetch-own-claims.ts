@@ -72,7 +72,6 @@ export async function fetchMyClaims(
   options?: { fresh?: boolean },
 ): Promise<SerializedClaim[]> {
   const key = claimsMineCacheKey(ownerId);
-  if (options?.fresh) invalidateClientCache(key);
 
   if (!options?.fresh) {
     const cached = readValidatedCache(key, ownerId);
@@ -99,8 +98,6 @@ export async function fetchMyRejectedClaims(
   options?: { fresh?: boolean },
 ): Promise<SerializedClaim[]> {
   const key = claimsRejectedCacheKey(ownerId);
-  if (options?.fresh) invalidateClientCache(key);
-
   if (!options?.fresh) {
     const cached = readValidatedCache(key, ownerId);
     if (cached) return cached;
