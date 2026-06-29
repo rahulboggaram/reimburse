@@ -147,6 +147,7 @@ model Reimbursement {
   paymentApproverId String
   paymentApprover   User                @relation("PaymentApproverClaims", fields: [paymentApproverId], references: [id], onDelete: Restrict)
   refiledFromId   String?
+  clientSubmitId  String?             @unique
   receipts        ReimbursementReceipt[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt

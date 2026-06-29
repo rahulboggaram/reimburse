@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import {
@@ -15,6 +16,83 @@ function receiptSaveErrorMessage(err: unknown) {
     if (err.message.includes("empty")) return err.message;
   }
   return "Could not save receipt photos. Try smaller images and submit again.";
+}
+
+type CreateClaimWithReceiptsInput = {
+  employeeId: string;
+  employeeName: string;
+  amount: number;
+  branchId: string;
+  category: string;
+  description: string;
+  expenseDate: Date;
+  approverId: string;
+  paymentApproverId: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
+  decidedAt: Date | null;
+  clientSubmitId?: string | null;
+  receiptInputs: ReceiptInput[];
+};
+
+/** Create claim + receipt rows together so a DB blip cannot leave a claim without photos. */
+export async function createReimbursementWithReceipts(
+  input: CreateClaimWithReceiptsInput,
+): Promise<{ claim: { id: string } } | { error: string }> {
+  const validationError = validateReceiptInputs(input.receiptInputs);
+  if (validationError) return { error: validationError };
+
+  const claimId = randomUUID();
+
+  let saved;
+  try {
+    saved = await saveReceiptInputs(claimId, input.receiptInputs);
+  } catch (err) {
+    console.error("receipt save failed before claim create", { claimId, err });
+    return { error: receiptSaveErrorMessage(err) };
+  }
+
+  try {
+    const claim = await prisma.$transaction(async (tx) => {
+      const created = await tx.reimbursement.create({
+        data: {
+          id: claimId,
+          employeeId: input.employeeId,
+          employeeName: input.employeeName,
+          amount: input.amount,
+          branchId: input.branchId,
+          category: input.category,
+          description: input.description,
+          expenseDate: input.expenseDate,
+          approverId: input.approverId,
+          paymentApproverId: input.paymentApproverId,
+          status: input.status,
+          decidedAt: input.decidedAt,
+          clientSubmitId: input.clientSubmitId ?? null,
+        },
+      });
+
+      for (const file of saved) {
+        await tx.reimbursementReceipt.create({
+          data: {
+            reimbursementId: created.id,
+            filePath: file.filePath,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            sizeBytes: file.sizeBytes,
+          },
+        });
+      }
+
+      return created;
+    });
+
+    return { claim };
+  } catch (err) {
+    console.error("atomic claim create failed", { claimId, err });
+    await deleteStoredReceiptFiles(saved.map((file) => file.filePath));
+    await deleteReceiptFilesForClaim(claimId);
+    return { error: receiptSaveErrorMessage(err) };
+  }
 }
 
 export async function replaceClaimReceiptsFromInputs(

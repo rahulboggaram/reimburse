@@ -18,7 +18,13 @@ import {
 import { PageHeading } from "@/components/page-heading";
 import { SubmitConfirmationScreen } from "@/components/submit-confirmation-screen";
 import { useMe } from "@/components/me-provider";
-import { readJson } from "@/lib/api";
+import { buildClaimFormData } from "@/lib/claim-submit-form";
+import {
+  enqueueClaimSubmitOutbox,
+  markClaimSubmitOutboxFailed,
+  markClaimSubmitOutboxSuccess,
+} from "@/lib/claim-submit-outbox";
+import { submitClaimWithRetry } from "@/lib/submit-claim-request";
 import { MIN_REIMBURSEMENT_AMOUNT } from "@/lib/validators";
 import {
   fetchFormBootstrap,
@@ -40,22 +46,6 @@ import {
   registerPendingClaimSubmit,
   resolvePendingClaimSubmit,
 } from "@/lib/pending-claim-submit";
-
-function buildClaimFormData(input: {
-  amount: number;
-  category: string;
-  description: string;
-  receipts: ReceiptFileItem[];
-}) {
-  const formData = new FormData();
-  formData.set("amount", String(input.amount));
-  formData.set("category", input.category);
-  formData.set("description", input.description);
-  for (const item of input.receipts) {
-    formData.append("receipts", item.file);
-  }
-  return formData;
-}
 
 type ExpenseCategory = { id: string; name: string };
 
@@ -237,12 +227,7 @@ export function ReimbursementForm(props: {
 
   async function submitClaimInstantly() {
     const parsedAmount = Number.parseFloat(amount);
-    const formData = buildClaimFormData({
-      amount: parsedAmount,
-      category,
-      description: description.trim(),
-      receipts,
-    });
+    const trimmedDescription = description.trim();
 
     const url = props.claimId
       ? `/api/claims/${props.claimId}/refile`
@@ -257,7 +242,7 @@ export function ReimbursementForm(props: {
         userId: meUser.id,
         amount: parsedAmount,
         category,
-        description: description.trim(),
+        description: trimmedDescription,
         branchId: userBranch.id,
         branchName: userBranch.name,
         employeeName: meUser.name ?? "Employee",
@@ -274,7 +259,34 @@ export function ReimbursementForm(props: {
       prependOptimisticClaimToCache(meUser.id, pending);
     }
 
+    const outboxId = tempId ?? `refile-${props.claimId ?? crypto.randomUUID()}`;
     const previewClaimId = tempId ?? props.claimId;
+
+    if (meUser?.id) {
+      await enqueueClaimSubmitOutbox({
+        id: outboxId,
+        userId: meUser.id,
+        kind: props.claimId ? "refile" : "create",
+        refileClaimId: props.claimId,
+        amount: parsedAmount,
+        category,
+        description: trimmedDescription,
+        branchId: userBranch?.id ?? "",
+        branchName: userBranch?.name ?? "",
+        employeeName: meUser.name ?? "Employee",
+        employeePhone: meUser.phone,
+        employeeRole: meUser.role,
+        claimStatus: (meUser.role === "ADMIN" ? "APPROVED" : "PENDING") as
+          | "APPROVED"
+          | "PENDING",
+        receipts: receipts.map((item) => ({
+          name: item.file.name,
+          type: item.file.type,
+          blob: item.file,
+        })),
+      });
+    }
+
     if (previewClaimId && receipts.length > 0) {
       await stashLocalReceiptPreviews(previewClaimId, receipts);
     }
@@ -283,11 +295,19 @@ export function ReimbursementForm(props: {
     setError(null);
 
     try {
-      const response = await fetch(url, {
+      const created = await submitClaimWithRetry({
+        url,
         method,
-        body: formData,
+        clientSubmitId: tempId,
+        buildFormData: () =>
+          buildClaimFormData({
+            amount: parsedAmount,
+            category,
+            description: trimmedDescription,
+            receipts,
+            clientSubmitId: tempId,
+          }),
       });
-      const created = await readJson<{ id: string }>(response);
 
       if (tempId && created.id) {
         migrateLocalReceiptPreviews(tempId, created.id);
@@ -296,6 +316,7 @@ export function ReimbursementForm(props: {
       }
 
       if (meUser?.id) {
+        await markClaimSubmitOutboxSuccess(outboxId, created.id);
         await fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
       }
       if (tempId && meUser?.id) {
@@ -304,20 +325,18 @@ export function ReimbursementForm(props: {
 
       setShowSubmitConfirmation(true);
     } catch (err) {
-      if (tempId && meUser?.id) {
-        failPendingClaimSubmit(
-          meUser.id,
-          tempId,
-          err instanceof Error
-            ? err.message
-            : "Could not save claim. Check your details and try again.",
-        );
-      }
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "Could not save claim. Check your details and try again.",
-      );
+          : "Could not save claim. Check your details and try again.";
+
+      if (meUser?.id) {
+        await markClaimSubmitOutboxFailed(outboxId, message);
+        if (tempId) {
+          failPendingClaimSubmit(meUser.id, tempId, message);
+        }
+      }
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }

@@ -10,6 +10,7 @@ import {
 } from "@/components/my-claims-table";
 import { EmployeeEmptyState } from "@/components/employee-empty-state";
 import { RejectedClaimsSection } from "@/components/rejected-claims-section";
+import { ClaimSubmitRecoveryBanner } from "@/components/claim-submit-recovery-banner";
 import { Card } from "@/components/ui/card";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
@@ -199,6 +200,8 @@ export default function MyClaimsPage() {
         className={showClaimsLoading || showEmptyState ? "mb-5" : "mb-4"}
       />
       <RejectedClaimsSection onChanged={() => refreshClaimsFromServer({ fresh: true })} />
+
+      <ClaimSubmitRecoveryBanner />
 
       {loadError && claims.length === 0 ? (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alert">

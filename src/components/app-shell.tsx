@@ -6,6 +6,7 @@ import { MeProvider } from "@/components/me-provider";
 import { ReimburseBrand } from "@/components/reimburse-brand";
 import { fetchFormBootstrap } from "@/lib/admin-fetch";
 import { warmMyClaimsCache } from "@/lib/fetch-own-claims";
+import { processClaimSubmitOutbox } from "@/lib/process-claim-submit-outbox";
 import type { SessionUser } from "@/lib/session";
 
 const PREFETCH_ROUTES = [
@@ -33,6 +34,7 @@ export function AppShell(props: {
     if (props.initialUser?.profileComplete) {
       void fetchFormBootstrap();
       warmMyClaimsCache(props.initialUser.id);
+      void processClaimSubmitOutbox(props.initialUser.id);
     }
   }, [props.initialUser?.id, props.initialUser?.profileComplete]);
 

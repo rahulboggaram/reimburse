@@ -2,18 +2,32 @@ import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireCanSubmitReimbursement } from "@/lib/auth-api";
 import { parseClaimFieldsFromFormData } from "@/lib/claim-form";
+import { readClientSubmitId } from "@/lib/claim-submit-form";
 import { resolveClaimBranchForUser } from "@/lib/claim-branch";
 import { resolveClaimRouting } from "@/lib/claim-routing";
-import { replaceClaimReceiptsFromInputs } from "@/lib/attach-receipts";
+import { createReimbursementWithReceipts } from "@/lib/attach-receipts";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { readReceiptInputs } from "@/lib/receipt-input";
 import { receiptClientUrl } from "@/lib/receipt-url";
+import { apiDbErrorResponse } from "@/lib/api-db-error";
+import { withDbRetry } from "@/lib/db-retry";
 import {
   receiptFilesFromFormData,
   validateReceiptFiles,
 } from "@/lib/receipt-files";
 
 export const maxDuration = 60;
+
+function serializeSavedReceipts(
+  receipts: Array<{ id: string; fileName: string | null; mimeType: string }>,
+) {
+  return receipts.map((receipt) => ({
+    id: receipt.id,
+    fileName: receipt.fileName,
+    mimeType: receipt.mimeType,
+    url: receiptClientUrl(receipt),
+  }));
+}
 
 export async function POST(request: Request) {
   try {
@@ -29,10 +43,42 @@ export async function POST(request: Request) {
       );
     }
 
+    const clientSubmitId = readClientSubmitId(formData);
+
     const receiptFiles = receiptFilesFromFormData(formData);
     const receiptValidationError = validateReceiptFiles(receiptFiles);
     if (receiptValidationError) {
       return Response.json({ error: receiptValidationError }, { status: 400 });
+    }
+
+    if (clientSubmitId) {
+      const existing = await withDbRetry(() =>
+        prisma.reimbursement.findUnique({
+          where: { clientSubmitId },
+          select: {
+            id: true,
+            employeeId: true,
+            receipts: {
+              select: { id: true, fileName: true, mimeType: true },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+        }),
+      );
+
+      if (existing) {
+        if (existing.employeeId !== session.id) {
+          return Response.json({ error: "Submit id already used." }, { status: 409 });
+        }
+        return Response.json(
+          {
+            id: existing.id,
+            recovered: true,
+            receipts: serializeSavedReceipts(existing.receipts),
+          },
+          { status: 200 },
+        );
+      }
     }
 
     const branchResult = await resolveClaimBranchForUser(session.id);
@@ -58,8 +104,8 @@ export async function POST(request: Request) {
     }
     const { routing } = routingResult;
 
-    const claim = await prisma.reimbursement.create({
-      data: {
+    const created = await withDbRetry(() =>
+      createReimbursementWithReceipts({
         employeeId: session.id,
         employeeName: session.name ?? "Employee",
         amount: body.amount,
@@ -71,17 +117,16 @@ export async function POST(request: Request) {
         paymentApproverId: routing.paymentApproverId,
         status: routing.status,
         decidedAt: routing.decidedAt,
-      },
-    });
-
-    const receiptError = await replaceClaimReceiptsFromInputs(
-      claim.id,
-      receiptInputs,
+        clientSubmitId,
+        receiptInputs,
+      }),
     );
-    if (receiptError) {
-      await prisma.reimbursement.delete({ where: { id: claim.id } });
-      return Response.json({ error: receiptError }, { status: 400 });
+
+    if ("error" in created) {
+      return Response.json({ error: created.error }, { status: 400 });
     }
+
+    const claim = created.claim;
 
     if (session.role === "ADMIN") {
       const claimId = claim.id;
@@ -97,30 +142,26 @@ export async function POST(request: Request) {
       });
     }
 
-    const savedReceipts = await prisma.reimbursementReceipt.findMany({
-      where: { reimbursementId: claim.id },
-      select: { id: true, fileName: true, mimeType: true },
-      orderBy: { createdAt: "asc" },
-    });
+    const savedReceipts = await withDbRetry(() =>
+      prisma.reimbursementReceipt.findMany({
+        where: { reimbursementId: claim.id },
+        select: { id: true, fileName: true, mimeType: true },
+        orderBy: { createdAt: "asc" },
+      }),
+    );
 
     return Response.json(
       {
         id: claim.id,
-        receipts: savedReceipts.map((receipt) => ({
-          id: receipt.id,
-          fileName: receipt.fileName,
-          mimeType: receipt.mimeType,
-          url: receiptClientUrl(receipt),
-        })),
+        receipts: serializeSavedReceipts(savedReceipts),
       },
       { status: 201 },
     );
   } catch (err) {
-    console.error("create-claim failed", err);
-    const message =
-      err instanceof Error && err.message.includes("too large")
-        ? err.message
-        : "Server error while saving reimbursement. Please try again.";
-    return Response.json({ error: message }, { status: 500 });
+    return apiDbErrorResponse(
+      "create-claim",
+      err,
+      "Server error while saving reimbursement. Please try again.",
+    );
   }
 }

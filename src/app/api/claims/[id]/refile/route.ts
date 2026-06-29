@@ -8,6 +8,8 @@ import { replaceClaimReceiptsFromInputs } from "@/lib/attach-receipts";
 import { tryAutoPayAdminClaim } from "@/lib/admin-auto-payout";
 import { readReceiptInputs } from "@/lib/receipt-input";
 import { receiptClientUrl } from "@/lib/receipt-url";
+import { apiDbErrorResponse } from "@/lib/api-db-error";
+import { withDbRetry } from "@/lib/db-retry";
 import {
   receiptFilesFromFormData,
   validateReceiptFiles,
@@ -90,7 +92,9 @@ export async function PATCH(
       },
     });
 
-    const receiptError = await replaceClaimReceiptsFromInputs(id, receiptInputs);
+    const receiptError = await withDbRetry(() =>
+      replaceClaimReceiptsFromInputs(id, receiptInputs),
+    );
     if (receiptError) {
       return Response.json({ error: receiptError }, { status: 400 });
     }
@@ -125,11 +129,10 @@ export async function PATCH(
       })),
     });
   } catch (err) {
-    console.error("refile-claim failed", err);
-    const message =
-      err instanceof Error && err.message.includes("too large")
-        ? err.message
-        : "Server error while saving reimbursement. Please try again.";
-    return Response.json({ error: message }, { status: 500 });
+    return apiDbErrorResponse(
+      "refile-claim",
+      err,
+      "Server error while saving reimbursement. Please try again.",
+    );
   }
 }

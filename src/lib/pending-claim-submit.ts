@@ -31,10 +31,20 @@ function storageKey(userId: string) {
   return `reimburse-pending-claims:${userId}`;
 }
 
-function readAll(userId: string): PendingClaimSubmit[] {
-  if (typeof window === "undefined") return [];
+function readStorage(userId: string): Storage | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(storageKey(userId));
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function readAll(userId: string): PendingClaimSubmit[] {
+  const storage = readStorage(userId);
+  if (!storage) return [];
+  try {
+    const raw = storage.getItem(storageKey(userId));
     if (!raw) return [];
     return JSON.parse(raw) as PendingClaimSubmit[];
   } catch {
@@ -43,12 +53,13 @@ function readAll(userId: string): PendingClaimSubmit[] {
 }
 
 function writeAll(userId: string, rows: PendingClaimSubmit[]) {
-  if (typeof window === "undefined") return;
+  const storage = readStorage(userId);
+  if (!storage) return;
   try {
     if (rows.length === 0) {
-      sessionStorage.removeItem(storageKey(userId));
+      storage.removeItem(storageKey(userId));
     } else {
-      sessionStorage.setItem(storageKey(userId), JSON.stringify(rows));
+      storage.setItem(storageKey(userId), JSON.stringify(rows));
     }
     window.dispatchEvent(new Event(PENDING_EVENT));
   } catch {
