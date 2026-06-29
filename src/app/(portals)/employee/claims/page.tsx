@@ -109,8 +109,8 @@ export default function MyClaimsPage() {
 
     const view = readClaimsViewForUser(user.id);
     setClaims(view);
-    setLoading(view.length === 0 && !readMyClaimsCache(user.id));
     setHydrated(true);
+    setLoading(view.length === 0);
   }, [meLoading, user?.id, user?.role, user?.profileComplete]);
 
   useEffect(() => {

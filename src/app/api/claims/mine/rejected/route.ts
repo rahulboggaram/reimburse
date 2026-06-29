@@ -2,8 +2,13 @@ import { prisma } from "@/lib/db";
 import { requireOwnClaimsAccess } from "@/lib/auth-api";
 import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { claimsForEmployeeWhere, ownClaimsOnly } from "@/lib/claim-access";
-import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
+import {
+  claimEmployeeRejectedSelect,
+  serializeClaimEmployeeRejectedItem,
+} from "@/lib/claims";
 import { withDbRetry } from "@/lib/db-retry";
+
+const REJECTED_LIST_LIMIT = 50;
 
 /** Rejected reimbursements for the signed-in employee only. */
 export async function GET() {
@@ -17,13 +22,19 @@ export async function GET() {
       prisma.reimbursement.findMany({
         where: { ...claimsForEmployeeWhere(ownerId), status: "REJECTED" },
         orderBy: { decidedAt: "desc" },
-        include: claimListInclude,
+        take: REJECTED_LIST_LIMIT,
+        select: claimEmployeeRejectedSelect,
       }),
     );
 
-    return Response.json(ownClaimsOnly(claims, ownerId).map(serializeClaimListItem), {
-      headers: { "Cache-Control": "private, no-cache" },
-    });
+    return Response.json(
+      ownClaimsOnly(claims, ownerId).map(serializeClaimEmployeeRejectedItem),
+      {
+        headers: {
+          "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
+        },
+      },
+    );
   } catch (err) {
     return apiDbErrorResponse(
       "claims/mine/rejected",

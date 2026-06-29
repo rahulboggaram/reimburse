@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireOwnClaimsAccess } from "@/lib/auth-api";
 import { apiDbErrorResponse } from "@/lib/api-db-error";
@@ -5,9 +6,14 @@ import {
   claimsForEmployeeWhere,
   ownClaimsOnly,
 } from "@/lib/claim-access";
-import { claimListInclude, serializeClaimListItem } from "@/lib/claims";
+import {
+  claimEmployeeMineSelect,
+  serializeClaimEmployeeMineItem,
+} from "@/lib/claims";
 import { withDbRetry } from "@/lib/db-retry";
 import { claimNeedsPayoutSync, queuePayoutSync } from "@/lib/payouts";
+
+const MINE_LIST_LIMIT = 200;
 
 export async function GET() {
   try {
@@ -23,15 +29,26 @@ export async function GET() {
           status: { not: "REJECTED" },
         },
         orderBy: { createdAt: "desc" },
-        include: claimListInclude,
+        take: MINE_LIST_LIMIT,
+        select: claimEmployeeMineSelect,
       }),
     );
 
-    queuePayoutSync(claims.filter(claimNeedsPayoutSync).map((c) => c.id));
+    const payoutIds = claims.filter(claimNeedsPayoutSync).map((c) => c.id);
+    if (payoutIds.length > 0) {
+      after(() => {
+        queuePayoutSync(payoutIds);
+      });
+    }
 
-    return Response.json(ownClaimsOnly(claims, ownerId).map(serializeClaimListItem), {
-      headers: { "Cache-Control": "private, no-store" },
-    });
+    return Response.json(
+      ownClaimsOnly(claims, ownerId).map(serializeClaimEmployeeMineItem),
+      {
+        headers: {
+          "Cache-Control": "private, max-age=15, stale-while-revalidate=30",
+        },
+      },
+    );
   } catch (err) {
     return apiDbErrorResponse(
       "claims/mine",

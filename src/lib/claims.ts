@@ -60,6 +60,25 @@ export const claimQueueSelect = {
   _count: { select: { receipts: true } },
 } satisfies Prisma.ReimbursementSelect;
 
+/** Employee My Claims — no relation joins; detail modal loads full claim on open. */
+export const claimEmployeeMineSelect = {
+  id: true,
+  employeeId: true,
+  amount: true,
+  category: true,
+  expenseDate: true,
+  status: true,
+  paidAt: true,
+  razorpayPayoutId: true,
+  payoutStatus: true,
+  payoutInitiatedAt: true,
+  approverId: true,
+  paymentApproverId: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { receipts: true } },
+} satisfies Prisma.ReimbursementSelect;
+
 export type ClaimWithRelations = Prisma.ReimbursementGetPayload<{
   include: typeof claimInclude;
 }>;
@@ -74,6 +93,10 @@ export type ClaimPendingListItem = Prisma.ReimbursementGetPayload<{
 
 export type ClaimQueueRow = Prisma.ReimbursementGetPayload<{
   select: typeof claimQueueSelect;
+}>;
+
+export type ClaimEmployeeMineRow = Prisma.ReimbursementGetPayload<{
+  select: typeof claimEmployeeMineSelect;
 }>;
 
 const missingPerson = {
@@ -144,6 +167,73 @@ export function serializeClaim(claim: ClaimWithRelations) {
 export function serializeClaimListItem(claim: ClaimListItem) {
   const receiptCount = claim._count.receipts;
   return serializeClaimCore(claim, [], receiptCount);
+}
+
+const listPersonStub = (id: string, role: string) => ({
+  id,
+  name: null as string | null,
+  phone: "",
+  role,
+});
+
+/** Fast employee My Claims row — omits joins; opens detail for full data. */
+export function serializeClaimEmployeeMineItem(claim: ClaimEmployeeMineRow) {
+  const receiptCount = claim._count.receipts;
+  return {
+    id: claim.id,
+    employeeId: claim.employeeId,
+    employeeName: "",
+    employee: listPersonStub(claim.employeeId, "EMPLOYEE"),
+    amount: Number(claim.amount),
+    category: claim.category,
+    description: "",
+    expenseDate: claim.expenseDate.toISOString(),
+    branchId: "",
+    branch: { id: "", name: "", active: true },
+    status: claim.status,
+    rejectionReason: null,
+    decidedAt: null,
+    razorpayPayoutId: claim.razorpayPayoutId,
+    payoutStatus: claim.payoutStatus,
+    payoutUtr: null,
+    payoutError: null,
+    payoutInitiatedAt: claim.payoutInitiatedAt?.toISOString() ?? null,
+    paidAt: claim.paidAt?.toISOString() ?? null,
+    approverId: claim.approverId,
+    approver: listPersonStub(claim.approverId, "BRANCH_MANAGER"),
+    paymentApproverId: claim.paymentApproverId,
+    paymentApprover: listPersonStub(claim.paymentApproverId, "APPROVER"),
+    refiledFromId: null,
+    receipts: [],
+    receiptCount,
+    queueList: true as const,
+    createdAt: claim.createdAt.toISOString(),
+    updatedAt: claim.updatedAt.toISOString(),
+  };
+}
+
+/** Employee rejected list — one approver join for the rejector name. */
+export const claimEmployeeRejectedSelect = {
+  ...claimEmployeeMineSelect,
+  rejectionReason: true,
+  decidedAt: true,
+  approver: { select: { id: true, name: true, phone: true, role: true } },
+} satisfies Prisma.ReimbursementSelect;
+
+export type ClaimEmployeeRejectedRow = Prisma.ReimbursementGetPayload<{
+  select: typeof claimEmployeeRejectedSelect;
+}>;
+
+export function serializeClaimEmployeeRejectedItem(claim: ClaimEmployeeRejectedRow) {
+  const base = serializeClaimEmployeeMineItem(claim);
+  return {
+    ...base,
+    status: claim.status,
+    rejectionReason: claim.rejectionReason,
+    decidedAt: claim.decidedAt?.toISOString() ?? null,
+    approver: claim.approver ?? listPersonStub(claim.approverId, "BRANCH_MANAGER"),
+    queueList: true as const,
+  };
 }
 
 /** Manager / payment approver pending and approved queues. */

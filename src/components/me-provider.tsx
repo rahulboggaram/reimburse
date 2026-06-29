@@ -10,6 +10,7 @@ import {
 } from "react";
 import { readJson } from "@/lib/api";
 import { fetchFormBootstrap } from "@/lib/admin-fetch";
+import { warmMyClaimsCache } from "@/lib/fetch-own-claims";
 import type { SessionUser } from "@/lib/session";
 
 export type MeUser = {
@@ -75,8 +76,9 @@ export function MeProvider(props: {
   }, []);
 
   useEffect(() => {
-    if (user?.profileComplete) {
+    if (user?.profileComplete && user.id) {
       void fetchFormBootstrap();
+      warmMyClaimsCache(user.id);
     }
   }, [user?.id, user?.profileComplete]);
 

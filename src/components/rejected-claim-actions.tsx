@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { readJson } from "@/lib/api";
-import { invalidateClientCache } from "@/lib/client-cache";
+import { invalidatePersistedClientCache } from "@/lib/claims-persist-cache";
 import { claimsMineCacheKey, claimsRejectedCacheKey } from "@/lib/claims-cache";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { cn } from "@/lib/utils";
@@ -31,10 +31,10 @@ export function RejectedClaimActions(props: {
       });
       await readJson<{ ok: boolean }>(response);
 
-      invalidateClientCache(claimsRejectedCacheKey(props.userId));
-      invalidateClientCache(claimsMineCacheKey(props.userId));
-      invalidateClientCache("claims-rejected:");
-      invalidateClientCache("claims-mine:");
+      invalidatePersistedClientCache(claimsRejectedCacheKey(props.userId));
+      invalidatePersistedClientCache(claimsMineCacheKey(props.userId));
+      invalidatePersistedClientCache("claims-rejected:");
+      invalidatePersistedClientCache("claims-mine:");
 
       setDeleteOpen(false);
       await props.onDeleted?.();

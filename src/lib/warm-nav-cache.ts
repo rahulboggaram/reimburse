@@ -1,6 +1,6 @@
 import { readJson } from "@/lib/api";
 import { fetchClientCache, readClientCache } from "@/lib/client-cache";
-import { fetchMyClaims } from "@/lib/fetch-own-claims";
+import { fetchMyClaims, warmMyClaimsCache } from "@/lib/fetch-own-claims";
 import { fetchFormBootstrap, warmAdminNavCaches } from "@/lib/admin-fetch";
 import type { SerializedClaim } from "@/lib/claim-types";
 
@@ -42,6 +42,7 @@ export function warmNavCaches(user: {
   profileComplete: boolean;
 }) {
   if (user.profileComplete) {
+    warmMyClaimsCache(user.id);
     void fetchMyClaims(user.id);
     void fetchFormBootstrap();
   }

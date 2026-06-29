@@ -59,19 +59,25 @@ export function RejectedClaimsSection(props: { onChanged?: () => void }) {
       setLoading(true);
     }
 
-    fetchMyRejectedClaims(ownerId)
-      .then((rows) => {
-        if (!cancelled) setClaims(rows);
-      })
-      .catch(() => {
-        if (!cancelled && !cached) setClaims([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const startFetch = () => {
+      fetchMyRejectedClaims(ownerId)
+        .then((rows) => {
+          if (!cancelled) setClaims(rows);
+        })
+        .catch(() => {
+          if (!cancelled && !cached) setClaims([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
+
+    // Let the main claims list paint first.
+    const deferId = window.setTimeout(startFetch, cached ? 0 : 80);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(deferId);
     };
   }, [meLoading, user?.id, user?.role, user?.profileComplete]);
 

@@ -1,18 +1,18 @@
 import { readJson } from "@/lib/api";
 import { ownClaimsOnly } from "@/lib/claim-access";
 import { claimsMineCacheKey, claimsRejectedCacheKey } from "@/lib/claims-cache";
-import type { SerializedClaim } from "@/lib/claim-types";
 import {
-  invalidateClientCache,
-  readClientCache,
-  writeClientCache,
-} from "@/lib/client-cache";
+  readPersistedClientCache,
+  writePersistedClientCache,
+} from "@/lib/claims-persist-cache";
+import type { SerializedClaim } from "@/lib/claim-types";
+import { fetchClientCache } from "@/lib/client-cache";
 import {
   mergeClaimsWithPending,
   readPendingClaimSubmits,
 } from "@/lib/pending-claim-submit";
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 type FetchOwnResult =
   | { ok: true; rows: SerializedClaim[] }
@@ -41,14 +41,29 @@ function readValidatedCache(
   key: string,
   ownerId: string,
 ): SerializedClaim[] | null {
-  const cached = readClientCache<SerializedClaim[]>(key);
+  const cached = readPersistedClientCache<SerializedClaim[]>(key);
   if (!cached) return null;
   const owned = ownClaimsOnly(cached, ownerId);
   if (owned.length !== cached.length) {
-    invalidateClientCache(key);
     return null;
   }
   return owned;
+}
+
+function persistClaimsCache(key: string, rows: SerializedClaim[]) {
+  writePersistedClientCache(key, rows, CACHE_TTL_MS);
+}
+
+async function fetchMyClaimsFromNetwork(ownerId: string): Promise<SerializedClaim[]> {
+  const result = await fetchJsonOwn("/api/claims/mine", ownerId);
+  if (!result.ok) {
+    throw new Error(
+      result.status === 401
+        ? "Please sign in again."
+        : "Could not load your claims. Please try again.",
+    );
+  }
+  return result.rows;
 }
 
 export function readMyClaimsCache(ownerId: string): SerializedClaim[] | null {
@@ -78,19 +93,26 @@ export async function fetchMyClaims(
     if (cached) return cached;
   }
 
-  const result = await fetchJsonOwn("/api/claims/mine", ownerId);
-  if (!result.ok) {
-    const stale = readValidatedCache(key, ownerId);
-    if (stale) return stale;
-    throw new Error(
-      result.status === 401
-        ? "Please sign in again."
-        : "Could not load your claims. Please try again.",
-    );
+  const fetcher = async () => {
+    const result = await fetchJsonOwn("/api/claims/mine", ownerId);
+    if (!result.ok) {
+      const stale = readValidatedCache(key, ownerId);
+      if (stale) return stale;
+      throw new Error(
+        result.status === 401
+          ? "Please sign in again."
+          : "Could not load your claims. Please try again.",
+      );
+    }
+    persistClaimsCache(key, result.rows);
+    return result.rows;
+  };
+
+  if (options?.fresh) {
+    return fetcher();
   }
 
-  writeClientCache(key, result.rows, CACHE_TTL_MS);
-  return result.rows;
+  return fetchClientCache(key, fetcher, CACHE_TTL_MS);
 }
 
 export async function fetchMyRejectedClaims(
@@ -106,18 +128,32 @@ export async function fetchMyRejectedClaims(
     const mineCached = readValidatedCache(mineKey, ownerId);
     if (mineCached) {
       const rejected = mineCached.filter((c) => c.status === "REJECTED");
-      writeClientCache(key, rejected, CACHE_TTL_MS);
+      persistClaimsCache(key, rejected);
       return rejected;
     }
   }
 
-  const result = await fetchJsonOwn("/api/claims/mine/rejected", ownerId);
-  if (!result.ok) {
-    const stale = readValidatedCache(key, ownerId);
-    if (stale) return stale;
-    throw new Error("Could not load rejected claims. Please try again.");
+  const fetcher = async () => {
+    const result = await fetchJsonOwn("/api/claims/mine/rejected", ownerId);
+    if (!result.ok) {
+      const stale = readValidatedCache(key, ownerId);
+      if (stale) return stale;
+      throw new Error("Could not load rejected claims. Please try again.");
+    }
+    persistClaimsCache(key, result.rows);
+    return result.rows;
+  };
+
+  if (options?.fresh) {
+    return fetcher();
   }
 
-  writeClientCache(key, result.rows, CACHE_TTL_MS);
-  return result.rows;
+  return fetchClientCache(key, fetcher, CACHE_TTL_MS);
+}
+
+/** Warm the My Claims cache as soon as the user is known (menu, home, shell). */
+export function warmMyClaimsCache(ownerId: string) {
+  if (!ownerId) return;
+  if (readMyClaimsCache(ownerId)) return;
+  void fetchMyClaims(ownerId).catch(() => {});
 }
