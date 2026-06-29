@@ -67,8 +67,8 @@ export function ClaimSubmitRecoveryBanner() {
             {entry.lastError ? ` — ${entry.lastError}` : ""}
           </p>
           <p className="mt-1 text-amber-800">
-            Your photos are saved on this device. Retry when you have a stable
-            connection.
+            Your photos are saved on this device. Tap Retry — this is usually
+            the cloud database waking up, not your internet speed.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button

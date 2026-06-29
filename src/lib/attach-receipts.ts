@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-retry";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import {
   deleteReceiptFilesForClaim,
@@ -15,6 +16,12 @@ function receiptSaveErrorMessage(err: unknown) {
     const message = err.message.trim();
     if (!message) {
       return "Could not save receipt photos. Try smaller images and submit again.";
+    }
+    if (
+      message.toLowerCase().includes("unable to start a transaction") ||
+      message.toLowerCase().includes("transaction api error")
+    ) {
+      return "The database was briefly busy. Tap Retry upload — your Wi‑Fi is not the problem.";
     }
     if (
       message.includes("too large") ||
@@ -68,8 +75,8 @@ export async function createReimbursementWithReceipts(
   }
 
   try {
-    const claim = await prisma.$transaction(async (tx) => {
-      const created = await tx.reimbursement.create({
+    const created = await withDbRetry(() =>
+      prisma.reimbursement.create({
         data: {
           id: claimId,
           employeeId: input.employeeId,
@@ -85,24 +92,36 @@ export async function createReimbursementWithReceipts(
           decidedAt: input.decidedAt,
           clientSubmitId: input.clientSubmitId ?? null,
         },
-      });
+      }),
+    );
 
+    try {
       for (const file of saved) {
-        await tx.reimbursementReceipt.create({
-          data: {
-            reimbursementId: created.id,
-            filePath: file.filePath,
-            fileName: file.fileName,
-            mimeType: file.mimeType,
-            sizeBytes: file.sizeBytes,
-          },
-        });
+        await withDbRetry(() =>
+          prisma.reimbursementReceipt.create({
+            data: {
+              reimbursementId: created.id,
+              filePath: file.filePath,
+              fileName: file.fileName,
+              mimeType: file.mimeType,
+              sizeBytes: file.sizeBytes,
+            },
+          }),
+        );
       }
+    } catch (receiptErr) {
+      await prisma.reimbursement
+        .delete({ where: { id: claimId } })
+        .catch((deleteErr) => {
+          console.error("could not roll back claim after receipt insert failed", {
+            claimId,
+            deleteErr,
+          });
+        });
+      throw receiptErr;
+    }
 
-      return created;
-    });
-
-    return { claim };
+    return { claim: created };
   } catch (err) {
     console.error("atomic claim create failed", { claimId, err });
     await deleteStoredReceiptFiles(saved.map((file) => file.filePath));
@@ -124,7 +143,7 @@ export async function replaceClaimReceiptsFromInputs(
 
   const existingReceipts = await prisma.reimbursementReceipt.findMany({
     where: { reimbursementId },
-    select: { filePath: true },
+    select: { id: true, filePath: true },
   });
 
   let saved;
@@ -135,13 +154,11 @@ export async function replaceClaimReceiptsFromInputs(
     return receiptSaveErrorMessage(err);
   }
 
+  const newReceiptIds: string[] = [];
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.reimbursementReceipt.deleteMany({
-        where: { reimbursementId },
-      });
-      for (const file of saved) {
-        await tx.reimbursementReceipt.create({
+    for (const file of saved) {
+      const row = await withDbRetry(() =>
+        prisma.reimbursementReceipt.create({
           data: {
             reimbursementId,
             filePath: file.filePath,
@@ -149,11 +166,32 @@ export async function replaceClaimReceiptsFromInputs(
             mimeType: file.mimeType,
             sizeBytes: file.sizeBytes,
           },
-        });
-      }
-    });
+        }),
+      );
+      newReceiptIds.push(row.id);
+    }
+
+    await withDbRetry(() =>
+      prisma.reimbursementReceipt.deleteMany({
+        where: {
+          reimbursementId,
+          id: { notIn: newReceiptIds },
+        },
+      }),
+    );
   } catch (err) {
     console.error("receipt database write failed", { reimbursementId, err });
+    if (newReceiptIds.length > 0) {
+      await prisma.reimbursementReceipt
+        .deleteMany({ where: { id: { in: newReceiptIds } } })
+        .catch((deleteErr) => {
+          console.error("could not roll back new receipt rows", {
+            reimbursementId,
+            deleteErr,
+          });
+        });
+      await deleteStoredReceiptFiles(saved.map((file) => file.filePath));
+    }
     return receiptSaveErrorMessage(err);
   }
 

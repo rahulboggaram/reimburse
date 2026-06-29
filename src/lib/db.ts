@@ -21,8 +21,8 @@ function pooledDatabaseUrl() {
 
   url = appendDbParam(url, "pgbouncer", "true");
   url = appendDbParam(url, "connection_limit", "1");
-  url = appendDbParam(url, "connect_timeout", "15");
-  url = appendDbParam(url, "pool_timeout", "15");
+  url = appendDbParam(url, "connect_timeout", "20");
+  url = appendDbParam(url, "pool_timeout", "20");
   return url;
 }
 

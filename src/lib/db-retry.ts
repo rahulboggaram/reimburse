@@ -6,6 +6,8 @@ const TRANSIENT_CODES = new Set([
   "P1008",
   "P1017",
   "P2024",
+  "P2028",
+  "P2034",
 ]);
 
 export function isTransientDbError(error: unknown): boolean {
@@ -23,7 +25,9 @@ export function isTransientDbError(error: unknown): boolean {
       message.includes("too many connections") ||
       message.includes("econnreset") ||
       message.includes("etimedout") ||
-      message.includes("connection pool")
+      message.includes("connection pool") ||
+      message.includes("unable to start a transaction") ||
+      message.includes("transaction api error")
     );
   }
   return false;
