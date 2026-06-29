@@ -20,6 +20,17 @@ function storageKey(claimId: string) {
   return `${KEY_PREFIX}${claimId}`;
 }
 
+const LOCAL_PREVIEW_PASSTHROUGH_BYTES = 350_000;
+
+function readFileAsDataUrl(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 async function fileToCompactPreviewDataUrl(file: File): Promise<string> {
   const prepared =
     file.type.startsWith("image/") && file.type !== "image/gif"
@@ -27,12 +38,12 @@ async function fileToCompactPreviewDataUrl(file: File): Promise<string> {
       : file;
 
   if (!prepared.type.startsWith("image/")) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(prepared);
-    });
+    return readFileAsDataUrl(prepared);
+  }
+
+  // Small photos (e.g. 185 KB) stay at full quality — only large screenshots get shrunk.
+  if (prepared.size <= LOCAL_PREVIEW_PASSTHROUGH_BYTES) {
+    return readFileAsDataUrl(prepared);
   }
 
   const bitmap = await createImageBitmap(prepared);
@@ -58,12 +69,7 @@ async function fileToCompactPreviewDataUrl(file: File): Promise<string> {
     throw new Error("Could not prepare receipt preview");
   }
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
+  return readFileAsDataUrl(blob);
 }
 
 /** Keep copies of picked photos so previews work before and right after submit. */
