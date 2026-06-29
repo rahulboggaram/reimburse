@@ -12,7 +12,11 @@ import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { assertValidStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
-import { bufferToDataUrl, isSupabaseReceiptPath } from "@/lib/receipt-store";
+import {
+  bufferToDataUrl,
+  INLINE_RECEIPT_PATH,
+  isSupabaseReceiptPath,
+} from "@/lib/receipt-store";
 import {
   deleteReceiptObjects,
   isSupabaseStorageEnabled,
@@ -45,6 +49,7 @@ export type SavedReceipt = {
   fileName: string;
   mimeType: string;
   sizeBytes: number;
+  fileData?: Buffer;
 };
 
 export function receiptFilesFromFormData(formData: FormData): File[] {
@@ -140,7 +145,33 @@ async function normalizeReceiptInput(input: ReceiptInput) {
   };
 }
 
-/** Save bytes in the database as a data URL (production on Vercel). */
+/** Save raw bytes in Postgres (reliable on Vercel + Supabase pooler). */
+async function saveToDatabaseBytes(
+  inputs: ReceiptInput[],
+): Promise<SavedReceipt[]> {
+  return Promise.all(
+    inputs.map(async (input) => {
+      const normalized = await normalizeReceiptInput(input);
+      if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
+        throw new Error(
+          "Photo is too large after compression. Try a smaller image.",
+        );
+      }
+      if (normalized.buffer.length === 0) {
+        throw new Error("Receipt photo is empty. Try another image.");
+      }
+      return {
+        filePath: INLINE_RECEIPT_PATH,
+        fileData: normalized.buffer,
+        fileName: normalized.fileName,
+        mimeType: normalized.mimeType,
+        sizeBytes: normalized.buffer.length,
+      };
+    }),
+  );
+}
+
+/** Legacy: data URLs in filePath (can break through the connection pooler). */
 async function saveToDatabaseDataUrls(
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
@@ -174,7 +205,7 @@ export async function saveReceiptInputs(
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
   if (process.env.VERCEL) {
-    return saveToDatabaseDataUrls(inputs);
+    return saveToDatabaseBytes(inputs);
   }
 
   const dir = path.join(

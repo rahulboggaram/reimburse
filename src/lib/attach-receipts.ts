@@ -102,6 +102,7 @@ export async function createReimbursementWithReceipts(
             data: {
               reimbursementId: created.id,
               filePath: file.filePath,
+              fileData: file.fileData ? new Uint8Array(file.fileData) : undefined,
               fileName: file.fileName,
               mimeType: file.mimeType,
               sizeBytes: file.sizeBytes,
@@ -162,6 +163,7 @@ export async function replaceClaimReceiptsFromInputs(
           data: {
             reimbursementId,
             filePath: file.filePath,
+            fileData: file.fileData ? new Uint8Array(file.fileData) : undefined,
             fileName: file.fileName,
             mimeType: file.mimeType,
             sizeBytes: file.sizeBytes,

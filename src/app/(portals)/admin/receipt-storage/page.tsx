@@ -8,10 +8,11 @@ import { readJson } from "@/lib/api";
 type ReceiptStorageStatus = {
   stats: {
     total: number;
+    inBytes?: number;
     inDatabase: number;
     inSupabaseStorage: number;
     localFiles: number;
-    storageBackend: "supabase" | "database";
+    storageBackend: string;
     unavailable: number;
   };
   recentReceipts: Array<{
@@ -20,7 +21,7 @@ type ReceiptStorageStatus = {
     fileName: string | null;
     employeeName: string;
     amount: number;
-    storage: "database" | "local" | "supabase";
+    storage: "database" | "local" | "supabase" | "bytes" | "bytes-missing";
     previewOk: boolean;
     previewError: string | null;
   }>;
@@ -61,16 +62,21 @@ export default function AdminReceiptStoragePage() {
               Database storage
             </p>
             <ul className="space-y-2 text-sm text-zinc-700">
-              {status.stats.storageBackend === "supabase" ? (
+              {status.stats.inBytes != null ? (
                 <li>
-                  <strong>{status.stats.inSupabaseStorage}</strong> receipt photos
-                  in Supabase Storage
+                  <strong>{status.stats.inBytes}</strong> receipt photos stored
+                  as binary (current)
                 </li>
               ) : null}
               <li>
-                <strong>{status.stats.inDatabase}</strong> receipt photos stored
-                as database blobs (legacy)
+                <strong>{status.stats.inDatabase}</strong> legacy text blobs
               </li>
+              {status.stats.inSupabaseStorage > 0 ? (
+                <li>
+                  <strong>{status.stats.inSupabaseStorage}</strong> in Supabase
+                  Storage (legacy)
+                </li>
+              ) : null}
               <li>
                 <strong>{status.stats.total}</strong> total receipt rows
               </li>

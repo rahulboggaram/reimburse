@@ -104,6 +104,7 @@ model ReimbursementReceipt {
   reimbursementId String
   reimbursement   Reimbursement @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
   filePath        String
+  fileData        Bytes?
   fileName        String?
   mimeType        String
   sizeBytes       Int

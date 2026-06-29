@@ -1,11 +1,11 @@
 import { readFile } from "fs/promises";
 import path from "path";
 
-import { prepareReceiptImageForServe } from "@/lib/normalize-receipt-image";
 import { isReceiptImageMime } from "@/lib/receipt-mime";
 import { parseStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
 import {
   isDatabaseReceiptPath,
+  isInlineReceiptPath,
   isSupabaseReceiptPath,
 } from "@/lib/receipt-store";
 import { downloadReceiptObject } from "@/lib/supabase-storage";
@@ -31,31 +31,40 @@ const LEGACY_RECEIPT_ERROR =
 const LEGACY_UPLOAD_ERROR =
   "This receipt was saved before cloud storage was enabled. Refile with a new photo.";
 
-export async function receiptFileResponse(
-  filePath: string,
-  mimeType: string,
-  fileName: string | null,
-  sizeBytes?: number | null,
-): Promise<Response> {
-  if (!filePath?.trim()) {
+type ReceiptRow = {
+  filePath: string;
+  mimeType: string;
+  fileName: string | null;
+  sizeBytes?: number | null;
+  fileData?: Buffer | Uint8Array | null;
+};
+
+export async function receiptFileResponse(row: ReceiptRow): Promise<Response> {
+  const fileData =
+    row.fileData instanceof Uint8Array
+      ? Buffer.from(row.fileData)
+      : row.fileData;
+
+  if (fileData && fileData.length > 0) {
+    return serveReceiptBytes(fileData, row.mimeType, row.fileName);
+  }
+
+  const filePath = row.filePath?.trim() ?? "";
+  if (!filePath) {
     return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
+  }
+
+  if (isInlineReceiptPath(filePath)) {
+    return Response.json(
+      { error: "Receipt bytes are missing. Refile with a new photo." },
+      { status: 404 },
+    );
   }
 
   if (isSupabaseReceiptPath(filePath)) {
     try {
       const downloaded = await downloadReceiptObject(filePath);
-      const resolvedMime = mimeType;
-
-      if (isReceiptImageMime(resolvedMime) || resolvedMime.includes("heic")) {
-        const served = await prepareReceiptImageForServe(downloaded, resolvedMime);
-        return serveReceiptBytes(
-          Buffer.from(served.buffer),
-          served.mimeType,
-          fileName,
-        );
-      }
-
-      return serveReceiptBytes(downloaded, resolvedMime, fileName);
+      return serveReceiptBytes(downloaded, row.mimeType, row.fileName);
     } catch (err) {
       console.error("receipt storage download failed", { filePath, err });
       return Response.json(
@@ -66,22 +75,13 @@ export async function receiptFileResponse(
   }
 
   if (isDatabaseReceiptPath(filePath)) {
-    let parsed = parseStoredReceiptDataUrl(filePath, sizeBytes);
-    if (!parsed) {
-      parsed = parseStoredReceiptDataUrl(filePath);
-    }
+    const parsed =
+      parseStoredReceiptDataUrl(filePath, row.sizeBytes) ??
+      parseStoredReceiptDataUrl(filePath);
     if (!parsed) {
       return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
     }
-
-    let { buffer, mimeType: resolvedMime } = parsed;
-    if (isReceiptImageMime(resolvedMime) || resolvedMime.includes("heic")) {
-      const served = await prepareReceiptImageForServe(buffer, resolvedMime);
-      buffer = served.buffer;
-      resolvedMime = served.mimeType;
-    }
-
-    return serveReceiptBytes(buffer, resolvedMime, fileName);
+    return serveReceiptBytes(parsed.buffer, parsed.mimeType, row.fileName);
   }
 
   if (filePath.startsWith("/uploads/")) {
@@ -91,11 +91,7 @@ export async function receiptFileResponse(
     const absolute = path.join(process.cwd(), "public", filePath);
     try {
       const buffer = await readFile(absolute);
-      if (isReceiptImageMime(mimeType)) {
-        const served = await prepareReceiptImageForServe(buffer, mimeType);
-        return serveReceiptBytes(served.buffer, served.mimeType, fileName);
-      }
-      return serveReceiptBytes(buffer, mimeType, fileName);
+      return serveReceiptBytes(buffer, row.mimeType, row.fileName);
     } catch {
       return Response.json(
         { error: "Receipt file is no longer on the server. Re-upload if needed." },

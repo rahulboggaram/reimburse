@@ -1,7 +1,6 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { prisma } from "@/lib/db";
-import { getReceiptStorageStats } from "@/lib/receipt-store";
-import { downloadReceiptObject } from "@/lib/supabase-storage";
+import { getReceiptStorageStats, isInlineReceiptPath } from "@/lib/receipt-store";
 import { receiptFileResponse } from "@/lib/receipt-content";
 
 export async function GET() {
@@ -20,6 +19,7 @@ export async function GET() {
       mimeType: true,
       sizeBytes: true,
       filePath: true,
+      fileData: true,
       reimbursement: {
         select: { employeeName: true, amount: true },
       },
@@ -31,12 +31,13 @@ export async function GET() {
       let previewOk = false;
       let previewError: string | null = null;
       try {
-        const response = await receiptFileResponse(
-          row.filePath,
-          row.mimeType,
-          row.fileName,
-          row.sizeBytes,
-        );
+        const response = await receiptFileResponse({
+          filePath: row.filePath,
+          fileData: row.fileData,
+          mimeType: row.mimeType,
+          fileName: row.fileName,
+          sizeBytes: row.sizeBytes,
+        });
         previewOk = response.ok;
         if (!response.ok) {
           const body = (await response.json().catch(() => null)) as {
@@ -55,12 +56,15 @@ export async function GET() {
         fileName: row.fileName,
         employeeName: row.reimbursement.employeeName,
         amount: Number(row.reimbursement.amount),
-        storage:
-          row.filePath.startsWith("data:")
+        storage: row.fileData
+          ? "bytes"
+          : row.filePath.startsWith("data:")
             ? "database"
-            : row.filePath.startsWith("/uploads/")
-              ? "local"
-              : "supabase",
+            : isInlineReceiptPath(row.filePath)
+              ? "bytes-missing"
+              : row.filePath.startsWith("/uploads/")
+                ? "local"
+                : "supabase",
         previewOk,
         previewError,
       };

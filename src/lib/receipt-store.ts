@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/db";
-import { isSupabaseStorageEnabled } from "@/lib/supabase-storage";
+
+/** Receipt bytes stored in the fileData column (not filePath). */
+export const INLINE_RECEIPT_PATH = "db:inline";
+
+export function isInlineReceiptPath(filePath: string) {
+  return filePath.trim() === INLINE_RECEIPT_PATH;
+}
 
 /** Receipt image bytes live in the database as a data URL (legacy). */
 export function bufferToDataUrl(buffer: Buffer, mimeType: string) {
@@ -20,30 +26,37 @@ export function isSupabaseReceiptPath(filePath: string) {
 }
 
 export async function getReceiptStorageStats() {
-  const [total, inDatabase, inSupabaseStorage, localFiles] = await Promise.all([
-    prisma.reimbursementReceipt.count(),
-    prisma.reimbursementReceipt.count({
-      where: { filePath: { startsWith: "data:" } },
-    }),
-    prisma.reimbursementReceipt.count({
-      where: {
-        AND: [
-          { NOT: { filePath: { startsWith: "data:" } } },
-          { NOT: { filePath: { startsWith: "/uploads/" } } },
-        ],
-      },
-    }),
-    prisma.reimbursementReceipt.count({
-      where: { filePath: { startsWith: "/uploads/" } },
-    }),
-  ]);
+  const [total, inBytes, inDatabase, inSupabaseStorage, localFiles] =
+    await Promise.all([
+      prisma.reimbursementReceipt.count(),
+      prisma.reimbursementReceipt.count({
+        where: { fileData: { not: null } },
+      }),
+      prisma.reimbursementReceipt.count({
+        where: { filePath: { startsWith: "data:" } },
+      }),
+      prisma.reimbursementReceipt.count({
+        where: {
+          AND: [
+            { fileData: null },
+            { NOT: { filePath: { startsWith: "data:" } } },
+            { NOT: { filePath: { startsWith: "/uploads/" } } },
+            { NOT: { filePath: "db:inline" } },
+          ],
+        },
+      }),
+      prisma.reimbursementReceipt.count({
+        where: { filePath: { startsWith: "/uploads/" } },
+      }),
+    ]);
 
   return {
     total,
+    inBytes,
     inDatabase,
     inSupabaseStorage,
     localFiles,
-    storageBackend: isSupabaseStorageEnabled() ? "supabase" : "database",
-    unavailable: Math.max(0, total - inDatabase - inSupabaseStorage - localFiles),
+    storageBackend: "database-bytes",
+    unavailable: Math.max(0, total - inBytes - inDatabase - inSupabaseStorage - localFiles),
   };
 }

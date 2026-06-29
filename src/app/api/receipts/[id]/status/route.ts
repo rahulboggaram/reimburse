@@ -5,6 +5,7 @@ import { canViewClaimReceipts } from "@/lib/receipt-access";
 import { parseStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
 import {
   isDatabaseReceiptPath,
+  isInlineReceiptPath,
   isSupabaseReceiptPath,
 } from "@/lib/receipt-store";
 import { downloadReceiptObject } from "@/lib/supabase-storage";
@@ -12,8 +13,10 @@ import { withDbRetry } from "@/lib/db-retry";
 
 export const runtime = "nodejs";
 
-function storageKind(filePath: string) {
+function storageKind(filePath: string, hasBytes: boolean) {
+  if (hasBytes) return "bytes";
   if (!filePath?.trim()) return "empty";
+  if (isInlineReceiptPath(filePath)) return "bytes-missing";
   if (isDatabaseReceiptPath(filePath)) return "database";
   if (filePath.startsWith("/uploads/")) return "local";
   if (isSupabaseReceiptPath(filePath)) return "supabase";
@@ -61,14 +64,37 @@ export async function GET(
     }
 
     const filePath = receipt.filePath?.trim() ?? "";
-    const kind = storageKind(filePath);
+    const fileData = receipt.fileData
+      ? Buffer.from(receipt.fileData)
+      : null;
+    const kind = storageKind(filePath, Boolean(fileData?.length));
+
+    if (fileData && fileData.length > 0) {
+      return Response.json({
+        ok: true,
+        step: "serve",
+        storage: kind,
+        sizeBytes: receipt.sizeBytes,
+        bytesReadable: fileData.length,
+      });
+    }
 
     if (!filePath) {
       return Response.json({
         ok: false,
         step: "storage",
         storage: kind,
-        error: "No file path saved for this receipt. Refile with a new photo.",
+        error: "No file saved for this receipt. Refile with a new photo.",
+      });
+    }
+
+    if (kind === "bytes-missing") {
+      return Response.json({
+        ok: false,
+        step: "storage",
+        storage: kind,
+        error:
+          "Receipt column not migrated yet. Run scripts/receipt-file-data-migration.sql in Supabase, then submit a new claim.",
       });
     }
 
@@ -86,7 +112,7 @@ export async function GET(
         ok: false,
         step: "storage",
         storage: kind,
-        error: "This receipt was saved on a dev machine, not cloud storage. Refile it.",
+        error: "This receipt was saved on a dev machine. Refile it.",
       });
     }
 
