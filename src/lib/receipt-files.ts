@@ -16,6 +16,7 @@ import { bufferToDataUrl, isSupabaseReceiptPath } from "@/lib/receipt-store";
 import {
   buildReceiptObjectPath,
   deleteReceiptObjects,
+  downloadReceiptObject,
   isSupabaseStorageEnabled,
   uploadReceiptObject,
 } from "@/lib/supabase-storage";
@@ -173,6 +174,27 @@ async function saveToSupabaseStorage(
         normalized.mimeType,
       );
 
+      try {
+        const verified = await downloadReceiptObject(objectPath);
+        if (verified.length === 0) {
+          throw new Error("Uploaded receipt is empty in storage.");
+        }
+      } catch (verifyErr) {
+        console.error("receipt storage verify failed; saving to database", {
+          reimbursementId,
+          objectPath,
+          verifyErr,
+        });
+        const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
+        assertValidStoredReceiptDataUrl(filePath, normalized.buffer.length);
+        return {
+          filePath,
+          fileName: normalized.fileName,
+          mimeType: normalized.mimeType,
+          sizeBytes: normalized.buffer.length,
+        };
+      }
+
       return {
         filePath: objectPath,
         fileName: normalized.fileName,
@@ -206,10 +228,22 @@ async function saveToDatabaseDataUrls(
   );
 }
 
+/** Max per-file size stored as a database data URL on Vercel (reliable previews). */
+const VERCEL_DATABASE_RECEIPT_BYTES = 900_000;
+
 export async function saveReceiptInputs(
   reimbursementId: string,
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
+  const fitsDatabaseOnVercel =
+    Boolean(process.env.VERCEL) &&
+    inputs.length > 0 &&
+    inputs.every((input) => input.size <= VERCEL_DATABASE_RECEIPT_BYTES);
+
+  if (fitsDatabaseOnVercel) {
+    return saveToDatabaseDataUrls(inputs);
+  }
+
   if (isSupabaseStorageEnabled()) {
     try {
       return await saveToSupabaseStorage(reimbursementId, inputs);

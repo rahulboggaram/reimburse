@@ -21,6 +21,8 @@ type ReceiptStorageStatus = {
     employeeName: string;
     amount: number;
     storage: "database" | "local" | "supabase";
+    previewOk: boolean;
+    previewError: string | null;
   }>;
 };
 
@@ -43,7 +45,7 @@ export default function AdminReceiptStoragePage() {
         title="Receipt photos"
         description={
           status?.stats.storageBackend === "supabase"
-            ? "New receipts are stored in Supabase Storage. Older rows may still be in the database."
+            ? "Phone-sized receipts (under ~900 KB) are saved in the database for reliable previews. Larger photos use Supabase Storage."
             : "Receipts are stored in the database until Supabase Storage env vars are set on Vercel."
         }
       />
@@ -102,6 +104,15 @@ export default function AdminReceiptStoragePage() {
                     <span className="mt-0.5 block text-xs text-zinc-500">
                       {new Date(row.createdAt).toLocaleString("en-IN")} ·{" "}
                       {row.fileName ?? "receipt"} · {row.storage}
+                      {row.previewOk ? (
+                        <span className="text-emerald-700"> · preview OK</span>
+                      ) : (
+                        <span className="text-red-700">
+                          {" "}
+                          · preview failed
+                          {row.previewError ? `: ${row.previewError}` : ""}
+                        </span>
+                      )}
                     </span>
                   </li>
                 ))}

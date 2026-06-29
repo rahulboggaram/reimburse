@@ -66,7 +66,10 @@ export async function receiptFileResponse(
   }
 
   if (isDatabaseReceiptPath(filePath)) {
-    const parsed = parseStoredReceiptDataUrl(filePath, sizeBytes);
+    let parsed = parseStoredReceiptDataUrl(filePath, sizeBytes);
+    if (!parsed) {
+      parsed = parseStoredReceiptDataUrl(filePath);
+    }
     if (!parsed) {
       return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
     }
