@@ -9,13 +9,13 @@ export async function GET() {
   const stats = await getReceiptStorageStats();
 
   const recentReceipts = await prisma.reimbursementReceipt.findMany({
-    where: { filePath: { startsWith: "data:" } },
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {
       id: true,
       createdAt: true,
       fileName: true,
+      filePath: true,
       reimbursement: {
         select: { employeeName: true, amount: true },
       },
@@ -30,6 +30,12 @@ export async function GET() {
       fileName: row.fileName,
       employeeName: row.reimbursement.employeeName,
       amount: Number(row.reimbursement.amount),
+      storage:
+        row.filePath.startsWith("data:")
+          ? "database"
+          : row.filePath.startsWith("/uploads/")
+            ? "local"
+            : "supabase",
     })),
   });
 }

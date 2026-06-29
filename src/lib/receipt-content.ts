@@ -4,7 +4,11 @@ import path from "path";
 import { prepareReceiptImageForServe } from "@/lib/normalize-receipt-image";
 import { isReceiptImageMime } from "@/lib/receipt-mime";
 import { parseStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
-import { isDatabaseReceiptPath } from "@/lib/receipt-store";
+import {
+  isDatabaseReceiptPath,
+  isSupabaseReceiptPath,
+} from "@/lib/receipt-store";
+import { downloadReceiptObject } from "@/lib/supabase-storage";
 
 export function serveReceiptBytes(
   buffer: Buffer,
@@ -35,6 +39,30 @@ export async function receiptFileResponse(
 ): Promise<Response> {
   if (!filePath?.trim()) {
     return Response.json({ error: LEGACY_RECEIPT_ERROR }, { status: 404 });
+  }
+
+  if (isSupabaseReceiptPath(filePath)) {
+    try {
+      const downloaded = await downloadReceiptObject(filePath);
+      const resolvedMime = mimeType;
+
+      if (isReceiptImageMime(resolvedMime) || resolvedMime.includes("heic")) {
+        const served = await prepareReceiptImageForServe(downloaded, resolvedMime);
+        return serveReceiptBytes(
+          Buffer.from(served.buffer),
+          served.mimeType,
+          fileName,
+        );
+      }
+
+      return serveReceiptBytes(downloaded, resolvedMime, fileName);
+    } catch (err) {
+      console.error("receipt storage download failed", { filePath, err });
+      return Response.json(
+        { error: "Receipt file is missing from storage. Refile with a new photo." },
+        { status: 404 },
+      );
+    }
   }
 
   if (isDatabaseReceiptPath(filePath)) {

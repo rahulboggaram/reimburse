@@ -9,7 +9,9 @@ type ReceiptStorageStatus = {
   stats: {
     total: number;
     inDatabase: number;
+    inSupabaseStorage: number;
     localFiles: number;
+    storageBackend: "supabase" | "database";
     unavailable: number;
   };
   recentReceipts: Array<{
@@ -18,6 +20,7 @@ type ReceiptStorageStatus = {
     fileName: string | null;
     employeeName: string;
     amount: number;
+    storage: "database" | "local" | "supabase";
   }>;
 };
 
@@ -38,7 +41,11 @@ export default function AdminReceiptStoragePage() {
     <div className="space-y-6">
       <PageHeading
         title="Receipt photos"
-        description="Receipts are stored in the Supabase database."
+        description={
+          status?.stats.storageBackend === "supabase"
+            ? "New receipts are stored in Supabase Storage. Older rows may still be in the database."
+            : "Receipts are stored in the database until Supabase Storage env vars are set on Vercel."
+        }
       />
 
       {error ? (
@@ -56,9 +63,15 @@ export default function AdminReceiptStoragePage() {
               Database storage
             </p>
             <ul className="space-y-2 text-sm text-zinc-700">
+              {status.stats.storageBackend === "supabase" ? (
+                <li>
+                  <strong>{status.stats.inSupabaseStorage}</strong> receipt photos
+                  in Supabase Storage
+                </li>
+              ) : null}
               <li>
-                <strong>{status.stats.inDatabase}</strong> receipt photos in
-                the database
+                <strong>{status.stats.inDatabase}</strong> receipt photos stored
+                as database blobs (legacy)
               </li>
               <li>
                 <strong>{status.stats.total}</strong> total receipt rows
@@ -88,7 +101,7 @@ export default function AdminReceiptStoragePage() {
                     · ₹{row.amount}
                     <span className="mt-0.5 block text-xs text-zinc-500">
                       {new Date(row.createdAt).toLocaleString("en-IN")} ·{" "}
-                      {row.fileName ?? "receipt"}
+                      {row.fileName ?? "receipt"} · {row.storage}
                     </span>
                   </li>
                 ))}

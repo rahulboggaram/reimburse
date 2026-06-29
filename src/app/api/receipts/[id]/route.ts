@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
 import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
-import { isDatabaseReceiptPath } from "@/lib/receipt-store";
+import { isDatabaseReceiptPath, isSupabaseReceiptPath } from "@/lib/receipt-store";
 import { receiptFileResponse } from "@/lib/receipt-content";
 import { withDbRetry } from "@/lib/db-retry";
 
@@ -58,6 +58,7 @@ export async function GET(
 
     if (
       !isDatabaseReceiptPath(row.filePath) &&
+      !isSupabaseReceiptPath(row.filePath) &&
       !row.filePath.startsWith("/uploads/")
     ) {
       return Response.json(

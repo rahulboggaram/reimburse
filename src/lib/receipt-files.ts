@@ -12,7 +12,13 @@ import type { ReceiptInput } from "@/lib/receipt-input";
 import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { assertValidStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
-import { bufferToDataUrl } from "@/lib/receipt-store";
+import { bufferToDataUrl, isSupabaseReceiptPath } from "@/lib/receipt-store";
+import {
+  buildReceiptObjectPath,
+  deleteReceiptObjects,
+  isSupabaseStorageEnabled,
+  uploadReceiptObject,
+} from "@/lib/supabase-storage";
 
 /** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
 const MAX_TOTAL_UPLOAD_BYTES = 3_500_000;
@@ -138,29 +144,73 @@ async function normalizeReceiptInput(input: ReceiptInput) {
   };
 }
 
+async function saveToSupabaseStorage(
+  reimbursementId: string,
+  inputs: ReceiptInput[],
+): Promise<SavedReceipt[]> {
+  return Promise.all(
+    inputs.map(async (input) => {
+      const normalized = await normalizeReceiptInput(input);
+      if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
+        throw new Error(
+          "Photo is too large after compression. Try a smaller image.",
+        );
+      }
+
+      const ext =
+        EXT_BY_MIME[normalized.mimeType] ?? (path.extname(input.name) || ".bin");
+      const storedName = `${randomUUID()}${ext}`;
+      const objectPath = buildReceiptObjectPath(reimbursementId, storedName);
+
+      await uploadReceiptObject(
+        objectPath,
+        normalized.buffer,
+        normalized.mimeType,
+      );
+
+      return {
+        filePath: objectPath,
+        fileName: normalized.fileName,
+        mimeType: normalized.mimeType,
+        sizeBytes: normalized.buffer.length,
+      };
+    }),
+  );
+}
+
+async function saveToDatabaseDataUrls(
+  inputs: ReceiptInput[],
+): Promise<SavedReceipt[]> {
+  return Promise.all(
+    inputs.map(async (input) => {
+      const normalized = await normalizeReceiptInput(input);
+      if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
+        throw new Error(
+          "Photo is too large after compression. Try a smaller image.",
+        );
+      }
+      const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
+      assertValidStoredReceiptDataUrl(filePath, normalized.buffer.length);
+      return {
+        filePath,
+        fileName: normalized.fileName,
+        mimeType: normalized.mimeType,
+        sizeBytes: normalized.buffer.length,
+      };
+    }),
+  );
+}
+
 export async function saveReceiptInputs(
   reimbursementId: string,
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
+  if (isSupabaseStorageEnabled()) {
+    return saveToSupabaseStorage(reimbursementId, inputs);
+  }
+
   if (process.env.VERCEL) {
-    return Promise.all(
-      inputs.map(async (input) => {
-        const normalized = await normalizeReceiptInput(input);
-        if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
-          throw new Error(
-            "Photo is too large after compression. Try a smaller image.",
-          );
-        }
-        const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
-        assertValidStoredReceiptDataUrl(filePath, normalized.buffer.length);
-        return {
-          filePath,
-          fileName: normalized.fileName,
-          mimeType: normalized.mimeType,
-          sizeBytes: normalized.buffer.length,
-        };
-      }),
-    );
+    return saveToDatabaseDataUrls(inputs);
   }
 
   const dir = path.join(
@@ -181,9 +231,6 @@ export async function saveReceiptInputs(
       const absolutePath = path.join(dir, storedName);
       await writeFile(absolutePath, normalized.buffer);
       const filePath = `/uploads/receipts/${reimbursementId}/${storedName}`;
-      if (process.env.VERCEL) {
-        throw new Error("Unexpected local receipt path on Vercel.");
-      }
       return {
         filePath,
         fileName: normalized.fileName,
@@ -194,11 +241,17 @@ export async function saveReceiptInputs(
   );
 }
 
-export async function deleteStoredReceiptFiles(_filePaths: string[]) {
-  // Receipt bytes live in the database on Vercel — nothing to delete externally.
+export async function deleteStoredReceiptFiles(filePaths: string[]) {
+  const storagePaths = filePaths.filter(isSupabaseReceiptPath);
+  if (storagePaths.length > 0 && isSupabaseStorageEnabled()) {
+    await deleteReceiptObjects(storagePaths);
+  }
 }
 
 export async function deleteReceiptFilesForClaim(reimbursementId: string) {
+  if (isSupabaseStorageEnabled()) {
+    return;
+  }
   if (process.env.VERCEL) return;
   const dir = path.join(
     process.cwd(),

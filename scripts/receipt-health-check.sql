@@ -11,7 +11,8 @@ SELECT
   CASE
     WHEN r."filePath" IS NULL OR TRIM(r."filePath") = '' THEN 'empty_path'
     WHEN r."filePath" LIKE '/uploads/%' THEN 'legacy_disk_path'
-    WHEN r."filePath" NOT LIKE 'data:%' THEN 'unknown_format'
+    WHEN r."filePath" LIKE 'data:%' THEN 'database_blob'
+    WHEN r."filePath" LIKE '%/%' THEN 'supabase_storage'
     WHEN LENGTH(r."filePath") < 100 THEN 'truncated_data_url'
     ELSE 'ok'
   END AS status,
@@ -24,6 +25,6 @@ WHERE
   r."filePath" IS NULL
   OR TRIM(r."filePath") = ''
   OR r."filePath" LIKE '/uploads/%'
-  OR r."filePath" NOT LIKE 'data:%'
+  OR (r."filePath" NOT LIKE 'data:%' AND r."filePath" NOT LIKE '%/%' AND r."filePath" NOT LIKE '/uploads/%')
   OR LENGTH(r."filePath") < 100
 ORDER BY rm."createdAt" DESC;
