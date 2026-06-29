@@ -1,8 +1,10 @@
+import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
-import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
-import { receiptFileResponse } from "@/lib/receipt-content";
-import { receiptPrisma } from "@/lib/receipt-db";
+import {
+  loadReceiptPhotoBytes,
+  serveReceiptImage,
+} from "@/lib/receipt-photos";
 import { withDbRetry } from "@/lib/db-retry";
 
 export const maxDuration = 30;
@@ -12,18 +14,18 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await context.params;
+
   try {
-    const { id } = await context.params;
     const session = await requireSession();
     if (session instanceof Response) return session;
 
     const receipt = await withDbRetry(() =>
-      receiptPrisma.reimbursementReceipt.findUnique({
+      prisma.reimbursementReceipt.findUnique({
         where: { id },
         include: {
           reimbursement: {
             select: {
-              id: true,
               employeeId: true,
               approverId: true,
               employee: { select: { role: true } },
@@ -34,25 +36,25 @@ export async function GET(
     );
 
     if (!receipt?.reimbursement) {
-      return Response.json({ error: "Receipt not found" }, { status: 404 });
+      return Response.json({ error: "Receipt not found." }, { status: 404 });
     }
 
     if (!canViewClaimReceipts(session, receipt.reimbursement)) {
-      return Response.json({ error: "Receipt not found" }, { status: 404 });
+      return Response.json({ error: "Receipt not found." }, { status: 404 });
     }
 
-    return receiptFileResponse({
-      filePath: receipt.filePath?.trim() ?? "",
-      fileData: receipt.fileData,
+    const bytes = await loadReceiptPhotoBytes({
+      filePath: receipt.filePath,
       fileName: receipt.fileName,
       mimeType: receipt.mimeType,
       sizeBytes: receipt.sizeBytes,
     });
+
+    return serveReceiptImage(bytes, receipt.mimeType, receipt.fileName);
   } catch (err) {
-    return apiDbErrorResponse(
-      "receipts/[id]",
-      err,
-      "Receipt unavailable. Please try again.",
-    );
+    const message =
+      err instanceof Error ? err.message : "Could not load this receipt photo.";
+    console.error("receipts/[id] failed", { id, err });
+    return Response.json({ error: message }, { status: 404 });
   }
 }

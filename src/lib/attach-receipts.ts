@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
-import { receiptFileDataInput, receiptPrisma } from "@/lib/receipt-db";
 import { withDbRetry } from "@/lib/db-retry";
 import type { ReceiptInput } from "@/lib/receipt-input";
 import {
@@ -99,11 +98,10 @@ export async function createReimbursementWithReceipts(
     try {
       for (const file of saved) {
         await withDbRetry(() =>
-          receiptPrisma.reimbursementReceipt.create({
+          prisma.reimbursementReceipt.create({
             data: {
               reimbursementId: created.id,
               filePath: file.filePath,
-              fileData: receiptFileDataInput(file.fileData),
               fileName: file.fileName,
               mimeType: file.mimeType,
               sizeBytes: file.sizeBytes,
@@ -160,11 +158,10 @@ export async function replaceClaimReceiptsFromInputs(
   try {
     for (const file of saved) {
       const row = await withDbRetry(() =>
-        receiptPrisma.reimbursementReceipt.create({
+        prisma.reimbursementReceipt.create({
           data: {
             reimbursementId,
             filePath: file.filePath,
-            fileData: receiptFileDataInput(file.fileData),
             fileName: file.fileName,
             mimeType: file.mimeType,
             sizeBytes: file.sizeBytes,

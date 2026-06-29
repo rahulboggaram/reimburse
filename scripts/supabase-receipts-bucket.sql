@@ -1,5 +1,5 @@
--- Run once in Supabase → SQL Editor (Reimburse - mumbai project).
--- Creates a private bucket for receipt photos. Only the service role (Vercel) can read/write.
+-- Run once in Supabase → SQL Editor.
+-- Creates the private bucket for receipt photos.
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
@@ -21,5 +21,3 @@ ON CONFLICT (id) DO UPDATE SET
   public = EXCLUDED.public,
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
-
--- No public policies — receipts are served through /api/receipts/:id with session auth.

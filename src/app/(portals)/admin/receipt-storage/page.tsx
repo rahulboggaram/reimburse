@@ -8,12 +8,10 @@ import { readJson } from "@/lib/api";
 type ReceiptStorageStatus = {
   stats: {
     total: number;
-    inBytes?: number;
-    inDatabase: number;
-    inSupabaseStorage: number;
+    inStorage: number;
+    legacyText: number;
     localFiles: number;
-    storageBackend: string;
-    unavailable: number;
+    storageConfigured: boolean;
   };
   recentReceipts: Array<{
     id: string;
@@ -21,7 +19,7 @@ type ReceiptStorageStatus = {
     fileName: string | null;
     employeeName: string;
     amount: number;
-    storage: "database" | "local" | "supabase" | "bytes" | "bytes-missing";
+    storage: string;
     previewOk: boolean;
     previewError: string | null;
   }>;
@@ -44,7 +42,7 @@ export default function AdminReceiptStoragePage() {
     <div className="space-y-6">
       <PageHeading
         title="Receipt photos"
-        description="Receipt photos are stored in the database and served through /api/receipts while you are signed in."
+        description="Photos are stored in Supabase Storage. The database only keeps the file path."
       />
 
       {error ? (
@@ -58,41 +56,26 @@ export default function AdminReceiptStoragePage() {
       ) : status ? (
         <>
           <Card className="space-y-4">
-            <p className="text-sm font-semibold text-zinc-900">
-              Database storage
-            </p>
+            <p className="text-sm font-semibold text-zinc-900">Storage</p>
             <ul className="space-y-2 text-sm text-zinc-700">
-              {status.stats.inBytes != null ? (
-                <li>
-                  <strong>{status.stats.inBytes}</strong> receipt photos stored
-                  as binary (current)
-                </li>
-              ) : null}
               <li>
-                <strong>{status.stats.inDatabase}</strong> legacy text blobs
+                Supabase configured on Vercel:{" "}
+                <strong>{status.stats.storageConfigured ? "yes" : "no"}</strong>
               </li>
-              {status.stats.inSupabaseStorage > 0 ? (
-                <li>
-                  <strong>{status.stats.inSupabaseStorage}</strong> in Supabase
-                  Storage (legacy)
-                </li>
-              ) : null}
               <li>
-                <strong>{status.stats.total}</strong> total receipt rows
+                <strong>{status.stats.inStorage}</strong> in Supabase Storage
               </li>
-              {status.stats.unavailable > 0 ? (
-                <li className="text-amber-900">
-                  <strong>{status.stats.unavailable}</strong> missing or
-                  unreadable — ask the employee to refile those claims
-                </li>
-              ) : null}
+              <li>
+                <strong>{status.stats.legacyText}</strong> legacy broken text rows
+              </li>
+              <li>
+                <strong>{status.stats.total}</strong> total
+              </li>
             </ul>
           </Card>
 
           <Card className="space-y-3">
-            <p className="text-sm font-semibold text-zinc-900">
-              Recent receipts
-            </p>
+            <p className="text-sm font-semibold text-zinc-900">Recent receipts</p>
             {status.recentReceipts.length === 0 ? (
               <p className="text-sm text-zinc-600">No receipts yet.</p>
             ) : (
@@ -104,15 +87,13 @@ export default function AdminReceiptStoragePage() {
                     </span>{" "}
                     · ₹{row.amount}
                     <span className="mt-0.5 block text-xs text-zinc-500">
-                      {new Date(row.createdAt).toLocaleString("en-IN")} ·{" "}
-                      {row.fileName ?? "receipt"} · {row.storage}
+                      {new Date(row.createdAt).toLocaleString("en-IN")} · {row.storage}
                       {row.previewOk ? (
-                        <span className="text-emerald-700"> · preview OK</span>
+                        <span className="text-emerald-700"> · loads OK</span>
                       ) : (
                         <span className="text-red-700">
                           {" "}
-                          · preview failed
-                          {row.previewError ? `: ${row.previewError}` : ""}
+                          · {row.previewError ?? "failed"}
                         </span>
                       )}
                     </span>

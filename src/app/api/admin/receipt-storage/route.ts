@@ -1,16 +1,32 @@
 import { requireAdminAccess } from "@/lib/auth-api";
 import { prisma } from "@/lib/db";
-import { receiptPrisma } from "@/lib/receipt-db";
-import { getReceiptStorageStats, isInlineReceiptPath } from "@/lib/receipt-store";
-import { receiptFileResponse } from "@/lib/receipt-content";
+import { loadReceiptPhotoBytes } from "@/lib/receipt-photos";
+import { isDatabaseReceiptPath, isSupabaseReceiptPath } from "@/lib/receipt-store";
+import { isSupabaseStorageEnabled } from "@/lib/supabase-storage";
 
 export async function GET() {
   const session = await requireAdminAccess();
   if (session instanceof Response) return session;
 
-  const stats = await getReceiptStorageStats();
+  const [total, inStorage, legacyText, localFiles] = await Promise.all([
+    prisma.reimbursementReceipt.count(),
+    prisma.reimbursementReceipt.count({
+      where: {
+        AND: [
+          { NOT: { filePath: { startsWith: "data:" } } },
+          { NOT: { filePath: { startsWith: "/uploads/" } } },
+        ],
+      },
+    }),
+    prisma.reimbursementReceipt.count({
+      where: { filePath: { startsWith: "data:" } },
+    }),
+    prisma.reimbursementReceipt.count({
+      where: { filePath: { startsWith: "/uploads/" } },
+    }),
+  ]);
 
-  const recentReceipts = await receiptPrisma.reimbursementReceipt.findMany({
+  const recentReceipts = await prisma.reimbursementReceipt.findMany({
     orderBy: { createdAt: "desc" },
     take: 10,
     select: {
@@ -20,10 +36,7 @@ export async function GET() {
       mimeType: true,
       sizeBytes: true,
       filePath: true,
-      fileData: true,
-      reimbursement: {
-        select: { employeeName: true, amount: true },
-      },
+      reimbursement: { select: { employeeName: true, amount: true } },
     },
   });
 
@@ -32,24 +45,25 @@ export async function GET() {
       let previewOk = false;
       let previewError: string | null = null;
       try {
-        const response = await receiptFileResponse({
+        const bytes = await loadReceiptPhotoBytes({
           filePath: row.filePath,
-          fileData: row.fileData,
-          mimeType: row.mimeType,
           fileName: row.fileName,
+          mimeType: row.mimeType,
           sizeBytes: row.sizeBytes,
         });
-        previewOk = response.ok;
-        if (!response.ok) {
-          const body = (await response.json().catch(() => null)) as {
-            error?: string;
-          } | null;
-          previewError = body?.error ?? `HTTP ${response.status}`;
-        }
+        previewOk = bytes.length > 0;
       } catch (err) {
         previewError =
           err instanceof Error ? err.message : "Could not load receipt bytes.";
       }
+
+      const storage = isSupabaseReceiptPath(row.filePath)
+        ? "supabase"
+        : isDatabaseReceiptPath(row.filePath)
+          ? "legacy-text"
+          : row.filePath.startsWith("/uploads/")
+            ? "local"
+            : "unknown";
 
       return {
         id: row.id,
@@ -57,15 +71,7 @@ export async function GET() {
         fileName: row.fileName,
         employeeName: row.reimbursement.employeeName,
         amount: Number(row.reimbursement.amount),
-        storage: row.fileData
-          ? "bytes"
-          : row.filePath.startsWith("data:")
-            ? "database"
-            : isInlineReceiptPath(row.filePath)
-              ? "bytes-missing"
-              : row.filePath.startsWith("/uploads/")
-                ? "local"
-                : "supabase",
+        storage,
         previewOk,
         previewError,
       };
@@ -73,7 +79,13 @@ export async function GET() {
   );
 
   return Response.json({
-    stats,
+    stats: {
+      total,
+      inStorage,
+      legacyText,
+      localFiles,
+      storageConfigured: isSupabaseStorageEnabled(),
+    },
     recentReceipts: probed,
   });
 }

@@ -1,4 +1,4 @@
-/** Serves receipt bytes from the database (or legacy storage) with session auth. */
+/** Serves receipt bytes from Supabase Storage (or local disk in dev) with session auth. */
 export function receiptViewUrl(receiptId: string): string {
   return `/api/receipts/${receiptId}`;
 }

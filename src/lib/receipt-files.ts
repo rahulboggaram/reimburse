@@ -1,7 +1,3 @@
-import { mkdir, writeFile, rm } from "fs/promises";
-import path from "path";
-import { randomUUID } from "crypto";
-
 import {
   isReceiptFileTooLarge,
   MAX_RECEIPTS,
@@ -9,26 +5,14 @@ import {
   receiptStillTooLargeError,
 } from "@/lib/receipt-limits";
 import type { ReceiptInput } from "@/lib/receipt-input";
-import { normalizeReceiptImageBuffer } from "@/lib/normalize-receipt-image";
 import { inferReceiptMimeType } from "@/lib/receipt-mime";
-import { assertValidStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
 import {
-  bufferToDataUrl,
-  INLINE_RECEIPT_PATH,
-  isSupabaseReceiptPath,
-} from "@/lib/receipt-store";
-import {
-  deleteReceiptObjects,
-  isSupabaseStorageEnabled,
-} from "@/lib/supabase-storage";
+  deleteLocalReceiptFolder,
+  deleteReceiptPhotoFiles,
+  saveReceiptPhotos,
+  type SavedReceiptPhoto,
+} from "@/lib/receipt-photos";
 
-const PASSTHROUGH_MIME = new Set([
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-]);
 /** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
 const MAX_TOTAL_UPLOAD_BYTES = 3_500_000;
 
@@ -42,22 +26,7 @@ const ALLOWED_MIME = new Set([
   "application/pdf",
 ]);
 
-const EXT_BY_MIME: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-  "image/heic": ".heic",
-  "image/heif": ".heif",
-  "application/pdf": ".pdf",
-};
-
-export type SavedReceipt = {
-  filePath: string;
-  fileName: string;
-  mimeType: string;
-  sizeBytes: number;
-  fileData?: Buffer;
-};
+export type SavedReceipt = SavedReceiptPhoto;
 
 export function receiptFilesFromFormData(formData: FormData): File[] {
   return formData
@@ -131,150 +100,17 @@ export async function saveReceiptFiles(
   return saveReceiptInputs(reimbursementId, inputs);
 }
 
-async function normalizeReceiptInput(input: ReceiptInput) {
-  const declaredMime =
-    inferReceiptMimeType({ type: input.type, name: input.name }) ||
-    "application/octet-stream";
-
-  if (
-    process.env.VERCEL &&
-    PASSTHROUGH_MIME.has(declaredMime) &&
-    input.buffer.length > 0 &&
-    input.buffer.length <= MAX_TOTAL_UPLOAD_BYTES
-  ) {
-    const mimeType =
-      declaredMime === "image/jpg" ? "image/jpeg" : declaredMime;
-    return {
-      fileName: input.name || `receipt-${randomUUID()}`,
-      buffer: input.buffer,
-      mimeType,
-    };
-  }
-
-  const normalized = await normalizeReceiptImageBuffer(input.buffer, declaredMime, {
-    forStorage: true,
-  });
-  const buffer =
-    normalized.buffer.length > 0 ? normalized.buffer : input.buffer;
-  const mimeType =
-    normalized.buffer.length > 0 ? normalized.mimeType : declaredMime;
-  if (buffer.length === 0) {
-    throw new Error(`Receipt "${input.name || "file"}" is empty.`);
-  }
-  return {
-    fileName: input.name || `receipt-${randomUUID()}`,
-    buffer,
-    mimeType,
-  };
-}
-
-/** Save raw bytes in Postgres (reliable on Vercel + Supabase pooler). */
-async function saveToDatabaseBytes(
-  inputs: ReceiptInput[],
-): Promise<SavedReceipt[]> {
-  return Promise.all(
-    inputs.map(async (input) => {
-      const normalized = await normalizeReceiptInput(input);
-      if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
-        throw new Error(
-          "Photo is too large after compression. Try a smaller image.",
-        );
-      }
-      if (normalized.buffer.length === 0) {
-        throw new Error("Receipt photo is empty. Try another image.");
-      }
-      return {
-        filePath: INLINE_RECEIPT_PATH,
-        fileData: normalized.buffer,
-        fileName: normalized.fileName,
-        mimeType: normalized.mimeType,
-        sizeBytes: normalized.buffer.length,
-      };
-    }),
-  );
-}
-
-/** Legacy: data URLs in filePath (can break through the connection pooler). */
-async function saveToDatabaseDataUrls(
-  inputs: ReceiptInput[],
-): Promise<SavedReceipt[]> {
-  return Promise.all(
-    inputs.map(async (input) => {
-      const normalized = await normalizeReceiptInput(input);
-      if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
-        throw new Error(
-          "Photo is too large after compression. Try a smaller image.",
-        );
-      }
-      const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
-      assertValidStoredReceiptDataUrl(filePath, normalized.buffer.length);
-      return {
-        filePath,
-        fileName: normalized.fileName,
-        mimeType: normalized.mimeType,
-        sizeBytes: normalized.buffer.length,
-      };
-    }),
-  );
-}
-
-/**
- * Save receipt photos.
- * Production: database (simple, works in incognito, no external storage).
- * Local dev: files under public/uploads.
- */
 export async function saveReceiptInputs(
-  _reimbursementId: string,
+  reimbursementId: string,
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
-  if (process.env.VERCEL) {
-    return saveToDatabaseBytes(inputs);
-  }
-
-  const dir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "receipts",
-    _reimbursementId,
-  );
-  await mkdir(dir, { recursive: true });
-
-  return Promise.all(
-    inputs.map(async (input) => {
-      const normalized = await normalizeReceiptInput(input);
-      const ext =
-        EXT_BY_MIME[normalized.mimeType] ?? (path.extname(input.name) || ".bin");
-      const storedName = `${randomUUID()}${ext}`;
-      const absolutePath = path.join(dir, storedName);
-      await writeFile(absolutePath, normalized.buffer);
-      const filePath = `/uploads/receipts/${_reimbursementId}/${storedName}`;
-      return {
-        filePath,
-        fileName: normalized.fileName,
-        mimeType: normalized.mimeType,
-        sizeBytes: normalized.buffer.length,
-      };
-    }),
-  );
+  return saveReceiptPhotos(reimbursementId, inputs);
 }
 
-/** Remove legacy Supabase objects when deleting old receipt rows. */
 export async function deleteStoredReceiptFiles(filePaths: string[]) {
-  const storagePaths = filePaths.filter(isSupabaseReceiptPath);
-  if (storagePaths.length > 0 && isSupabaseStorageEnabled()) {
-    await deleteReceiptObjects(storagePaths);
-  }
+  await deleteReceiptPhotoFiles(filePaths);
 }
 
 export async function deleteReceiptFilesForClaim(reimbursementId: string) {
-  if (process.env.VERCEL) return;
-  const dir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "receipts",
-    reimbursementId,
-  );
-  await rm(dir, { recursive: true, force: true });
+  await deleteLocalReceiptFolder(reimbursementId);
 }
