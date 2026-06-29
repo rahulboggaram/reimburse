@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { payoutInProgress } from "@/lib/claim-display-status";
 import { paymentApproverClaimFilter } from "@/lib/payment-approver";
 
 export const FAILED_PAYOUT_STATUSES = [
@@ -8,8 +9,8 @@ export const FAILED_PAYOUT_STATUSES = [
   "reversed",
 ] as const;
 
-/** Failed payout must fall within this window after approval (decidedAt). */
-export const PAYMENT_FAILURE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+/** After this long, an in-progress payout is treated as stuck (not completed). */
+export const ACTIVE_PAYOUT_GRACE_MS = 2 * 60 * 60 * 1000;
 
 export function isPayoutFailed(status: string | null | undefined) {
   return (
@@ -18,38 +19,57 @@ export function isPayoutFailed(status: string | null | undefined) {
   );
 }
 
-type PaymentFailureTiming = {
-  decidedAt: Date | null;
-  payoutStatus: string | null;
-  paidAt: Date | null;
+type FailedPaymentsClaim = {
   status: string;
-  updatedAt: Date;
+  paidAt: Date | null;
+  payoutStatus: string | null;
+  razorpayPayoutId: string | null;
   payoutInitiatedAt: Date | null;
+  decidedAt: Date | null;
+  createdAt: Date;
 };
 
-/** Payment failed on approval day or within 2 days after approval. */
-export function isRecentPaymentFailure(claim: PaymentFailureTiming) {
-  if (claim.status === "PAID" || claim.paidAt) return false;
-  if (!isPayoutFailed(claim.payoutStatus)) return false;
-  if (!claim.decidedAt) return false;
+function wasSentToRazorpay(claim: FailedPaymentsClaim) {
+  return Boolean(claim.razorpayPayoutId || claim.payoutInitiatedAt);
+}
 
-  const approvalAt = claim.decidedAt.getTime();
-  const failureAt = Math.max(
-    claim.updatedAt.getTime(),
-    claim.payoutInitiatedAt?.getTime() ?? 0,
-  );
-  if (failureAt < approvalAt) return false;
-  return failureAt - approvalAt <= PAYMENT_FAILURE_WINDOW_MS;
+function lastPayoutActivityAt(claim: FailedPaymentsClaim) {
+  if (claim.payoutInitiatedAt) return claim.payoutInitiatedAt.getTime();
+  if (claim.decidedAt) return claim.decidedAt.getTime();
+  return claim.createdAt.getTime();
+}
+
+/** Unpaid claim sent to Razorpay that failed or never finished paying out. */
+export function belongsInFailedPaymentsTab(claim: FailedPaymentsClaim) {
+  if (claim.status === "PAID" || claim.paidAt) return false;
+  if (claim.status !== "APPROVED") return false;
+  if (!wasSentToRazorpay(claim)) return false;
+
+  if (isPayoutFailed(claim.payoutStatus)) return true;
+
+  const elapsed = Date.now() - lastPayoutActivityAt(claim);
+  if (elapsed <= ACTIVE_PAYOUT_GRACE_MS) return false;
+
+  if (payoutInProgress(claim.payoutStatus) || !claim.payoutStatus) {
+    return true;
+  }
+
+  return false;
+}
+
+/** @deprecated Use belongsInFailedPaymentsTab */
+export function isRecentPaymentFailure(claim: FailedPaymentsClaim) {
+  return belongsInFailedPaymentsTab(claim);
 }
 
 export function filterQueueClaimsForTab<
-  T extends PaymentFailureTiming,
+  T extends FailedPaymentsClaim,
 >(claims: T[], tab: "waiting" | "approved" | "failed"): T[] {
   if (tab === "failed") {
-    return claims.filter(isRecentPaymentFailure);
+    return claims.filter(belongsInFailedPaymentsTab);
   }
-  if (tab === "waiting") {
-    return claims.filter((claim) => !isRecentPaymentFailure(claim));
+  if (tab === "waiting" || tab === "approved") {
+    return claims.filter((claim) => !belongsInFailedPaymentsTab(claim));
   }
   return claims;
 }
@@ -115,7 +135,7 @@ export function paymentWaitingWhereForSession(session: {
   return null;
 }
 
-/** Payment approver — Razorpay payout failed soon after approval. */
+/** Payment approver — sent to Razorpay but unpaid (failed or stuck). */
 export function approverPaymentFailedCandidatesWhere(
   sessionId: string,
 ): Prisma.ReimbursementWhereInput {
@@ -125,15 +145,16 @@ export function approverPaymentFailedCandidatesWhere(
       {
         status: "APPROVED",
         paidAt: null,
-        decidedAt: { not: null },
-        razorpayPayoutId: { not: null },
-        payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] },
+        OR: [
+          { razorpayPayoutId: { not: null } },
+          { payoutInitiatedAt: { not: null } },
+        ],
       },
     ],
   };
 }
 
-/** Admin submit-and-pay claims with a recent Razorpay failure. */
+/** Admin submit-and-pay claims sent to Razorpay but unpaid. */
 export function adminSelfServiceFailedCandidatesWhere(
   adminId: string,
 ): Prisma.ReimbursementWhereInput {
@@ -143,9 +164,10 @@ export function adminSelfServiceFailedCandidatesWhere(
     paymentApproverId: adminId,
     status: "APPROVED",
     paidAt: null,
-    decidedAt: { not: null },
-    razorpayPayoutId: { not: null },
-    payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] },
+    OR: [
+      { razorpayPayoutId: { not: null } },
+      { payoutInitiatedAt: { not: null } },
+    ],
   };
 }
 

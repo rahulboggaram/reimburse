@@ -17,7 +17,7 @@ function emptyStateContent(tab: QueueTab, role: string | undefined) {
       return {
         title: "No failed payments",
         description:
-          "Claims where Razorpay payout failed within 2 days of approval will appear here.",
+          "Claims sent to Razorpay that failed or never finished paying out will appear here.",
       };
     }
     return {
