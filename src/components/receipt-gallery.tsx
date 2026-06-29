@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { textLinkClassName } from "@/components/text-link";
 import { LoadingDots } from "@/components/ui/loading-dots";
+import {
+  loadReceiptPreviewUrl,
+  openReceiptInNewTab,
+} from "@/lib/compress-receipt-image";
 import { cn } from "@/lib/utils";
 import { isDirectReceiptUrl } from "@/lib/receipt-url";
 
@@ -87,29 +91,21 @@ async function loadReceiptSrc(receipt: Receipt): Promise<string | null> {
   const inFlight = receiptLoadPromises.get(receipt.id);
   if (inFlight) return inFlight;
 
-  const promise = fetch(receipt.url, { credentials: "include", cache: "no-store" })
-    .then(async (response) => {
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        throw new Error(body?.error ?? "Could not load receipt");
+  const promise = loadReceiptPreviewUrl(
+    { url: receipt.url, mimeType: receipt.mimeType },
+    { maxAttempts: needsApiFetch(receipt) ? 8 : 3 },
+  )
+    .then((result) => {
+      if ("error" in result) {
+        return instant ?? null;
       }
-      const type = response.headers.get("content-type") ?? "";
-      if (type.includes("application/json")) {
-        throw new Error("Receipt photo is missing");
+      if (!result.url) {
+        return instant ?? null;
       }
-      return response.blob();
+      receiptPreviewCache.set(receipt.id, result.url);
+      return result.url;
     })
-    .then((blob) => {
-      if (blob.size === 0) {
-        throw new Error("Receipt photo is empty");
-      }
-      const objectUrl = URL.createObjectURL(blob);
-      receiptPreviewCache.set(receipt.id, objectUrl);
-      return objectUrl;
-    })
-    .catch(() => instant)
+    .catch(() => instant ?? null)
     .finally(() => {
       receiptLoadPromises.delete(receipt.id);
     });
@@ -180,6 +176,43 @@ function ReceiptImageLoader(props: { variant: "thumbnail" | "lightbox" }) {
   );
 }
 
+function ReceiptImageError(props: {
+  receipt: Receipt;
+  compact?: boolean;
+}) {
+  return (
+    <span className="flex size-full flex-col items-center justify-center gap-1 px-1 text-center">
+      <span
+        className={cn(
+          "font-medium text-zinc-600",
+          props.compact ? "text-[10px]" : "text-xs",
+        )}
+      >
+        Couldn&apos;t preview
+      </span>
+      {props.receipt.url ? (
+        <button
+          type="button"
+          className={cn(
+            "text-blue-600 underline",
+            props.compact ? "text-[10px]" : "text-xs",
+          )}
+          onClick={(event) => {
+            event.stopPropagation();
+            void openReceiptInNewTab({
+              url: props.receipt.url,
+              mimeType: props.receipt.mimeType,
+              fileName: props.receipt.fileName,
+            });
+          }}
+        >
+          Open photo
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
 function ReceiptImage(props: {
   receipt: Receipt;
   className: string;
@@ -240,26 +273,24 @@ function ReceiptImage(props: {
     return () => {
       cancelled = true;
     };
-  }, [
-    props.receipt.id,
-    props.receipt.url,
-    props.receipt.previewFallbackUrl,
-    props.onStatusChange,
-  ]);
+  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl]);
 
-  if (failed && !src) {
+  if (failed) {
     return (
-      <span className="flex size-full items-center justify-center px-1 text-center text-[10px] font-medium text-zinc-600">
-        Unavailable
-      </span>
+      <ReceiptImageError
+        receipt={props.receipt}
+        compact={props.loader === "thumbnail"}
+      />
     );
   }
 
-  const showLoader = !src || !decoded;
+  const showLoader = Boolean(src) && !decoded;
 
   return (
     <span className="relative block size-full overflow-hidden">
-      {showLoader ? (
+      {!src ? (
+        <ReceiptImageLoader variant={props.loader ?? "thumbnail"} />
+      ) : showLoader ? (
         <ReceiptImageLoader variant={props.loader ?? "thumbnail"} />
       ) : null}
       {src ? (
@@ -279,6 +310,7 @@ function ReceiptImage(props: {
           }}
           onError={() => {
             setFailed(true);
+            setDecoded(true);
             props.onStatusChange?.("error");
           }}
         />
@@ -355,14 +387,19 @@ function ReceiptLightbox(props: {
             <p className="text-sm font-medium text-zinc-900">
               {viewReceipt.fileName ?? "PDF receipt"}
             </p>
-            <a
-              href={viewReceipt.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn("mt-3 inline-block text-sm", textLinkClassName)}
+            <button
+              type="button"
+              className={cn("mt-3 text-sm", textLinkClassName)}
+              onClick={() =>
+                void openReceiptInNewTab({
+                  url: viewReceipt.url,
+                  mimeType: viewReceipt.mimeType,
+                  fileName: viewReceipt.fileName,
+                })
+              }
             >
               Open PDF
-            </a>
+            </button>
           </div>
         )}
       </div>

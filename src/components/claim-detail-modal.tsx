@@ -355,7 +355,9 @@ export function ClaimDetailModal(props: {
     (receiptsTotal > 0 &&
       galleryReceipts.some(
         (receipt) =>
-          receipt.id.startsWith("placeholder-") || !receipt.url,
+          receipt.id.startsWith("placeholder-") ||
+          (!receipt.url &&
+            !("previewFallbackUrl" in receipt && receipt.previewFallbackUrl)),
       ));
   const employeeRole = claim.employee?.role
     ? formatRole(claim.employee.role)

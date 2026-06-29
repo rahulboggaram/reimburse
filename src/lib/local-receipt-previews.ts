@@ -85,3 +85,16 @@ export function clearLocalReceiptPreviews(claimId: string) {
     // ignore
   }
 }
+
+/** Move stashed previews from a pending temp id to the real claim id after submit. */
+export function migrateLocalReceiptPreviews(fromClaimId: string, toClaimId: string) {
+  if (typeof window === "undefined" || fromClaimId === toClaimId) return;
+  try {
+    const raw = sessionStorage.getItem(storageKey(fromClaimId));
+    if (!raw) return;
+    sessionStorage.setItem(storageKey(toClaimId), raw);
+    sessionStorage.removeItem(storageKey(fromClaimId));
+  } catch {
+    // ignore
+  }
+}

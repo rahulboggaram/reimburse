@@ -25,7 +25,10 @@ import {
   refreshFormBootstrapInBackground,
 } from "@/lib/admin-fetch";
 import { fetchMyClaims } from "@/lib/fetch-own-claims";
-import { stashLocalReceiptPreviews } from "@/lib/local-receipt-previews";
+import {
+  migrateLocalReceiptPreviews,
+  stashLocalReceiptPreviews,
+} from "@/lib/local-receipt-previews";
 import {
   isReceiptFileTooLarge,
   receiptStillTooLargeError,
@@ -200,7 +203,7 @@ export function ReimbursementForm(props: {
     });
   }
 
-  async function submitClaimInstantly() {
+  function submitClaimInstantly() {
     const parsedAmount = Number.parseFloat(amount);
     const formData = buildClaimFormData({
       amount: parsedAmount,
@@ -239,43 +242,49 @@ export function ReimbursementForm(props: {
       prependOptimisticClaimToCache(meUser.id, pending);
     }
 
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(url, {
-        method,
-        body: formData,
-      });
-      const created = await readJson<{ id: string }>(response);
-
-      if (tempId && meUser?.id) {
-        resolvePendingClaimSubmit(meUser.id, tempId);
-      }
-      navigateAfterSubmit();
-
-      if (created.id && receipts.length > 0) {
-        void stashLocalReceiptPreviews(created.id, receipts);
-      }
-      if (meUser?.id) {
-        void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
-      }
-    } catch (err) {
-      if (tempId && meUser?.id) {
-        failPendingClaimSubmit(
-          meUser.id,
-          tempId,
-          err instanceof Error
-            ? err.message
-            : "Could not save claim. Check your details and try again.",
-        );
-      }
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not save claim. Check your details and try again.",
-      );
-    } finally {
-      setIsSubmitting(false);
+    const previewClaimId = tempId ?? props.claimId;
+    if (previewClaimId && receipts.length > 0) {
+      void stashLocalReceiptPreviews(previewClaimId, receipts);
     }
+
+    setIsSubmitting(true);
+    navigateAfterSubmit();
+
+    void (async () => {
+      try {
+        const response = await fetch(url, {
+          method,
+          body: formData,
+          keepalive: true,
+        });
+        const created = await readJson<{ id: string }>(response);
+
+        if (tempId && created.id) {
+          migrateLocalReceiptPreviews(tempId, created.id);
+        } else if (created.id && receipts.length > 0) {
+          void stashLocalReceiptPreviews(created.id, receipts);
+        }
+
+        if (tempId && meUser?.id) {
+          resolvePendingClaimSubmit(meUser.id, tempId);
+        }
+        if (meUser?.id) {
+          void fetchMyClaims(meUser.id, { fresh: true }).catch(() => {});
+        }
+      } catch (err) {
+        if (tempId && meUser?.id) {
+          failPendingClaimSubmit(
+            meUser.id,
+            tempId,
+            err instanceof Error
+              ? err.message
+              : "Could not save claim. Check your details and try again.",
+          );
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   }
 
   async function submitClaim() {
