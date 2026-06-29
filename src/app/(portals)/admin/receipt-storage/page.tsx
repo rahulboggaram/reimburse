@@ -43,11 +43,7 @@ export default function AdminReceiptStoragePage() {
     <div className="space-y-6">
       <PageHeading
         title="Receipt photos"
-        description={
-          status?.stats.storageBackend === "supabase"
-            ? "Phone-sized receipts (under ~900 KB) are saved in the database for reliable previews. Larger photos use Supabase Storage."
-            : "Receipts are stored in the database until Supabase Storage env vars are set on Vercel."
-        }
+        description="Receipt photos are stored in the database and served through /api/receipts while you are signed in."
       />
 
       {error ? (

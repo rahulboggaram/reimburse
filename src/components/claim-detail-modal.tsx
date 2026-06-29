@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMe } from "@/components/me-provider";
 import { ClaimTimeline } from "@/components/claim-timeline";
 import { ReceiptGallery } from "@/components/receipt-gallery";
@@ -25,11 +25,6 @@ import {
 } from "@/lib/payout-sync-client";
 import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 import { canDecideReimbursement } from "@/lib/claim-decide-access";
-import {
-  readLocalReceiptPreviews,
-  readLocalReceiptPreviewsAsync,
-  type LocalReceiptPreview,
-} from "@/lib/local-receipt-previews";
 
 function payoutFailed(status: string | null) {
   return (
@@ -269,70 +264,11 @@ export function ClaimDetailModal(props: {
 
   const resolvedClaim = detailClaim ?? props.claim;
 
-  const [localReceiptPreviews, setLocalReceiptPreviews] = useState<
-    LocalReceiptPreview[]
-  >([]);
-
-  useEffect(() => {
-    if (!resolvedClaim || !props.open) {
-      setLocalReceiptPreviews([]);
-      return;
-    }
-
-    const sync = readLocalReceiptPreviews(resolvedClaim.id);
-    if (sync?.length) {
-      setLocalReceiptPreviews(sync);
-    }
-
-    let cancelled = false;
-    void readLocalReceiptPreviewsAsync(resolvedClaim.id).then((rows) => {
-      if (cancelled || !rows?.length) return;
-      setLocalReceiptPreviews(rows);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvedClaim?.id, props.open]);
-
-  const galleryReceipts = useMemo(() => {
-    if (!resolvedClaim) return [];
-
-    const expected = claimReceiptCount(resolvedClaim);
-    const loaded = resolvedClaim.receipts;
-    const count = Math.max(expected, loaded.length, localReceiptPreviews.length);
-
-    if (count === 0) return [];
-
-    return Array.from({ length: count }, (_, index) => {
-      const loadedReceipt = loaded[index];
-      const local = localReceiptPreviews[index];
-
-      if (loadedReceipt?.url) {
-        return {
-          ...loadedReceipt,
-          previewFallbackUrl: local?.url,
-        };
-      }
-
-      if (local) {
-        return {
-          id: `local-${resolvedClaim.id}-${index}`,
-          url: local.url,
-          fileName: local.fileName,
-          mimeType: local.mimeType,
-          previewFallbackUrl: local.url,
-        };
-      }
-
-      return {
-        id: `placeholder-${resolvedClaim.id}-${index}`,
-        url: "",
-        fileName: `Receipt ${index + 1}`,
-        mimeType: "image/jpeg",
-      };
-    });
-  }, [resolvedClaim, localReceiptPreviews]);
+  const galleryReceipts = resolvedClaim?.receipts ?? [];
+  const receiptsStillLoading =
+    loadingDetail &&
+    claimReceiptCount(resolvedClaim ?? props.claim!) > 0 &&
+    galleryReceipts.length === 0;
 
   if (!props.claim) return null;
 
@@ -372,15 +308,6 @@ export function ClaimDetailModal(props: {
     !payoutInProgress(claim.payoutStatus);
 
   const receiptsTotal = claimReceiptCount(claim);
-  const receiptsStillLoading =
-    receiptsTotal > 0 &&
-    galleryReceipts.every(
-      (receipt) =>
-        receipt.id.startsWith("placeholder-") ||
-        receipt.id.startsWith("local-") ||
-        (!receipt.url && !("previewFallbackUrl" in receipt && receipt.previewFallbackUrl)),
-    ) &&
-    loadingDetail;
   const employeeRole = claim.employee?.role
     ? formatRole(claim.employee.role)
     : null;
@@ -467,12 +394,7 @@ export function ClaimDetailModal(props: {
         {!receiptsStillLoading &&
         receiptsTotal > 0 &&
         galleryReceipts.length > 0 &&
-        galleryReceipts.every(
-          (receipt) =>
-            receipt.id.startsWith("placeholder-") ||
-            (!receipt.url &&
-              !("previewFallbackUrl" in receipt && receipt.previewFallbackUrl)),
-        ) ? (
+        galleryReceipts.every((receipt) => !receipt.url) ? (
           <p
             className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
             role="status"

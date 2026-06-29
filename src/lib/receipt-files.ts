@@ -14,11 +14,8 @@ import { inferReceiptMimeType } from "@/lib/receipt-mime";
 import { assertValidStoredReceiptDataUrl } from "@/lib/receipt-content-parse";
 import { bufferToDataUrl, isSupabaseReceiptPath } from "@/lib/receipt-store";
 import {
-  buildReceiptObjectPath,
   deleteReceiptObjects,
-  downloadReceiptObject,
   isSupabaseStorageEnabled,
-  uploadReceiptObject,
 } from "@/lib/supabase-storage";
 
 /** Vercel serverless request body limit is ~4.5 MB — stay under that total. */
@@ -122,18 +119,13 @@ export async function saveReceiptFiles(
   return saveReceiptInputs(reimbursementId, inputs);
 }
 
-async function normalizeReceiptInput(
-  input: ReceiptInput,
-  options?: { objectStorage?: boolean },
-) {
+async function normalizeReceiptInput(input: ReceiptInput) {
   const declaredMime =
     inferReceiptMimeType({ type: input.type, name: input.name }) ||
     "application/octet-stream";
-  const normalized = await normalizeReceiptImageBuffer(
-    input.buffer,
-    declaredMime,
-    { forStorage: true, objectStorage: options?.objectStorage },
-  );
+  const normalized = await normalizeReceiptImageBuffer(input.buffer, declaredMime, {
+    forStorage: true,
+  });
   const buffer =
     normalized.buffer.length > 0 ? normalized.buffer : input.buffer;
   const mimeType =
@@ -148,63 +140,7 @@ async function normalizeReceiptInput(
   };
 }
 
-async function saveToSupabaseStorage(
-  reimbursementId: string,
-  inputs: ReceiptInput[],
-): Promise<SavedReceipt[]> {
-  return Promise.all(
-    inputs.map(async (input) => {
-      const normalized = await normalizeReceiptInput(input, {
-        objectStorage: true,
-      });
-      if (normalized.buffer.length > MAX_TOTAL_UPLOAD_BYTES) {
-        throw new Error(
-          "Photo is too large after compression. Try a smaller image.",
-        );
-      }
-
-      const ext =
-        EXT_BY_MIME[normalized.mimeType] ?? (path.extname(input.name) || ".bin");
-      const storedName = `${randomUUID()}${ext}`;
-      const objectPath = buildReceiptObjectPath(reimbursementId, storedName);
-
-      await uploadReceiptObject(
-        objectPath,
-        normalized.buffer,
-        normalized.mimeType,
-      );
-
-      try {
-        const verified = await downloadReceiptObject(objectPath);
-        if (verified.length === 0) {
-          throw new Error("Uploaded receipt is empty in storage.");
-        }
-      } catch (verifyErr) {
-        console.error("receipt storage verify failed; saving to database", {
-          reimbursementId,
-          objectPath,
-          verifyErr,
-        });
-        const filePath = bufferToDataUrl(normalized.buffer, normalized.mimeType);
-        assertValidStoredReceiptDataUrl(filePath, normalized.buffer.length);
-        return {
-          filePath,
-          fileName: normalized.fileName,
-          mimeType: normalized.mimeType,
-          sizeBytes: normalized.buffer.length,
-        };
-      }
-
-      return {
-        filePath: objectPath,
-        fileName: normalized.fileName,
-        mimeType: normalized.mimeType,
-        sizeBytes: normalized.buffer.length,
-      };
-    }),
-  );
-}
-
+/** Save bytes in the database as a data URL (production on Vercel). */
 async function saveToDatabaseDataUrls(
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
@@ -228,37 +164,15 @@ async function saveToDatabaseDataUrls(
   );
 }
 
-/** Max per-file size stored as a database data URL on Vercel (reliable previews). */
-const VERCEL_DATABASE_RECEIPT_BYTES = 900_000;
-
+/**
+ * Save receipt photos.
+ * Production: database (simple, works in incognito, no external storage).
+ * Local dev: files under public/uploads.
+ */
 export async function saveReceiptInputs(
-  reimbursementId: string,
+  _reimbursementId: string,
   inputs: ReceiptInput[],
 ): Promise<SavedReceipt[]> {
-  const fitsDatabaseOnVercel =
-    Boolean(process.env.VERCEL) &&
-    inputs.length > 0 &&
-    inputs.every((input) => input.size <= VERCEL_DATABASE_RECEIPT_BYTES);
-
-  if (fitsDatabaseOnVercel) {
-    return saveToDatabaseDataUrls(inputs);
-  }
-
-  if (isSupabaseStorageEnabled()) {
-    try {
-      return await saveToSupabaseStorage(reimbursementId, inputs);
-    } catch (err) {
-      console.error("supabase storage upload failed; falling back to database", {
-        reimbursementId,
-        err,
-      });
-      if (process.env.VERCEL) {
-        return saveToDatabaseDataUrls(inputs);
-      }
-      throw err;
-    }
-  }
-
   if (process.env.VERCEL) {
     return saveToDatabaseDataUrls(inputs);
   }
@@ -268,7 +182,7 @@ export async function saveReceiptInputs(
     "public",
     "uploads",
     "receipts",
-    reimbursementId,
+    _reimbursementId,
   );
   await mkdir(dir, { recursive: true });
 
@@ -280,7 +194,7 @@ export async function saveReceiptInputs(
       const storedName = `${randomUUID()}${ext}`;
       const absolutePath = path.join(dir, storedName);
       await writeFile(absolutePath, normalized.buffer);
-      const filePath = `/uploads/receipts/${reimbursementId}/${storedName}`;
+      const filePath = `/uploads/receipts/${_reimbursementId}/${storedName}`;
       return {
         filePath,
         fileName: normalized.fileName,
@@ -291,6 +205,7 @@ export async function saveReceiptInputs(
   );
 }
 
+/** Remove legacy Supabase objects when deleting old receipt rows. */
 export async function deleteStoredReceiptFiles(filePaths: string[]) {
   const storagePaths = filePaths.filter(isSupabaseReceiptPath);
   if (storagePaths.length > 0 && isSupabaseStorageEnabled()) {
@@ -299,9 +214,6 @@ export async function deleteStoredReceiptFiles(filePaths: string[]) {
 }
 
 export async function deleteReceiptFilesForClaim(reimbursementId: string) {
-  if (isSupabaseStorageEnabled()) {
-    return;
-  }
   if (process.env.VERCEL) return;
   const dir = path.join(
     process.cwd(),
