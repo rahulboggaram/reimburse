@@ -1,11 +1,16 @@
 "use client";
 
 import type { SerializedClaim } from "@/lib/claim-types";
+import { TimelineCheckMark } from "@/components/timeline-check-mark";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   isAdminLedPayment,
   isAdminSelfServiceClaim,
   payoutInProgress,
 } from "@/lib/claim-display-status";
+import { formatDisplayDateTime } from "@/lib/dates";
+import { toTitleCase } from "@/lib/user-profile";
+import { cn } from "@/lib/utils";
 
 function payoutFailed(status: string | null | undefined) {
   return (
@@ -68,10 +73,6 @@ function razorpayTimelineStep(claim: SerializedClaim): TimelineStep {
     visual: "awaiting",
   };
 }
-import { TimelineCheckMark } from "@/components/timeline-check-mark";
-import { formatDisplayDateTime } from "@/lib/dates";
-import { toTitleCase } from "@/lib/user-profile";
-import { cn } from "@/lib/utils";
 
 type VisualState = "done" | "awaiting" | "upcoming" | "rejected";
 
@@ -338,7 +339,21 @@ function TimelineDot(props: { visual: VisualState }) {
   );
 }
 
-export function ClaimTimeline(props: { claim: SerializedClaim }) {
+export function ClaimTimeline(props: { claim: SerializedClaim; loading?: boolean }) {
+  if (props.loading) {
+    return (
+      <div
+        className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-4"
+        aria-busy
+        aria-label="Loading claim timeline"
+      >
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-4/5" />
+      </div>
+    );
+  }
+
   const steps = buildTimelineSteps(props.claim);
 
   return (

@@ -12,6 +12,7 @@ import { EmployeeEmptyState } from "@/components/employee-empty-state";
 import { RejectedClaimsSection } from "@/components/rejected-claims-section";
 import { ClaimSubmitRecoveryBanner } from "@/components/claim-submit-recovery-banner";
 import { Card } from "@/components/ui/card";
+import { ClaimsTableLoadingSkeleton } from "@/components/claims-table-skeleton";
 import type { SerializedClaim } from "@/lib/claim-types";
 import { PageHeading } from "@/components/page-heading";
 import { canViewOwnReimbursements } from "@/lib/access-roles";
@@ -28,13 +29,7 @@ import {
 } from "@/lib/use-payout-watch-polling";
 
 function MyClaimsLoadingSkeleton() {
-  return (
-    <Card className="overflow-hidden p-0">
-      <div className="h-10 animate-pulse bg-zinc-50" />
-      <div className="h-14 animate-pulse border-t border-zinc-100" />
-      <div className="h-14 animate-pulse border-t border-zinc-100" />
-    </Card>
-  );
+  return <ClaimsTableLoadingSkeleton rows={2} />;
 }
 
 export default function MyClaimsPage() {

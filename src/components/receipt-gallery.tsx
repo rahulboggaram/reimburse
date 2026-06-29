@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { textLinkClassName } from "@/components/text-link";
-import { LoadingDots } from "@/components/ui/loading-dots";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type Receipt = {
@@ -20,11 +20,7 @@ function ReceiptPhoto(props: {
   const [broken, setBroken] = useState(false);
 
   if (!props.receipt.url) {
-    return (
-      <span className="flex size-full items-center justify-center bg-zinc-100 text-zinc-500">
-        <LoadingDots />
-      </span>
-    );
+    return <Skeleton className="size-full rounded-none" />;
   }
 
   if (broken) {
@@ -116,16 +112,13 @@ export function ReceiptGallery(props: {
 
   if (props.loading || props.receipts.length === 0) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-2" aria-busy={props.loading}>
         <p className="text-xs font-medium text-zinc-500">{title}</p>
-        <div
+        <Skeleton
           className={cn(
-            "flex items-center justify-center rounded-lg border border-zinc-200 bg-zinc-100 text-zinc-500",
             props.compact ? "size-16" : "aspect-[4/3] w-full max-w-[8rem]",
           )}
-        >
-          <LoadingDots />
-        </div>
+        />
       </div>
     );
   }

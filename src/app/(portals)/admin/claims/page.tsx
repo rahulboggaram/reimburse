@@ -6,6 +6,7 @@ import {
   ApprovalsTableRow,
 } from "@/components/approvals-table";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
+import { ClaimsTableLoadingSkeleton } from "@/components/claims-table-skeleton";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -101,7 +102,7 @@ export default function AdminClaimsPage() {
       </Card>
 
       {loading && claims.length === 0 ? (
-        <p className="text-sm text-zinc-500">Loading reimbursements…</p>
+        <ClaimsTableLoadingSkeleton rows={4} />
       ) : filtered.length === 0 ? (
         <Card>
           <p className="text-sm text-zinc-600">No reimbursements found.</p>

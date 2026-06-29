@@ -8,6 +8,7 @@ import {
 } from "@/components/approvals-table";
 import { useMe } from "@/components/me-provider";
 import { ClaimDetailModal } from "@/components/claim-detail-modal";
+import { ClaimsTableLoadingSkeleton } from "@/components/claims-table-skeleton";
 import { Card } from "@/components/ui/card";
 import { SegmentControl } from "@/components/segment-control";
 import type { SerializedClaim } from "@/lib/claim-types";
@@ -436,7 +437,7 @@ export default function ManagerPendingPage() {
       ) : null}
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <ClaimsTableLoadingSkeleton rows={4} />
       ) : claims.length === 0 ? (
         <ApprovalsEmptyState tab={tab} role={user?.role} />
       ) : (

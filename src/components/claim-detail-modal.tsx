@@ -23,8 +23,13 @@ import {
   refreshClaimPayoutFromServer,
   registerPayoutWatch,
 } from "@/lib/payout-sync-client";
-import { RejectedClaimActions } from "@/components/rejected-claim-actions";
+import {
+  claimDetailReady,
+  isClaimDetailContentLoading,
+} from "@/lib/claim-detail-loading";
+import { Skeleton } from "@/components/ui/skeleton";
 import { canDecideReimbursement } from "@/lib/claim-decide-access";
+import { RejectedClaimActions } from "@/components/rejected-claim-actions";
 
 function payoutFailed(status: string | null) {
   return (
@@ -33,10 +38,6 @@ function payoutFailed(status: string | null) {
     status === "cancelled" ||
     status === "reversed"
   );
-}
-
-function claimDetailReady(claim: SerializedClaim) {
-  return Boolean(claim.branch?.name?.trim());
 }
 
 function claimReceiptsReady(claim: SerializedClaim) {
@@ -273,6 +274,7 @@ export function ClaimDetailModal(props: {
   if (!props.claim) return null;
 
   const claim = resolvedClaim ?? props.claim;
+  const contentLoading = isClaimDetailContentLoading(claim, loadingDetail);
 
   function payClaim() {
     setError(null);
@@ -358,29 +360,39 @@ export function ClaimDetailModal(props: {
         </p>
       }
     >
-      <div className="space-y-8">
+      <div className="space-y-8" aria-busy={contentLoading}>
         <div>
-          <div className="space-y-1 pt-4">
-            <p className="text-sm font-medium leading-snug text-zinc-900">
-              {toTitleCase(claim.employeeName)}
-            </p>
-            <p className="text-sm text-zinc-600">
-              {employeeRole && claim.branch?.name?.trim()
-                ? `${claim.branch.name} · ${employeeRole}`
-                : claim.branch?.name?.trim() || employeeRole || ""}
-            </p>
-          </div>
+          {contentLoading ? (
+            <div className="space-y-3 pt-4">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-4 w-52" />
+              <Skeleton className="mt-8 h-4 w-full" />
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1 pt-4">
+                <p className="text-sm font-medium leading-snug text-zinc-900">
+                  {toTitleCase(claim.employeeName)}
+                </p>
+                <p className="text-sm text-zinc-600">
+                  {employeeRole && claim.branch?.name?.trim()
+                    ? `${claim.branch.name} · ${employeeRole}`
+                    : claim.branch?.name?.trim() || employeeRole || ""}
+                </p>
+              </div>
 
-          <div className="mt-8">
-            <p className="text-sm leading-relaxed text-zinc-600">
-              {claim.description.trim()
-                ? `${claim.category} · ${claim.description}`
-                : claim.category}
-            </p>
-          </div>
+              <div className="mt-8">
+                <p className="text-sm leading-relaxed text-zinc-600">
+                  {claim.description.trim()
+                    ? `${claim.category} · ${claim.description}`
+                    : claim.category}
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
-        <ClaimTimeline claim={claim} />
+        <ClaimTimeline claim={claim} loading={contentLoading} />
 
         <ReceiptGallery
           receipts={galleryReceipts}
