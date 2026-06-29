@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
+import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { canViewClaimReceipts } from "@/lib/receipt-access";
 import { isDatabaseReceiptPath } from "@/lib/receipt-store";
 import { receiptFileResponse } from "@/lib/receipt-content";
+import { withDbRetry } from "@/lib/db-retry";
 
 export const maxDuration = 30;
 
@@ -15,19 +17,21 @@ export async function GET(
     const session = await requireSession();
     if (session instanceof Response) return session;
 
-    const receipt = await prisma.reimbursementReceipt.findUnique({
-      where: { id },
-      include: {
-        reimbursement: {
-          select: {
-            id: true,
-            employeeId: true,
-            approverId: true,
-            employee: { select: { role: true } },
+    const receipt = await withDbRetry(() =>
+      prisma.reimbursementReceipt.findUnique({
+        where: { id },
+        include: {
+          reimbursement: {
+            select: {
+              id: true,
+              employeeId: true,
+              approverId: true,
+              employee: { select: { role: true } },
+            },
           },
         },
-      },
-    });
+      }),
+    );
 
     if (!receipt?.reimbursement) {
       return Response.json({ error: "Receipt not found" }, { status: 404 });
@@ -64,7 +68,10 @@ export async function GET(
 
     return receiptFileResponse(row.filePath, row.mimeType, row.fileName);
   } catch (err) {
-    console.error("receipt GET failed", err);
-    return Response.json({ error: "Receipt unavailable" }, { status: 500 });
+    return apiDbErrorResponse(
+      "receipts/[id]",
+      err,
+      "Receipt unavailable. Please try again.",
+    );
   }
 }

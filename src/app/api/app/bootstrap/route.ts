@@ -1,6 +1,8 @@
 import { requireSession } from "@/lib/auth-api";
+import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { describeClaimRoutingReadiness } from "@/lib/claim-routing";
 import { prisma } from "@/lib/db";
+import { withDbRetry } from "@/lib/db-retry";
 import { isReimbursementSubmitterRole } from "@/lib/access-roles";
 
 export async function GET() {
@@ -8,21 +10,23 @@ export async function GET() {
     const session = await requireSession();
     if (session instanceof Response) return session;
 
-    const [categories, user] = await Promise.all([
-      prisma.expenseCategory.findMany({
-        where: { active: true },
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: session.id },
-        select: {
-          role: true,
-          branchId: true,
-          branch: { select: { id: true, name: true, active: true } },
-        },
-      }),
-    ]);
+    const [categories, user] = await withDbRetry(() =>
+      Promise.all([
+        prisma.expenseCategory.findMany({
+          where: { active: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true },
+        }),
+        prisma.user.findUnique({
+          where: { id: session.id },
+          select: {
+            role: true,
+            branchId: true,
+            branch: { select: { id: true, name: true, active: true } },
+          },
+        }),
+      ]),
+    );
 
     const userBranch =
       user?.branchId && user.branch
@@ -54,10 +58,10 @@ export async function GET() {
       },
     );
   } catch (err) {
-    console.error("app/bootstrap failed", err);
-    return Response.json(
-      { error: "Could not load form options. Please refresh and try again." },
-      { status: 500 },
+    return apiDbErrorResponse(
+      "app/bootstrap",
+      err,
+      "Could not load form options. Please refresh and try again.",
     );
   }
 }

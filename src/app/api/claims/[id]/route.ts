@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { requireSession } from "@/lib/auth-api";
+import { apiDbErrorResponse } from "@/lib/api-db-error";
 import { claimInclude, serializeClaim } from "@/lib/claims";
 import { deleteReceiptFilesForClaim } from "@/lib/receipt-files";
 import { canPaymentApproverAccessClaim } from "@/lib/payment-approver";
+import { withDbRetry } from "@/lib/db-retry";
 import {
   canAccessAdminPortal,
   canAccessManagerPortal,
@@ -12,43 +14,53 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await context.params;
-  const session = await requireSession();
-  if (session instanceof Response) return session;
+  try {
+    const { id } = await context.params;
+    const session = await requireSession();
+    if (session instanceof Response) return session;
 
-  const claim = await prisma.reimbursement.findUnique({
-    where: { id },
-    include: claimInclude,
-  });
+    const claim = await withDbRetry(() =>
+      prisma.reimbursement.findUnique({
+        where: { id },
+        include: claimInclude,
+      }),
+    );
 
-  if (!claim) {
-    return Response.json({ error: "Claim not found" }, { status: 404 });
+    if (!claim) {
+      return Response.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    const isOwner = claim.employeeId === session.id;
+    const isAdmin = canAccessAdminPortal(session);
+    const isBranchManager =
+      canAccessManagerPortal(session) && claim.approverId === session.id;
+    const isPaymentApprover =
+      canAccessManagerPortal(session) &&
+      canPaymentApproverAccessClaim(session, claim);
+    const isAssignedApprover = isBranchManager || isPaymentApprover;
+
+    if (
+      !canAccessAdminPortal(session) &&
+      !canAccessManagerPortal(session) &&
+      !isOwner
+    ) {
+      return Response.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    if (!isOwner && !isAssignedApprover && !isAdmin) {
+      return Response.json({ error: "Claim not found" }, { status: 404 });
+    }
+
+    return Response.json(serializeClaim(claim), {
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  } catch (err) {
+    return apiDbErrorResponse(
+      "claims/[id]",
+      err,
+      "Could not load this claim. Please try again.",
+    );
   }
-
-  const isOwner = claim.employeeId === session.id;
-  const isAdmin = canAccessAdminPortal(session);
-  const isBranchManager =
-    canAccessManagerPortal(session) && claim.approverId === session.id;
-  const isPaymentApprover =
-    canAccessManagerPortal(session) &&
-    canPaymentApproverAccessClaim(session, claim);
-  const isAssignedApprover = isBranchManager || isPaymentApprover;
-
-  if (
-    !canAccessAdminPortal(session) &&
-    !canAccessManagerPortal(session) &&
-    !isOwner
-  ) {
-    return Response.json({ error: "Claim not found" }, { status: 404 });
-  }
-
-  if (!isOwner && !isAssignedApprover && !isAdmin) {
-    return Response.json({ error: "Claim not found" }, { status: 404 });
-  }
-
-  return Response.json(serializeClaim(claim), {
-    headers: { "Cache-Control": "private, no-store" },
-  });
 }
 
 export async function DELETE(
