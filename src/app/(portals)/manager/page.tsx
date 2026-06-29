@@ -41,9 +41,11 @@ type BulkActionSummary = {
   results: { claimId: string; employeeName: string; ok: boolean; error?: string }[];
 };
 
-type QueueTab = "waiting" | "approved";
+type QueueTab = "waiting" | "approved" | "failed";
 
-const TABS: QueueTab[] = ["waiting", "approved"];
+const BRANCH_MANAGER_TABS: QueueTab[] = ["waiting", "approved"];
+
+const PAYMENT_APPROVER_TABS: QueueTab[] = ["waiting", "approved", "failed"];
 
 const QUEUE_SEGMENTS: { id: QueueTab; label: string }[] = [
   { id: "waiting", label: "Waiting" },
@@ -53,7 +55,12 @@ const QUEUE_SEGMENTS: { id: QueueTab; label: string }[] = [
 const PAYMENT_APPROVER_SEGMENTS: { id: QueueTab; label: string }[] = [
   { id: "waiting", label: "Awaiting payment" },
   { id: "approved", label: "Sent to Razorpay" },
+  { id: "failed", label: "Failed payments" },
 ];
+
+function queueTabsForRole(role: string | undefined) {
+  return usesPaymentApproverTabs(role) ? PAYMENT_APPROVER_TABS : BRANCH_MANAGER_TABS;
+}
 
 function cacheKey(tab: QueueTab) {
   return `claims-pending-${tab}`;
@@ -176,7 +183,9 @@ export default function ManagerPendingPage() {
         });
       }
       void Promise.all(
-        TABS.filter((t) => t !== tab).map((t) => loadTab(t, true)),
+        queueTabsForRole(user?.role)
+          .filter((t) => t !== tab)
+          .map((t) => loadTab(t, true)),
       );
     },
     [loadTab, loadActionCounts, tab, applyTabPayload, wantsCounts],
@@ -340,13 +349,14 @@ export default function ManagerPendingPage() {
 
   useEffect(() => {
     if (!wantsCounts) return;
-    const other = TABS.find((t) => t !== tab);
+    const tabs = queueTabsForRole(user?.role);
+    const other = tabs.find((t) => t !== tab);
     if (!other || readTabCache(other)) return;
     const timer = window.setTimeout(() => {
       void fetchClientCache(cacheKey(other), () => fetchTab(other));
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [fetchTab, tab, wantsCounts]);
+  }, [fetchTab, tab, wantsCounts, user?.role]);
 
   function runBulk(
     endpoint: string,

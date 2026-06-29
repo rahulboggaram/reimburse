@@ -7,22 +7,41 @@ import {
 } from "@/lib/claims";
 import { adminApprovalQueueWhere } from "@/lib/claim-decide-access";
 import {
+  adminSelfServiceFailedCandidatesWhere,
   adminSelfServiceSentWhere,
+  approverPaymentFailedCandidatesWhere,
   approverPaymentSentWhere,
   approverPaymentWaitingWhere,
+  filterQueueClaimsForTab,
   orgPaymentWaitingWhere,
 } from "@/lib/claim-payment-queue";
 import { withDbRetry } from "@/lib/db-retry";
 import { claimNeedsPayoutSync, queuePayoutSync } from "@/lib/payouts";
 
-type QueueTab = "waiting" | "approved";
+type QueueTab = "waiting" | "approved" | "failed";
 
 const LIST_LIMIT = 300;
+
+function parseQueueTab(param: string | null): QueueTab {
+  if (param === "approved") return "approved";
+  if (param === "failed") return "failed";
+  return "waiting";
+}
 
 function queueWhere(
   session: { id: string; role: string; branchId?: string | null },
   tab: QueueTab,
 ): Prisma.ReimbursementWhereInput {
+  if (tab === "failed") {
+    if (session.role === "APPROVER") {
+      return approverPaymentFailedCandidatesWhere(session.id);
+    }
+    if (session.role === "ADMIN") {
+      return adminSelfServiceFailedCandidatesWhere(session.id);
+    }
+    return { id: "__none__" };
+  }
+
   if (session.role === "BRANCH_MANAGER") {
     if (tab === "waiting") {
       return { status: "PENDING", approverId: session.id };
@@ -60,7 +79,7 @@ function queueOrderBy(
   session: { role: string },
   tab: QueueTab,
 ): Prisma.ReimbursementOrderByWithRelationInput[] {
-  if (tab === "approved") {
+  if (tab === "approved" || tab === "failed") {
     // Match the Date column (expense date) so rows never look out of order.
     return [{ expenseDate: "desc" }, { createdAt: "desc" }];
   }
@@ -76,7 +95,7 @@ export async function GET(request: Request) {
     if (session instanceof Response) return session;
 
     const tabParam = new URL(request.url).searchParams.get("tab");
-    const tab: QueueTab = tabParam === "approved" ? "approved" : "waiting";
+    const tab = parseQueueTab(tabParam);
 
     const claims = await withDbRetry(() =>
       prisma.reimbursement.findMany({
@@ -87,9 +106,11 @@ export async function GET(request: Request) {
       }),
     );
 
-    queuePayoutSync(claims.filter(claimNeedsPayoutSync).map((c) => c.id));
+    const filtered = filterQueueClaimsForTab(claims, tab);
 
-    const serialized = claims.flatMap((claim) => {
+    queuePayoutSync(filtered.filter(claimNeedsPayoutSync).map((c) => c.id));
+
+    const serialized = filtered.flatMap((claim) => {
       try {
         return [serializeClaimPendingListItem(claim)];
       } catch (rowErr) {

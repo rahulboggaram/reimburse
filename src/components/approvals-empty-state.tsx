@@ -1,4 +1,4 @@
-type QueueTab = "waiting" | "approved";
+type QueueTab = "waiting" | "approved" | "failed";
 
 function usesPaymentApproverTabs(role: string | undefined) {
   return role === "APPROVER" || role === "ADMIN";
@@ -11,6 +11,13 @@ function emptyStateContent(tab: QueueTab, role: string | undefined) {
         title: "All caught up",
         description:
           "No reimbursements are waiting for payment approval right now.",
+      };
+    }
+    if (tab === "failed") {
+      return {
+        title: "No failed payments",
+        description:
+          "Claims where Razorpay payout failed within 2 days of approval will appear here.",
       };
     }
     return {

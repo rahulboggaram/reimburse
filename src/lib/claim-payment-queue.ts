@@ -8,6 +8,52 @@ export const FAILED_PAYOUT_STATUSES = [
   "reversed",
 ] as const;
 
+/** Failed payout must fall within this window after approval (decidedAt). */
+export const PAYMENT_FAILURE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+
+export function isPayoutFailed(status: string | null | undefined) {
+  return (
+    status != null &&
+    (FAILED_PAYOUT_STATUSES as readonly string[]).includes(status)
+  );
+}
+
+type PaymentFailureTiming = {
+  decidedAt: Date | null;
+  payoutStatus: string | null;
+  paidAt: Date | null;
+  status: string;
+  updatedAt: Date;
+  payoutInitiatedAt: Date | null;
+};
+
+/** Payment failed on approval day or within 2 days after approval. */
+export function isRecentPaymentFailure(claim: PaymentFailureTiming) {
+  if (claim.status === "PAID" || claim.paidAt) return false;
+  if (!isPayoutFailed(claim.payoutStatus)) return false;
+  if (!claim.decidedAt) return false;
+
+  const approvalAt = claim.decidedAt.getTime();
+  const failureAt = Math.max(
+    claim.updatedAt.getTime(),
+    claim.payoutInitiatedAt?.getTime() ?? 0,
+  );
+  if (failureAt < approvalAt) return false;
+  return failureAt - approvalAt <= PAYMENT_FAILURE_WINDOW_MS;
+}
+
+export function filterQueueClaimsForTab<
+  T extends PaymentFailureTiming,
+>(claims: T[], tab: "waiting" | "approved" | "failed"): T[] {
+  if (tab === "failed") {
+    return claims.filter(isRecentPaymentFailure);
+  }
+  if (tab === "waiting") {
+    return claims.filter((claim) => !isRecentPaymentFailure(claim));
+  }
+  return claims;
+}
+
 /** Payment approver queue — all approved branch claims except own and admin. */
 export function approverPaymentWaitingWhere(
   sessionId: string,
@@ -67,6 +113,40 @@ export function paymentWaitingWhereForSession(session: {
     return orgPaymentWaitingWhere(session.branchId);
   }
   return null;
+}
+
+/** Payment approver — Razorpay payout failed soon after approval. */
+export function approverPaymentFailedCandidatesWhere(
+  sessionId: string,
+): Prisma.ReimbursementWhereInput {
+  return {
+    AND: [
+      paymentApproverClaimFilter(sessionId),
+      {
+        status: "APPROVED",
+        paidAt: null,
+        decidedAt: { not: null },
+        razorpayPayoutId: { not: null },
+        payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] },
+      },
+    ],
+  };
+}
+
+/** Admin submit-and-pay claims with a recent Razorpay failure. */
+export function adminSelfServiceFailedCandidatesWhere(
+  adminId: string,
+): Prisma.ReimbursementWhereInput {
+  return {
+    employeeId: adminId,
+    approverId: adminId,
+    paymentApproverId: adminId,
+    status: "APPROVED",
+    paidAt: null,
+    decidedAt: { not: null },
+    razorpayPayoutId: { not: null },
+    payoutStatus: { in: [...FAILED_PAYOUT_STATUSES] },
+  };
 }
 
 /** Payment approver sent to RazorpayX — in progress or completed. */
