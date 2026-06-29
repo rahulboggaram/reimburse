@@ -169,7 +169,12 @@ export async function loadReceiptPreviewUrl(
     }
 
     const mimeType = previewMimeType(blob, receipt.mimeType);
-    const displayUrl = await blobToDisplayObjectUrl(blob, mimeType);
+    const displayUrl =
+      mimeType === "image/jpeg" ||
+      mimeType === "image/png" ||
+      mimeType === "image/webp"
+        ? URL.createObjectURL(blob)
+        : await blobToDisplayObjectUrl(blob, mimeType);
     if (displayUrl) {
       return { url: displayUrl, pending: false };
     }

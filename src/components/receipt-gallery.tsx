@@ -49,16 +49,11 @@ function resolveReceiptForView(
   return null;
 }
 
-const receiptPreviewCache = new Map<string, string>();
-const receiptLoadPromises = new Map<
-  string,
-  Promise<{ url: string | null; error?: string }>
->();
+function receiptApiPath(receipt: Receipt) {
+  return receipt.url.startsWith("/api/receipts/") ? receipt.url : null;
+}
 
 function getInstantPreviewSrc(receipt: Receipt): string | null {
-  const cached = receiptPreviewCache.get(receipt.id);
-  if (cached) return cached;
-
   if (
     receipt.previewFallbackUrl &&
     isDirectReceiptUrl(receipt.previewFallbackUrl)
@@ -73,24 +68,45 @@ function getInstantPreviewSrc(receipt: Receipt): string | null {
   return null;
 }
 
-function needsApiFetch(receipt: Receipt) {
-  return Boolean(receipt.url) && !isDirectReceiptUrl(receipt.url);
+function thumbnailInitialSrc(receipt: Receipt) {
+  return getInstantPreviewSrc(receipt) ?? receiptApiPath(receipt);
 }
+
+function fullQualityInitialSrc(receipt: Receipt) {
+  return receiptApiPath(receipt) ?? getInstantPreviewSrc(receipt);
+}
+
+function initialReceiptSrc(receipt: Receipt, quality: "thumbnail" | "full") {
+  return quality === "full"
+    ? fullQualityInitialSrc(receipt)
+    : thumbnailInitialSrc(receipt);
+}
+
+const receiptPreviewCache = new Map<string, string>();
+const receiptLoadPromises = new Map<
+  string,
+  Promise<{ url: string | null; error?: string }>
+>();
 
 async function loadReceiptSrc(
   receipt: Receipt,
 ): Promise<{ url: string | null; error?: string }> {
+  const apiPath = receiptApiPath(receipt);
+  if (apiPath) {
+    return { url: apiPath };
+  }
+
   const cached = receiptPreviewCache.get(receipt.id);
   if (cached) return { url: cached };
 
   const instant = getInstantPreviewSrc(receipt);
-  if (instant && !needsApiFetch(receipt)) {
+  if (instant) {
     receiptPreviewCache.set(receipt.id, instant);
     return { url: instant };
   }
 
   if (!receipt.url) {
-    return { url: instant };
+    return { url: null };
   }
 
   const inFlight = receiptLoadPromises.get(receipt.id);
@@ -98,19 +114,19 @@ async function loadReceiptSrc(
 
   const promise = loadReceiptPreviewUrl(
     { url: receipt.url, mimeType: receipt.mimeType },
-    { maxAttempts: needsApiFetch(receipt) ? 8 : 3 },
+    { maxAttempts: 4 },
   )
     .then((result) => {
       if ("error" in result) {
-        return { url: instant ?? null, error: result.message };
+        return { url: null, error: result.message };
       }
       if (!result.url) {
-        return { url: instant ?? null };
+        return { url: null };
       }
       receiptPreviewCache.set(receipt.id, result.url);
       return { url: result.url };
     })
-    .catch(() => ({ url: instant ?? null }))
+    .catch(() => ({ url: null }))
     .finally(() => {
       receiptLoadPromises.delete(receipt.id);
     });
@@ -123,6 +139,12 @@ function prefetchReceipts(receipts: Receipt[]) {
   for (const receipt of receipts) {
     if (!receipt.mimeType.startsWith("image/")) continue;
     if (isPlaceholderReceipt(receipt) && !receipt.previewFallbackUrl) continue;
+    const apiPath = receiptApiPath(receipt);
+    if (apiPath) {
+      const img = new Image();
+      img.src = apiPath;
+      continue;
+    }
     void loadReceiptSrc(receipt);
   }
 }
@@ -223,14 +245,14 @@ function ReceiptImage(props: {
   receipt: Receipt;
   className: string;
   loader?: "thumbnail" | "lightbox";
+  quality?: "thumbnail" | "full";
   onStatusChange?: (status: "loading" | "ready" | "pending" | "error") => void;
 }) {
-  const initialPreview = getInstantPreviewSrc(props.receipt);
-  const [src, setSrc] = useState<string | null>(initialPreview);
-  const [decoded, setDecoded] = useState(false);
-  const [isPreview, setIsPreview] = useState(
-    () => Boolean(initialPreview && needsApiFetch(props.receipt)),
+  const quality = props.quality ?? "thumbnail";
+  const [src, setSrc] = useState<string | null>(() =>
+    initialReceiptSrc(props.receipt, quality),
   );
+  const [decoded, setDecoded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
@@ -246,13 +268,18 @@ function ReceiptImage(props: {
     setDecoded(false);
     props.onStatusChange?.("loading");
 
-    const instant = getInstantPreviewSrc(props.receipt);
-    setSrc(instant);
-    setIsPreview(Boolean(instant && needsApiFetch(props.receipt)));
+    const startSrc = initialReceiptSrc(props.receipt, quality);
+    setSrc(startSrc);
 
-    if (!instant && !props.receipt.url && !props.receipt.previewFallbackUrl) {
+    if (!startSrc && !props.receipt.url && !props.receipt.previewFallbackUrl) {
       props.onStatusChange?.("pending");
       return;
+    }
+
+    if (startSrc) {
+      return () => {
+        cancelled = true;
+      };
     }
 
     void loadReceiptSrc(props.receipt)
@@ -262,29 +289,37 @@ function ReceiptImage(props: {
           setErrorMessage(resolved.error);
         }
         if (!resolved.url) {
-          if (!instant) {
-            setFailed(true);
-            props.onStatusChange?.("error");
-          }
+          setFailed(true);
+          props.onStatusChange?.("error");
           return;
         }
-        if (resolved.url !== instant) {
-          setIsPreview(false);
-          setSrc(resolved.url);
-        }
+        setSrc(resolved.url);
       })
       .catch(() => {
         if (cancelled) return;
-        if (!instant) {
-          setFailed(true);
-          props.onStatusChange?.("error");
-        }
+        setFailed(true);
+        props.onStatusChange?.("error");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl]);
+  }, [props.receipt.id, props.receipt.url, props.receipt.previewFallbackUrl, quality]);
+
+  function handleImageError() {
+    const fallback =
+      quality === "full"
+        ? getInstantPreviewSrc(props.receipt)
+        : receiptApiPath(props.receipt) ?? getInstantPreviewSrc(props.receipt);
+    if (fallback && src !== fallback) {
+      setDecoded(false);
+      setSrc(fallback);
+      return;
+    }
+    setFailed(true);
+    setDecoded(true);
+    props.onStatusChange?.("error");
+  }
 
   if (failed) {
     return (
@@ -296,13 +331,11 @@ function ReceiptImage(props: {
     );
   }
 
-  const showLoader = Boolean(src) && !decoded;
+  const showLoader = !src || !decoded;
 
   return (
     <span className="relative block size-full overflow-hidden">
-      {!src ? (
-        <ReceiptImageLoader variant={props.loader ?? "thumbnail"} />
-      ) : showLoader ? (
+      {showLoader ? (
         <ReceiptImageLoader variant={props.loader ?? "thumbnail"} />
       ) : null}
       {src ? (
@@ -311,20 +344,12 @@ function ReceiptImage(props: {
           src={src}
           alt={props.receipt.fileName ?? "Receipt"}
           decoding="async"
-          className={cn(
-            props.className,
-            isPreview && decoded && "blur-[2px] scale-[1.02]",
-            !decoded && "opacity-0",
-          )}
+          className={cn(props.className, !decoded && "opacity-0")}
           onLoad={() => {
             setDecoded(true);
             props.onStatusChange?.("ready");
           }}
-          onError={() => {
-            setFailed(true);
-            setDecoded(true);
-            props.onStatusChange?.("error");
-          }}
+          onError={handleImageError}
         />
       ) : null}
     </span>
@@ -392,6 +417,7 @@ function ReceiptLightbox(props: {
           <ReceiptImage
             receipt={viewReceipt}
             loader="lightbox"
+            quality="full"
             className="max-h-full max-w-full rounded-lg object-contain"
           />
         ) : (
@@ -496,9 +522,13 @@ export function ReceiptGallery(props: {
   if (count === 0 && props.receipts.length === 0) return null;
 
   const heading = props.title ?? "Receipt photos";
+  const hasDisplayableReceipt = props.receipts.some(
+    (receipt) =>
+      !isPlaceholderReceipt(receipt) || Boolean(receipt.previewFallbackUrl),
+  );
+
   const showLoadingTiles =
-    props.compact &&
-    (props.loading || (count > 0 && props.receipts.length === 0));
+    props.compact && !hasDisplayableReceipt && (props.loading || count > 0);
 
   if (showLoadingTiles) {
     return (
@@ -548,6 +578,13 @@ export function ReceiptGallery(props: {
             </li>
           ))}
         </ul>
+        {expanded ? (
+          <ReceiptLightbox
+            receipt={expanded}
+            allReceipts={props.receipts}
+            onClose={() => setExpanded(null)}
+          />
+        ) : null}
       </div>
     );
   }

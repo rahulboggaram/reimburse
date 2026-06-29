@@ -373,13 +373,17 @@ export function ClaimDetailModal(props: {
 
   const receiptsTotal = claimReceiptCount(claim);
   const receiptsStillLoading =
-    loadingDetail ||
-    (receiptsTotal > 0 &&
+    receiptsTotal > 0 &&
+    !galleryReceipts.some(
+      (receipt) =>
+        !receipt.id.startsWith("placeholder-") ||
+        ("previewFallbackUrl" in receipt && Boolean(receipt.previewFallbackUrl)),
+    ) &&
+    (loadingDetail ||
       galleryReceipts.some(
         (receipt) =>
-          receipt.id.startsWith("placeholder-") ||
-          (!receipt.url &&
-            !("previewFallbackUrl" in receipt && receipt.previewFallbackUrl)),
+          receipt.id.startsWith("placeholder-") &&
+          !("previewFallbackUrl" in receipt && receipt.previewFallbackUrl),
       ));
   const employeeRole = claim.employee?.role
     ? formatRole(claim.employee.role)
